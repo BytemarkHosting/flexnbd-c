@@ -82,17 +82,17 @@ void error(int consult_errno, int close_socket, const char* format, ...)
 	fprintf(stderr, "\n");
 	
 	if (pthread_equal(pthread_self(), server_thread_id))
-		pthread_exit((void*) 1);
-	else
 		exit(1);
+	else
+		pthread_exit((void*) 1);
 }
 
 #ifndef DEBUG
 #  define debug(msg, ...)
 #else
 #  include <sys/times.h>
-#  define debug(msg, ...) fprintf(stderr, "% 4d % 4d: " msg "\n" , \
-     (int) pthread_self(), (int) times(NULL), ##__VA_ARGS__)
+#  define debug(msg, ...) fprintf(stderr, "%08x %4d: " msg "\n" , \
+     (int) pthread_self(), (int) clock(), ##__VA_ARGS__)
 #endif
 
 #define CLIENT_ERROR(msg, ...) \
@@ -112,20 +112,35 @@ void* xmalloc(size_t size)
 	return p;
 }
 
+union mysockaddr {
+	unsigned short      family;
+	struct sockaddr     generic;
+        struct sockaddr_in  v4;
+        struct sockaddr_in6 v6;
+};
+
 struct ip_and_mask {
-	/* FIXME */
+	union mysockaddr ip;
+	int              mask;
 };
 
 struct mode_serve_params {
-	union { struct sockaddr     generic;
-	        struct sockaddr_in  v4;
-	        struct sockaddr_in6 v6; } bind_to;
-	struct ip_and_mask**             acl;
-	char*                            filename;
-	int                              tcp_backlog;
+	union mysockaddr     bind_to;
+	int                  acl_entries;
+	struct ip_and_mask** acl;
+	char*                filename;
+	int                  tcp_backlog;
 	
 	int     server;
 	int     threads;
+};
+
+struct mode_readwrite_params {
+	int                  writeNotRead;
+	union mysockaddr     connect_to;
+	off64_t              from;
+	off64_t              len;
+	int                  fd;
 };
 
 struct client_params {
@@ -139,6 +154,7 @@ struct client_params {
 
 union mode_params {
 	struct mode_serve_params serve;
+	struct mode_readwrite_params readwrite;
 };
 
 int writeloop(int filedes, const void *buffer, size_t size)
@@ -316,9 +332,56 @@ void* client_serve(void* client_uncast)
 }
 
 /* FIXME */
-int is_included_in_acl(struct ip_and_mask** list, struct sockaddr* test)
+static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
+
+int is_included_in_acl(int list_length, struct ip_and_mask** list, struct sockaddr* test)
 {
-	return 1;
+	int i;
+	
+	for (i=0; i < list_length; i++) {
+		struct ip_and_mask *entry = list[i];
+		int testbits;
+		char *raw_address1, *raw_address2;
+		
+		debug("checking acl entry %d", i);
+		
+		if (test->sa_family != entry->ip.family)
+			continue;
+		
+		if (test->sa_family == AF_INET) {
+			raw_address1 = (char*) 
+			  &((struct sockaddr_in*) test)->sin_addr;
+			raw_address2 = (char*) &entry->ip.v4.sin_addr;
+		}
+		else if (test->sa_family == AF_INET6) {
+			raw_address1 = (char*) 
+			  &((struct sockaddr_in6*) test)->sin6_addr;
+			raw_address2 = (char*) &entry->ip.v6.sin6_addr;
+		}
+		
+		for (testbits = entry->mask; testbits > 0; testbits -= 8) {
+			debug("testbits=%d, c1=%d, c2=%d", testbits, raw_address1[0], raw_address2[0]);
+			if (testbits >= 8) {
+				if (raw_address1[0] != raw_address2[0])
+					goto no_match;
+			}
+			else {
+				if ((raw_address1[0] & testmasks[testbits%8]) !=
+				    (raw_address2[0] & testmasks[testbits%8]) )
+				    	goto no_match;
+			}
+			
+			raw_address1++;
+			raw_address2++;
+		}
+		
+		return 1;
+		
+		no_match: ;
+		debug("no match");
+	}
+	
+	return 0;
 }
 
 void serve_open_socket(struct mode_serve_params* params)
@@ -354,7 +417,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		SERVER_ERROR_ON_FAILURE(client_socket, "accept() failed");
 		
 		if (params->acl && 
-		    !is_included_in_acl(params->acl, &client_address)) {
+		    !is_included_in_acl(params->acl_entries, params->acl, &client_address)) {
 			write(client_socket, "Access control error", 20);
 			close(client_socket);
 			continue;
@@ -373,21 +436,110 @@ void serve_accept_loop(struct mode_serve_params* params)
 	}
 }
 
-void serve(struct mode_serve_params* params)
+void do_serve(struct mode_serve_params* params)
 {
 	serve_open_socket(params);
 	serve_accept_loop(params);
+}
+
+void do_read(struct mode_readwrite_params* params)
+{
+	
+}
+
+void do_write(struct mode_readwrite_params* params)
+{
+	
+}
+
+#define IS_IP_VALID_CHAR(x) ( ((x) >= '0' && (x) <= '9' ) || \
+                              ((x) >= 'a' && (x) <= 'f')  || \
+                              ((x) >= 'A' && (x) <= 'F' ) || \
+                               (x) == ':' || (x) == '.'      \
+                            )
+int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
+{
+	char temp[64];
+	struct sockaddr_in *v4  = (struct sockaddr_in *) out;	
+	struct sockaddr_in6 *v6 = (struct sockaddr_in6 *) out;
+	
+	/* allow user to start with [ and end with any other invalid char */
+	{
+		int i=0, j=0;
+		if (src[i] == '[')
+			i++;
+		for (; i<64 && IS_IP_VALID_CHAR(src[i]); i++)
+			temp[j++] = src[i];
+		temp[j] = 0;
+	}
+	
+	debug("temp='%s'", temp);
+	
+	if (temp[0] == '0' && temp[1] == '\0') {
+		v4->sin_family = AF_INET;
+		v4->sin_addr.s_addr = INADDR_ANY;
+		return 1;
+	}
+
+	if (inet_pton(AF_INET, temp, &v4->sin_addr) == 1) {
+		out->sa_family = AF_INET;
+		return 1;
+	}
+	
+	if (inet_pton(AF_INET6, temp, &v6->sin6_addr) == 1) {
+		out->sa_family = AF_INET6;
+		return 1;
+	}
+	
+	return 0;
+}
+
+int parse_acl(struct ip_and_mask*** out, int max, char **entries)
+{
+	int i;
+	
+	if (max == 0) {
+		*out = NULL;
+		return 0;
+	}
+	
+	for (i = 0; i < max; i++) {
+#               define MAX_MASK_BITS (outentry->ip.family == AF_INET ? 32 : 128)
+		int j;
+		struct ip_and_mask* outentry = (*out)[i];
+		
+		if (parse_ip_to_sockaddr(&outentry->ip.generic, entries[i]) == 0)
+			return i;
+			
+		for (j=0; entries[i][j] && entries[i][j] != '/'; j++)
+			;
+		if (entries[i][j] == '/') {
+			outentry->mask = atoi(entries[i]+j+1);
+			if (outentry->mask < 1 || outentry->mask > MAX_MASK_BITS)
+				return i;
+		}
+		else
+			outentry->mask = MAX_MASK_BITS;
+#		undef MAX_MASK_BITS
+
+		debug("acl entry %d has mask %d", i, outentry->mask);
+	}
+	
+	return max;
 }
 
 void params_serve(
 	struct mode_serve_params* out, 
 	char* s_ip_address, 
 	char* s_port, 
-	char* s_file
+	char* s_file,
+	int acl_entries,
+	char** s_acl_entries
 )
 {
+	int parsed;
+	
 	out->tcp_backlog = 10; /* does this need to be settable? */
-	out->acl = NULL; /* ignore for now */
 	
 	if (s_ip_address == NULL)
 		SERVER_ERROR("No IP address supplied");
@@ -396,18 +548,16 @@ void params_serve(
 	if (s_file == NULL)
 		SERVER_ERROR("No filename supplied");
 	
-	if (s_ip_address[0] == '0' && s_ip_address[1] == '\0') {
-		out->bind_to.v4.sin_family = AF_INET;
-		out->bind_to.v4.sin_addr.s_addr = INADDR_ANY;
-	}
-	else if (inet_pton(AF_INET, s_ip_address, &out->bind_to.v4) == 0) {
-	}
-	else if (inet_pton(AF_INET6, s_ip_address, &out->bind_to.v6) == 0) {
-	}
-	else {
-		SERVER_ERROR("Couldn't understand address '%%' "
-		  "(use 0 if you don't care)", s_ip_address);
-	}
+	if (parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address) == 0)
+		SERVER_ERROR("Couldn't parse server address '%s' (use 0 if "
+		  "you want to bind to all IPs)", s_ip_address);
+	
+	out->acl_entries = acl_entries;
+	parsed = parse_acl(&out->acl, acl_entries, s_acl_entries);
+	if (parsed != acl_entries)
+		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[parsed]);
+	
+	debug("%p %d", out->acl, out->acl_entries);
 	
 	out->bind_to.v4.sin_port = atoi(s_port);
 	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
@@ -417,14 +567,56 @@ void params_serve(
 	out->filename = s_file;
 }
 
+void params_readwrite(
+	struct mode_readwrite_params* out,
+	char* s_ip_address, 
+	char* s_port,
+	char* s_from,
+	char* s_length
+)
+{
+	if (s_ip_address == NULL)
+		SERVER_ERROR("No IP address supplied");
+	if (s_port == NULL)
+		SERVER_ERROR("No port number supplied");
+	if (s_from == NULL);
+		SERVER_ERROR("No from supplied");
+	if (s_length == NULL);
+		SERVER_ERROR("No length supplied");
+	
+	if (parse_ip_to_sockaddr(&out->connect_to.generic, s_ip_address) == 0)
+		SERVER_ERROR("Couldn't parse connection address '%s'");
+	
+	out->from  = atol(s_from);
+	out->len   = atol(s_length);
+}
+
 void mode(char* mode, int argc, char **argv)
 {
 	union mode_params params;
 	
 	if (strcmp(mode, "serve") == 0) {
 		if (argc >= 3) {
-			params_serve(&params.serve, argv[0], argv[1], argv[2]);
-			serve(&params.serve);
+			params_serve(&params.serve, argv[0], argv[1], argv[2], argc-3, argv+3);
+			do_serve(&params.serve);
+		}
+		else {
+			syntax();
+		}
+	}
+	else if (strcmp(mode, "read") == 0 ) {
+		if (argc != 4) {
+			params_readwrite(&params.readwrite, argv[0], argv[1], argv[2], argv[3]);
+			do_read(&params.readwrite);
+		}
+		else {
+			syntax();
+		}
+	}
+	else if (strcmp(mode, "write") == 0 ) {
+		if (argc != 4) {
+			params_readwrite(&params.readwrite, argv[0], argv[1], argv[2], argv[3]);
+			do_write(&params.readwrite);
 		}
 		else {
 			syntax();
