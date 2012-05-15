@@ -87,6 +87,14 @@ void error(int consult_errno, int close_socket, const char* format, ...)
 		exit(1);
 }
 
+#ifndef DEBUG
+#  define debug(msg, ...)
+#else
+#  include <sys/times.h>
+#  define debug(msg, ...) fprintf(stderr, "% 4d % 4d: " msg "\n" , \
+     (int) pthread_self(), (int) times(NULL), ##__VA_ARGS__)
+#endif
+
 #define CLIENT_ERROR(msg, ...) \
   error(0, client->socket, msg, ##__VA_ARGS__)
 #define CLIENT_ERROR_ON_FAILURE(test, msg, ...) \
@@ -150,8 +158,7 @@ int readloop(int filedes, void *buffer, size_t size)
 	size_t readden=0;
 	while (readden < size) {
 		size_t result = read(filedes, buffer+readden, size-readden);
-		printf("read size=%d readden=%d result=%d\n", size, readden, result);
-		if (result == -1)
+		if (result == 0 /* EOF */ || result == -1 /* error */)
 			return -1;
 		readden += result;
 	}
@@ -176,14 +183,21 @@ int client_serve_request(struct client_params* client)
 	struct nbd_request    request;
 	struct nbd_reply      reply;
 	
-	CLIENT_ERROR_ON_FAILURE(
-		readloop(client->socket, &request, sizeof(request)),
-		"Failed to read request"
-	);
+	if (readloop(client->socket, &request, sizeof(request)) == -1) {
+		if (errno == 0) {
+			debug("EOF reading request");
+			return 1; /* neat point to close the socket */
+		}
+		else {
+			CLIENT_ERROR_ON_FAILURE(-1, "Error reading request");
+		}
+	}
 	
 	reply.magic = htobe32(REPLY_MAGIC);
 	reply.error = htobe32(0);
 	memcpy(reply.handle, request.handle, 8);
+	
+	debug("request type %d", be32toh(request.type));
 	
 	if (be32toh(request.magic) != REQUEST_MAGIC)
 		CLIENT_ERROR("Bad magic %08x", be32toh(request.magic));
@@ -194,13 +208,21 @@ int client_serve_request(struct client_params* client)
 	case REQUEST_WRITE:
 		/* check it's not out of range */
 		if (be64toh(request.from) < 0 || 
-		    be64toh(request.from)+be64toh(request.len) > client->size) {
+		    be64toh(request.from)+be32toh(request.len) > client->size) {
+			debug("request read %ld+%d out of range", 
+			  be64toh(request.from), 
+			  be32toh(request.len)
+			);
 			reply.error = htobe32(1);
 			write(client->socket, &reply, sizeof(reply));
 			return 0;
 		}
+		break;
+		
 	case REQUEST_DISCONNECT:
+		debug("request disconnect");
 		return 1;
+		
 	default:
 		CLIENT_ERROR("Unknown request %08x", be32toh(request.type));
 	}
@@ -208,6 +230,7 @@ int client_serve_request(struct client_params* client)
 	switch (be32toh(request.type))
 	{
 	case REQUEST_READ:
+		debug("request read %ld+%d", be64toh(request.from), be32toh(request.len));
 		write(client->socket, &reply, sizeof(reply));
 		
 		offset = be64toh(request.from);
@@ -216,24 +239,25 @@ int client_serve_request(struct client_params* client)
 				client->socket, 
 				client->fileno, 
 				&offset, 
-				be64toh(request.len)
+				be32toh(request.len)
 			),
-			"sendfile failed from=%ld, len=%ld",
+			"sendfile failed from=%ld, len=%d",
 			offset,
-			be64toh(request.len)
+			be32toh(request.len)
 		);
 		break;
 		
 	case REQUEST_WRITE:
+		debug("request write %ld+%d", be64toh(request.from), be32toh(request.len));
 		CLIENT_ERROR_ON_FAILURE(
 			readloop(
 				client->socket,
 				client->mapped + be64toh(request.from),
-				be64toh(request.len)
+				be32toh(request.len)
 			),
 			"read failed from=%ld, len=%d",
 			be64toh(request.from),
-			be64toh(request.len)
+			be32toh(request.len)
 		);
 		write(client->socket, &reply, sizeof(reply));
 		
@@ -254,6 +278,7 @@ void client_open_file(struct client_params* client)
 	  MAP_SHARED, client->fileno, 0);
 	CLIENT_ERROR_ON_FAILURE((long) client->mapped, "Couldn't map file %s",
 	  client->filename);
+	debug("opened %s size %ld on fd %d @ %p", client->filename, client->size, client->fileno, client->mapped);
 }
 
 void client_send_hello(struct client_params* client)
@@ -278,7 +303,8 @@ void* client_serve(void* client_uncast)
 	client_send_hello(client);
 	
 	while (client_serve_request(client) == 0)
-	
+		;
+		
 	CLIENT_ERROR_ON_FAILURE(
 		close(client->socket),
 		"Couldn't close socket %d", 
