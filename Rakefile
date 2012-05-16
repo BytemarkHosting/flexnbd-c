@@ -1,0 +1,27 @@
+DEBUG  = true
+
+LIBS    = %w( pthread )
+CCFLAGS = %w( -Wall )
+LDFLAGS = []
+
+if DEBUG
+  LDFLAGS << ["-g"]
+  CCFLAGS << ["-g -DDEBUG"]
+  LIBS    << ["efence"]
+end
+
+rule 'default' => 'flexnbd'
+
+rule 'flexnbd' => 'flexnbd.o' do |t|
+  sh "gcc #{LDFLAGS.join(' ')} "+
+    LIBS.map { |l| "-l#{l}" }.join(" ")+
+    " -o #{t.name} #{t.source}"
+end
+
+rule '.o' => '.c' do |t|
+  sh "gcc -c #{CCFLAGS.join(' ')} -o #{t.name} #{t.source} "
+end
+
+rule 'clean' do
+  sh "rm -f flexnbd.o flexnbd"
+end
