@@ -18,6 +18,10 @@
 #include <sys/mman.h>
 #include <sys/sendfile.h>
 
+#include <sys/ioctl.h>
+#include <linux/fs.h>
+#include <linux/fiemap.h>
+
 /* http://linux.derkeiler.com/Mailing-Lists/Kernel/2003-09/2332.html */
 #define INIT_PASSWD "NBDMAGIC" 
 #define INIT_MAGIC 0x0000420281861253 
@@ -105,11 +109,18 @@ void error(int consult_errno, int close_socket, const char* format, ...)
 #define SERVER_ERROR_ON_FAILURE(test, msg, ...) \
   if (test < 0) { error(1, 0, msg, ##__VA_ARGS__); }
 
+void* xrealloc(void* ptr, size_t size)
+{
+	void* p = realloc(ptr, size);
+	if (p == NULL)
+		SERVER_ERROR("couldn't xrealloc %d bytes", size);
+	return p;
+}
+
 void* xmalloc(size_t size)
 {
-	void* p = malloc(size);
-	if (p == NULL)
-		SERVER_ERROR("couldn't malloc %d bytes", size);
+	void* p = xrealloc(NULL, size);
+	memset(p, 0, size);
 	return p;
 }
 
@@ -132,8 +143,11 @@ struct mode_serve_params {
 	char*                filename;
 	int                  tcp_backlog;
 	
-	int     server;
-	int     threads;
+	int                  server;
+	int                  threads;
+	
+	pthread_mutex_t      block_allocation_map_lock;
+	char*                block_allocation_map;
 };
 
 struct mode_readwrite_params {
@@ -151,12 +165,93 @@ struct client_params {
 	int     fileno;
 	off64_t size;
 	char*   mapped;
-};
+	
+	pthread_mutex_t      block_allocation_map_lock;
+	char*                block_allocation_map;
+}};
 
 union mode_params {
 	struct mode_serve_params serve;
 	struct mode_readwrite_params readwrite;
 };
+
+static inline int char_with_bit_set(int num) {
+	return 1<<(num%8);
+}
+static inline int bit_is_set(char* b, int idx) {
+	return (b[idx/8] & char_with_bit_set(idx)) != 0;
+}
+static inline int bit_is_clear(char* b, int idx) {
+	return !bit_is_set(b, idx);
+}
+static inline void bit_set(char* b, int idx) {
+	b[idx/8] &= char_with_bit_set(idx);
+}
+static inline void bit_clear(char* b, int idx) {
+	b[idx/8] &= ~char_with_bit_set(idx);
+}
+static inline void bit_set_range(char* b, int from, int len) {
+	for (; b%8 != 0 && len > 0; len--)
+		bit_set(b, from++, 1);
+	if (len >= 8)
+		memset(b+(from/8), 255, len/8);
+	for (; len > 0; len--)
+		bit_set(b, from++);
+}
+static inline void bit_clear_range(char* b, int from, int len) {
+	for (; b%8 != 0 && len > 0; len--)
+		bit_clear(b, from++, 1);
+	if (len >= 8)
+		memset(b+(from/8), 0, len/8);
+	for (; len > 0; len--)
+		bit_clear(b, from++);
+}
+
+
+char* build_allocation_map(int fd, off64_t size, int resolution)
+{
+	char *allocation_map = xmalloc((size+resolution)/resolution);
+	struct fiemap *fiemap;
+
+	fiemap = (struct fiemap*) xmalloc(sizeof(struct fiemap));
+
+	fiemap->fm_start = from;
+	fiemap->fm_length = len;
+	fiemap->fm_flags = 0;
+	fiemap->fm_extent_count = 0;
+	fiemap->fm_mapped_extents = 0;
+
+	/* Find out how many extents there are */
+	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0)
+		return NULL;
+
+	/* Resize fiemap to allow us to read in the extents */
+	fiemap = (struct fiemap*)xrealloc(
+		fiemap,
+		sizeof(struct fiemap) + (
+			sizeof(struct fiemap_extent) * 
+        		fiemap->fm_mapped_extents
+        	)
+	); 
+
+	fiemap->fm_extent_count = fiemap->fm_mapped_extents;
+	fiemap->fm_mapped_extents = 0;
+
+	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < -1)
+		return NULL;
+	
+	for (i=0;i<fiemap->fm_mapped_extents;i++) 
+		bit_set_range(
+			allocation_map, 
+			fiemap->fm_extents[i].fe_logical / resolution,
+			fiemap->fm_extents[i].fe_length / resolution
+		);
+	
+	free(fiemap);
+	
+	return allocation_map;
+}
+
 
 int writeloop(int filedes, const void *buffer, size_t size)
 {
@@ -223,6 +318,7 @@ int client_serve_request(struct client_params* client)
 	off64_t               offset;
 	struct nbd_request    request;
 	struct nbd_reply      reply;
+	struct unallocated_block** unallocated;
 	
 	if (readloop(client->socket, &request, sizeof(request)) == -1) {
 		if (errno == 0) {
@@ -273,7 +369,7 @@ int client_serve_request(struct client_params* client)
 	case REQUEST_READ:
 		debug("request read %ld+%d", be64toh(request.from), be32toh(request.len));
 		write(client->socket, &reply, sizeof(reply));
-		
+				
 		offset = be64toh(request.from);
 		CLIENT_ERROR_ON_FAILURE(
 			sendfileloop(
@@ -290,6 +386,21 @@ int client_serve_request(struct client_params* client)
 		
 	case REQUEST_WRITE:
 		debug("request write %ld+%d", be64toh(request.from), be32toh(request.len));
+#ifdef _LINUX_FIEMAP_H
+		unallocated = read_unallocated_blocks(
+		  client->fileno, 
+		  be64toh(request.from), 
+		  be32toh(request.len)
+		);
+		if (unallocated == NULL)
+			CLIENT_ERROR("Couldn't read unallocated blocks list");
+		
+		CLIENT_ERROR_ON_FAILURE(
+			read_from_socket_avoiding_holes(
+				client->socket,
+			);
+		free(fiemap);
+#else
 		CLIENT_ERROR_ON_FAILURE(
 			readloop(
 				client->socket,
@@ -300,6 +411,7 @@ int client_serve_request(struct client_params* client)
 			be64toh(request.from),
 			be32toh(request.len)
 		);
+#endif
 		write(client->socket, &reply, sizeof(reply));
 		
 		break;
@@ -356,7 +468,6 @@ void* client_serve(void* client_uncast)
 	return NULL;
 }
 
-/* FIXME */
 static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
 
 int is_included_in_acl(int list_length, struct ip_and_mask** list, struct sockaddr* test)
@@ -434,7 +545,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		pthread_t client_thread;
 		struct sockaddr client_address;
 		struct client_params* client_params;
-		socklen_t socket_length;
+		socklen_t socket_length=0;
 		
 		int client_socket = accept(params->server, &client_address, 
 		  &socket_length);
@@ -451,6 +562,10 @@ void serve_accept_loop(struct mode_serve_params* params)
 		client_params = xmalloc(sizeof(struct client_params));
 		client_params->socket = client_socket;
 		client_params->filename = params->filename;
+		client_params->block_allocation_map = 
+		  params->block_allocation_map;
+		client_params->block_allocation_map_lock = 
+		  params->block_allocation_map_lock;
 		
 		client_thread = pthread_create(&client_thread, NULL, 
 		  client_serve, client_params);
@@ -684,8 +799,6 @@ void params_serve(
 	parsed = parse_acl(&out->acl, acl_entries, s_acl_entries);
 	if (parsed != acl_entries)
 		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[parsed]);
-	
-	debug("%p %d", out->acl, out->acl_entries);
 	
 	out->bind_to.v4.sin_port = atoi(s_port);
 	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
