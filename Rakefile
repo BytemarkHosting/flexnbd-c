@@ -1,5 +1,7 @@
 DEBUG  = true
 
+SOURCES = %w( flexnbd ioutil readwrite serve util )
+OBJECTS = SOURCES.map { |s| "#{s}.o" }
 LIBS    = %w( pthread )
 CCFLAGS = %w( -Wall )
 LDFLAGS = []
@@ -12,10 +14,11 @@ end
 
 rule 'default' => 'flexnbd'
 
-rule 'flexnbd' => 'flexnbd.o' do |t|
+rule 'flexnbd' => OBJECTS do |t|
   sh "gcc #{LDFLAGS.join(' ')} "+
     LIBS.map { |l| "-l#{l}" }.join(" ")+
-    " -o #{t.name} #{t.source}"
+    " -o #{t.name} "+
+    t.sources.join(" ")
 end
 
 rule '.o' => '.c' do |t|
@@ -23,5 +26,5 @@ rule '.o' => '.c' do |t|
 end
 
 rule 'clean' do
-  sh "rm -f flexnbd.o flexnbd"
+  sh "rm -f flexnbd "+OBJECTS.join(" ")
 end
