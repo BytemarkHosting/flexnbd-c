@@ -31,7 +31,6 @@ struct mode_serve_params {
 	int                  server;
 	int                  threads;
 	
-	pthread_mutex_t      block_allocation_map_lock;
 	char*                block_allocation_map;
 };
 
@@ -51,7 +50,6 @@ struct client_params {
 	off64_t size;
 	char*   mapped;
 	
-	pthread_mutex_t      block_allocation_map_lock;
 	char*                block_allocation_map;
 };
 

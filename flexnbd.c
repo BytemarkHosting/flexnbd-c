@@ -18,7 +18,6 @@ void syntax()
 	"        flexnbd read   <IP address> <port> <offset> <length> > data\n"
 	"        flexnbd write  <IP address> <port> <offset> <length> < data\n"
 	"        flexnbd write  <IP address> <port> <offset> <data file>\n"
-	"        flexnbd mirror <IP address> <port> <target IP> <target port>\n"
 	);
 	exit(1);
 }

@@ -47,12 +47,29 @@ char* build_allocation_map(int fd, off64_t size, int resolution)
 	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < -1)
 		return NULL;
 	
-	for (i=0;i<fiemap->fm_mapped_extents;i++) 
-		bit_set_range(
-			allocation_map, 
-			fiemap->fm_extents[i].fe_logical / resolution,
-			fiemap->fm_extents[i].fe_length / resolution
+	for (i=0;i<fiemap->fm_mapped_extents;i++) {
+		int first_bit = fiemap->fm_extents[i].fe_logical / resolution;
+		int last_bit  = (fiemap->fm_extents[i].fe_logical + 
+		  fiemap->fm_extents[i].fe_length + resolution - 1) / 
+		  resolution;
+		int run = last_bit - first_bit;
+		  
+		bit_set_range(allocation_map, first_bit, run);
+	}
+	
+	for (i=0; i<16; i++) {
+		debug("map[%d] = %d%d%d%d%d%d%d%d",
+		  i,
+		  (allocation_map[i] & 1) == 1,
+		  (allocation_map[i] & 2) == 2,
+		  (allocation_map[i] & 4) == 4,
+		  (allocation_map[i] & 8) == 8,
+		  (allocation_map[i] & 16) == 16,
+		  (allocation_map[i] & 32) == 32,
+		  (allocation_map[i] & 64) == 64,
+		  (allocation_map[i] & 128) == 128
 		);
+	}
 	
 	free(fiemap);
 	

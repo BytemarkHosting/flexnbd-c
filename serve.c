@@ -2,6 +2,7 @@
 #include "nbdtypes.h"
 #include "ioutil.h"
 #include "util.h"
+#include "bitset.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -12,12 +13,114 @@
 #include <stdlib.h>
 #include <errno.h>
 
+static const int block_allocation_resolution = 4096;//128<<10;
+
+/**
+ * So waiting on client->socket is len bytes of data, and we must write it all
+ * to client->mapped.  However while doing do we must consult the bitmap
+ * client->block_allocation_map, which is a bitmap where one bit represents
+ * block_allocation_resolution bytes.  Where a bit isn't set, there are no 
+ * disc blocks allocated for that portion of the file, and we'd like to keep
+ * it that way.  
+ *
+ * If the bitmap shows that every block in our prospective write is already
+ * allocated, we can proceed as normal and make one call to writeloop.  
+ * 
+ */
+void write_not_zeroes(struct client_params* client, off64_t from, int len)
+{
+	char *map = client->block_allocation_map;
+
+	while (len > 0) {
+		/* so we have to calculate how much of our input to consider
+		 * next based on the bitmap of allocated blocks.  This will be
+		 * at a coarser resolution than the actual write, which may
+		 * not fall on a block boundary at either end.  So we look up
+		 * how many blocks our write covers, then cut off the start
+		 * and end to get the exact number of bytes.
+		 */
+		int first_bit = from/block_allocation_resolution;
+		int last_bit  = (from+len+block_allocation_resolution-1) / 
+		  block_allocation_resolution;
+		int run = bit_run_count(map, first_bit, last_bit-first_bit) *
+		  block_allocation_resolution;
+		
+		debug("write_not_zeroes: %ld+%d, first_bit=%d, last_bit=%d, run=%d", 
+		  from, len, first_bit, last_bit, run);
+
+		run -= from % block_allocation_resolution; /*start*/
+		
+		if (first_bit == last_bit)
+			run -= block_allocation_resolution - 
+			  ((from+len) % block_allocation_resolution); /*end*/
+		
+		debug("run adjusted to %d", run);
+		
+		#define DO_READ(dst, len) CLIENT_ERROR_ON_FAILURE( \
+			readloop( \
+				client->socket, \
+				(dst), \
+				(len) \
+			), \
+			"read failed %ld+%d", from, (len) \
+		)
+		
+		if (bit_is_set(map, from/8)) {
+			/*debug("writing the lot");*/
+			/* already allocated, just write it all */
+			DO_READ(client->mapped + from, run);
+			len  -= run;
+			from += run;
+		}
+		else {
+			char zerobuffer[block_allocation_resolution];
+			/* not allocated, read in block_allocation_resoution */
+			while (run > 0) {
+				char *dst = client->mapped+from;
+				int bit = from/block_allocation_resolution;
+				int blockrun = block_allocation_resolution - 
+				  (from % block_allocation_resolution);
+				if (blockrun > run)
+					blockrun = run;
+				
+				/*debug("writing partial: bit=%d, blockrun=%d",
+				  bit, blockrun);*/
+				
+				DO_READ(zerobuffer, blockrun);
+				
+				/* This reads the buffer twice in the worst case 
+				 * but we're leaning on memcmp failing early
+				 * and memcpy being fast, rather than try to
+				 * hand-optimized something specific.
+				 */
+				if (zerobuffer[0] != 0 || 
+				    memcmp(zerobuffer, zerobuffer + 1, blockrun)) {
+					memcpy(dst, zerobuffer, blockrun);
+					bit_set(map, bit);
+					/*debug("non-zero, copied and set bit %d", bit);*/
+					/* at this point we could choose to
+					 * short-cut the rest of the write for
+					 * faster I/O but by continuing to do it
+					 * the slow way we preserve as much 
+					 * sparseness as possible.
+					 */
+				}
+				else {
+					/*debug("all zero, skip write");*/
+				}
+				len  -= blockrun;
+				run  -= blockrun;
+				from += blockrun;
+			}
+		}
+	}
+}
+
 int client_serve_request(struct client_params* client)
 {
 	off64_t               offset;
 	struct nbd_request    request;
 	struct nbd_reply      reply;
-//	struct unallocated_block** unallocated;
 	
 	if (readloop(client->socket, &request, sizeof(request)) == -1) {
 		if (errno == 0) {
@@ -85,32 +188,25 @@ int client_serve_request(struct client_params* client)
 		
 	case REQUEST_WRITE:
 		debug("request write %ld+%d", be64toh(request.from), be32toh(request.len));
-#ifdef _LINUX_FIEMAP_H
-		unallocated = read_unallocated_blocks(
-		  client->fileno, 
-		  be64toh(request.from), 
-		  be32toh(request.len)
-		);
-		if (unallocated == NULL)
-			CLIENT_ERROR("Couldn't read unallocated blocks list");
-		
-		CLIENT_ERROR_ON_FAILURE(
-			read_from_socket_avoiding_holes(
-				client->socket,
-			);
-		free(fiemap);
-#else
-		CLIENT_ERROR_ON_FAILURE(
-			readloop(
-				client->socket,
-				client->mapped + be64toh(request.from),
+		if (client->block_allocation_map) {
+			write_not_zeroes(
+				client, 
+				be64toh(request.from), 
 				be32toh(request.len)
-			),
-			"read failed from=%ld, len=%d",
-			be64toh(request.from),
-			be32toh(request.len)
-		);
-#endif
+			);
+		}
+		else {
+			CLIENT_ERROR_ON_FAILURE(
+				readloop(
+					client->socket,
+					client->mapped + be64toh(request.from),
+					be32toh(request.len)
+				),
+				"read failed from=%ld, len=%d",
+				be64toh(request.from),
+				be32toh(request.len)
+			);
+		}
 		write(client->socket, &reply, sizeof(reply));
 		
 		break;
@@ -263,8 +359,6 @@ void serve_accept_loop(struct mode_serve_params* params)
 		client_params->filename = params->filename;
 		client_params->block_allocation_map = 
 		  params->block_allocation_map;
-		client_params->block_allocation_map_lock = 
-		  params->block_allocation_map_lock;
 		
 		client_thread = pthread_create(&client_thread, NULL, 
 		  client_serve, client_params);
@@ -275,9 +369,23 @@ void serve_accept_loop(struct mode_serve_params* params)
 	}
 }
 
+void serve_init_allocation_map(struct mode_serve_params* params)
+{
+	int fd = open(params->filename, O_RDONLY);
+	off64_t size;
+	SERVER_ERROR_ON_FAILURE(fd, "Couldn't open %s", params->filename);
+	size = lseek64(fd, 0, SEEK_END);
+	SERVER_ERROR_ON_FAILURE(size, "Couldn't find size of %s", 
+	  params->filename);
+	params->block_allocation_map = 
+		build_allocation_map(fd, size, block_allocation_resolution);
+	close(fd);
+}
+
 void do_serve(struct mode_serve_params* params)
 {
 	serve_open_socket(params);
+	serve_init_allocation_map(params);
 	serve_accept_loop(params);
 }
 
