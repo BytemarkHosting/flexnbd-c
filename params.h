@@ -27,9 +27,10 @@ struct mode_serve_params {
 	struct ip_and_mask** acl;
 	char*                filename;
 	int                  tcp_backlog;
+	char*                control_socket_name;
 	
 	int                  server;
-	int                  threads;
+	int                  control;	
 	
 	char*                block_allocation_map;
 };

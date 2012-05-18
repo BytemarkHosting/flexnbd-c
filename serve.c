@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/un.h>
 #include <fcntl.h>
 
 #include <string.h>
@@ -315,7 +316,7 @@ int is_included_in_acl(int list_length, struct ip_and_mask** list, struct sockad
 	return 0;
 }
 
-void serve_open_socket(struct mode_serve_params* params)
+void serve_open_server_socket(struct mode_serve_params* params)
 {
 	params->server = socket(PF_INET, SOCK_STREAM, 0);
 	
@@ -331,6 +332,28 @@ void serve_open_socket(struct mode_serve_params* params)
 	SERVER_ERROR_ON_FAILURE(
 		listen(params->server, params->tcp_backlog),
 		"Couldn't listen on server socket"
+	);
+}
+
+void serve_open_control_socket(struct mode_serve_params* params)
+{
+	struct sockaddr_un bind_address;
+	
+	if (!params->control_socket_name)
+		return;
+
+	params->control = socket(AF_UNIX, SOCK_DGRAM, 0);
+	SERVER_ERROR_ON_FAILURE(params->control,
+	  "Couldn't create control socket");
+	
+	memset(&bind_address, 0, sizeof(bind_address));
+	bind_address.sun_family = AF_UNIX;
+	strcpy(bind_address.sun_path, params->control_socket_name);
+	
+	SERVER_ERROR_ON_FAILURE(
+		bind(params->control, &bind_address, sizeof(bind_address)),
+		"Couldn't bind control socket to %s",
+		params->control_socket_name
 	);
 }
 
@@ -384,7 +407,8 @@ void serve_init_allocation_map(struct mode_serve_params* params)
 
 void do_serve(struct mode_serve_params* params)
 {
-	serve_open_socket(params);
+	serve_open_server_socket(params);
+	serve_open_control_socket(params);
 	serve_init_allocation_map(params);
 	serve_accept_loop(params);
 }

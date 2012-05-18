@@ -44,7 +44,7 @@ char* build_allocation_map(int fd, off64_t size, int resolution)
 	fiemap->fm_extent_count = fiemap->fm_mapped_extents;
 	fiemap->fm_mapped_extents = 0;
 
-	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < -1)
+	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0)
 		return NULL;
 	
 	for (i=0;i<fiemap->fm_mapped_extents;i++) {

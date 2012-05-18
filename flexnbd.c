@@ -14,10 +14,14 @@
 void syntax()
 {
 	fprintf(stderr, 
-	"Syntax: flexnbd serve  <IP address> <port> <file> [ip addresses ...]\n"
+	"Syntax: flexnbd serve  <listen IP address> <port> <file> \\\n"
+	"                          [full path to control socket] \\\n"
+	"                          [allowed connection addresses ...]\n"
+	"        flexnbd mirror <control socket> <dst IP address> <dst port>\n"
+	"        flexnbd status <control socket>\n"
 	"        flexnbd read   <IP address> <port> <offset> <length> > data\n"
 	"        flexnbd write  <IP address> <port> <offset> <length> < data\n"
-	"        flexnbd write  <IP address> <port> <offset> <data file>\n"
+	"        flexnbd write  <IP address> <port> <offset> <file to write>\n"
 	);
 	exit(1);
 }
@@ -102,7 +106,7 @@ void params_serve(
 	char* s_port, 
 	char* s_file,
 	int acl_entries,
-	char** s_acl_entries
+	char** s_acl_entries /* first may actually be path to control socket */
 )
 {
 	int parsed;
@@ -119,6 +123,12 @@ void params_serve(
 	if (parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address) == 0)
 		SERVER_ERROR("Couldn't parse server address '%s' (use 0 if "
 		  "you want to bind to all IPs)", s_ip_address);
+	
+	if (acl_entries > 0 && s_acl_entries[0][0] == '/') {
+		out->control_socket_name = s_acl_entries[0];
+		s_acl_entries++;
+		acl_entries--;		
+	}
 	
 	out->acl_entries = acl_entries;
 	parsed = parse_acl(&out->acl, acl_entries, s_acl_entries);
