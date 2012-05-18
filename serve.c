@@ -342,7 +342,7 @@ void serve_open_control_socket(struct mode_serve_params* params)
 	if (!params->control_socket_name)
 		return;
 
-	params->control = socket(AF_UNIX, SOCK_DGRAM, 0);
+	params->control = socket(AF_UNIX, SOCK_STREAM, 0);
 	SERVER_ERROR_ON_FAILURE(params->control,
 	  "Couldn't create control socket");
 	
@@ -350,45 +350,78 @@ void serve_open_control_socket(struct mode_serve_params* params)
 	bind_address.sun_family = AF_UNIX;
 	strcpy(bind_address.sun_path, params->control_socket_name);
 	
+	unlink(params->control_socket_name); /* ignore failure */
+	
 	SERVER_ERROR_ON_FAILURE(
 		bind(params->control, &bind_address, sizeof(bind_address)),
 		"Couldn't bind control socket to %s",
 		params->control_socket_name
 	);
+	
+	SERVER_ERROR_ON_FAILURE(
+		listen(params->control, 5),
+		"Couldn't listen on control socket"
+	);
+}
+
+void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
+{
+	pthread_t             client_thread;
+	struct client_params* client_params;
+	
+	if (params->acl && 
+	    !is_included_in_acl(params->acl_entries, params->acl, client_address)) {
+		write(client_fd, "Access control error", 20);
+		close(client_fd);
+		return;
+	}
+	
+	client_params = xmalloc(sizeof(struct client_params));
+	client_params->socket = client_fd;
+	client_params->filename = params->filename;
+	client_params->block_allocation_map = 
+	  params->block_allocation_map;
+	
+	client_thread = pthread_create(&client_thread, NULL, 
+	  client_serve, client_params);
+	SERVER_ERROR_ON_FAILURE(client_thread,
+	  "Failed to create client thread");
+	/* FIXME: keep track of them? */
+	/* FIXME: maybe shouldn't be fatal? */
+}
+
+void accept_control_connection(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
+{
+	write(client_fd, "hello", 5);
+	close(client_fd);
 }
 
 void serve_accept_loop(struct mode_serve_params* params) 
 {
 	while (1) {
-		pthread_t client_thread;
+		int             activity_fd, client_fd;
 		struct sockaddr client_address;
-		struct client_params* client_params;
-		socklen_t socket_length=0;
+		fd_set          fds;
+		socklen_t       socklen=0;
 		
-		int client_socket = accept(params->server, &client_address, 
-		  &socket_length);
-		  
-		SERVER_ERROR_ON_FAILURE(client_socket, "accept() failed");
+		FD_ZERO(&fds);
+		FD_SET(params->server, &fds);
+		FD_SET(params->control, &fds);
 		
-		if (params->acl && 
-		    !is_included_in_acl(params->acl_entries, params->acl, &client_address)) {
-			write(client_socket, "Access control error", 20);
-			close(client_socket);
-			continue;
-		}
+		SERVER_ERROR_ON_FAILURE(
+			select(FD_SETSIZE, &fds, NULL, NULL, NULL),
+			"select() failed"
+		);
 		
-		client_params = xmalloc(sizeof(struct client_params));
-		client_params->socket = client_socket;
-		client_params->filename = params->filename;
-		client_params->block_allocation_map = 
-		  params->block_allocation_map;
+		activity_fd = FD_ISSET(params->server, &fds) ? params->server : 
+		  params->control;
+		client_fd = accept(activity_fd, &client_address, &socklen);
+		SERVER_ERROR_ON_FAILURE(client_fd, "accept() failed");
 		
-		client_thread = pthread_create(&client_thread, NULL, 
-		  client_serve, client_params);
-		SERVER_ERROR_ON_FAILURE(client_thread,
-		  "Failed to create client thread");
-		/* FIXME: keep track of them? */
-		/* FIXME: maybe shouldn't be fatal? */
+		if (activity_fd == params->server)
+			accept_nbd_client(params, client_fd, &client_address);
+		if (activity_fd == params->control)
+			accept_control_connection(params, client_fd, &client_address);
 	}
 }
 

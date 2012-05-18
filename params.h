@@ -30,7 +30,7 @@ struct mode_serve_params {
 	char*                control_socket_name;
 	
 	int                  server;
-	int                  control;	
+	int                  control;
 	
 	char*                block_allocation_map;
 };
