@@ -137,4 +137,19 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 	return spliced < len ? -1 : 0;
 }
 
-
+int read_until_newline(int fd, char* buf, int bufsize)
+{
+	int cur;
+	bufsize -=1;
+	
+	for (cur=0; cur < bufsize; cur++) {
+		int result = read(fd, buf+cur, 1);
+		if (result < 0)
+			return -1;
+		if (buf[cur] == 10 || buf[cur] == 13)
+			break;
+	}
+	buf[cur++] = 0;
+	
+	return cur;
+}

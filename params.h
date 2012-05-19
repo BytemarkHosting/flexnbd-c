@@ -4,27 +4,14 @@
 #define _GNU_SOURCE
 #define _LARGEFILE64_SOURCE
 
+#include "parse.h"
+
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-
-union mysockaddr {
-	unsigned short      family;
-	struct sockaddr     generic;
-        struct sockaddr_in  v4;
-        struct sockaddr_in6 v6;
-};
-
-struct ip_and_mask {
-	union mysockaddr ip;
-	int              mask;
-};
 
 struct mode_serve_params {
 	union mysockaddr     bind_to;
 	int                  acl_entries;
-	struct ip_and_mask** acl;
+	struct ip_and_mask  *acl[0];
 	char*                filename;
 	int                  tcp_backlog;
 	char*                control_socket_name;
@@ -52,6 +39,11 @@ struct client_params {
 	char*   mapped;
 	
 	char*                block_allocation_map;
+};
+
+struct control_params {
+	int                       socket;
+	struct mode_serve_params* serve;
 };
 
 union mode_params {

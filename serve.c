@@ -3,6 +3,7 @@
 #include "ioutil.h"
 #include "util.h"
 #include "bitset.h"
+#include "parse.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -264,6 +265,89 @@ void* client_serve(void* client_uncast)
 	return NULL;
 }
 
+void control_acl(struct control_params* client)
+{
+	int acl_entries = 0, parsed;
+	char** s_acl_entry = NULL;
+	struct ip_and_mask** acl, **old_acl;
+	
+	while (1) {
+		char entry[64];
+		int result = read_until_newline(client->socket, entry, 64);
+		if (result == -1 || result == 64)
+			goto done;
+		if (result == 1) /* blank line terminates */
+			break;
+		s_acl_entry = xrealloc(
+			s_acl_entry, 
+			++acl_entries * sizeof(struct s_acl_entry*)
+		);
+		s_acl_entry[acl_entries-1] = strdup(entry);
+		debug("acl_entry = '%s'", s_acl_entry[acl_entries-1]);
+	}
+	
+	parsed = parse_acl(&acl, acl_entries, s_acl_entry);
+	if (parsed != acl_entries) {
+		write(client->socket, "error: ", 7);
+		write(client->socket, s_acl_entry[parsed], 
+		  strlen(s_acl_entry[parsed]));
+		write(client->socket, "\n", 1);
+		free(acl);
+	}
+	else {
+		old_acl = client->serve->acl;
+		client->serve->acl = acl;
+		client->serve->acl_entries = acl_entries;
+		free(old_acl);
+		write(client->socket, "ok\n", 3);
+	}
+	
+done:	if (acl_entries > 0) {
+		int i;
+		for (i=0; i<acl_entries; i++)
+			free(s_acl_entry[i]);
+		free(s_acl_entry);
+	}
+	return;
+}
+void control_mirror(struct control_params* client)
+{
+}
+void control_status(struct control_params* client)
+{
+}
+
+
+
+void* control_serve(void* client_uncast)
+{
+	const int max = 256;
+	char command[max];
+	struct control_params* client = (struct control_params*) client_uncast;
+	
+	while (1) {
+		CLIENT_ERROR_ON_FAILURE(
+			read_until_newline(client->socket, command, max),
+			"Error reading command"
+		);
+		
+		if (strcmp(command, "acl") == 0)
+			control_acl(client);
+		else if (strcmp(command, "mirror") == 0)
+			control_mirror(client);
+		else if (strcmp(command, "status") == 0)
+			control_status(client);
+		else {
+			write(client->socket, "error: unknown command\n", 23);
+			break;
+		}
+	}
+	
+	close(client->socket);
+	free(client);
+	return NULL;
+}
+
 static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
 
 int is_included_in_acl(int list_length, struct ip_and_mask** list, struct sockaddr* test)
@@ -271,25 +355,29 @@ int is_included_in_acl(int list_length, struct ip_and_mask** list, struct sockad
 	int i;
 	
 	for (i=0; i < list_length; i++) {
-		struct ip_and_mask *entry = list[i];
+		struct ip_and_mask *entry = list+i;
 		int testbits;
 		char *raw_address1, *raw_address2;
 		
-		debug("checking acl entry %d", i);
+		debug("checking acl entry %d (%d/%d)", i, test->sa_family, entry->ip.family);
 		
 		if (test->sa_family != entry->ip.family)
 			continue;
 		
 		if (test->sa_family == AF_INET) {
+			debug("it's an AF_INET");
 			raw_address1 = (char*) 
 			  &((struct sockaddr_in*) test)->sin_addr;
 			raw_address2 = (char*) &entry->ip.v4.sin_addr;
 		}
 		else if (test->sa_family == AF_INET6) {
+			debug("it's an AF_INET6");
 			raw_address1 = (char*) 
 			  &((struct sockaddr_in6*) test)->sin6_addr;
 			raw_address2 = (char*) &entry->ip.v6.sin6_addr;
 		}
+		
+		debug("testbits=%d", entry->mask);
 		
 		for (testbits = entry->mask; testbits > 0; testbits -= 8) {
 			debug("testbits=%d, c1=%d, c2=%d", testbits, raw_address1[0], raw_address2[0]);
@@ -366,7 +454,7 @@ void serve_open_control_socket(struct mode_serve_params* params)
 
 void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
 {
-	pthread_t             client_thread;
+	pthread_t client_thread;
 	struct client_params* client_params;
 	
 	if (params->acl && 
@@ -382,18 +470,37 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct s
 	client_params->block_allocation_map = 
 	  params->block_allocation_map;
 	
-	client_thread = pthread_create(&client_thread, NULL, 
-	  client_serve, client_params);
-	SERVER_ERROR_ON_FAILURE(client_thread,
-	  "Failed to create client thread");
+	SERVER_ERROR_ON_FAILURE(
+		pthread_create(
+			&client_thread, 
+			NULL, 
+			client_serve, 
+			client_params
+		),
+		"Failed to create client thread"
+	);
 	/* FIXME: keep track of them? */
 	/* FIXME: maybe shouldn't be fatal? */
 }
 
 void accept_control_connection(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
 {
-	write(client_fd, "hello", 5);
-	close(client_fd);
+	pthread_t control_thread;
+	struct control_params* control_params;
+	
+	control_params = xmalloc(sizeof(struct control_params));
+	control_params->socket = client_fd;
+	control_params->serve = params;
+
+	SERVER_ERROR_ON_FAILURE(
+		pthread_create(
+			&control_thread, 
+			NULL, 
+			control_serve, 
+			control_params
+		),
+		"Failed to create client thread"
+	);
 }
 
 void serve_accept_loop(struct mode_serve_params* params) 
@@ -402,7 +509,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		int             activity_fd, client_fd;
 		struct sockaddr client_address;
 		fd_set          fds;
-		socklen_t       socklen=0;
+		socklen_t       socklen=sizeof(client_address);
 		
 		FD_ZERO(&fds);
 		FD_SET(params->server, &fds);
