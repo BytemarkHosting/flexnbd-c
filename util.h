@@ -24,6 +24,7 @@ void* xmalloc(size_t size);
   error(0, client->socket, msg, ##__VA_ARGS__)
 #define CLIENT_ERROR_ON_FAILURE(test, msg, ...) \
   if (test < 0) { error(1, client->socket, msg, ##__VA_ARGS__); }
+
 #define SERVER_ERROR(msg, ...) \
   error(0, 0, msg, ##__VA_ARGS__)
 #define SERVER_ERROR_ON_FAILURE(test, msg, ...) \
