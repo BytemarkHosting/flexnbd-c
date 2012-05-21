@@ -12,7 +12,6 @@ TEST_MODULES = Dir["tests/check_*.c"].map { |n| n[12..-3] }
 if DEBUG
   LDFLAGS << ["-g"]
   CCFLAGS << ["-g -DDEBUG"]
-  LIBS    << ["efence"]
 end
 
 rule 'default' => 'flexnbd'
@@ -38,7 +37,7 @@ rule 'flexnbd' => OBJECTS do |t|
   gcc_link(t.name, t.sources)
 end
 
-rule(/tests\/check_[a-z]+$/ => [ proc { |target| target+".o" } ]) do |t|
+rule(/tests\/check_[a-z]+$/ => [ proc { |target| [target+".o", "util.o"] } ]) do |t|
   gcc_link(t.name, t.sources + [LIBCHECK])
 end
 
