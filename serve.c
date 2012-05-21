@@ -327,10 +327,16 @@ void* mirror_runner(void* serve_params_uncast)
 	for (pass=0; pass < 7 /* biblical */; pass++) {
 		uint64_t current = 0;
 		
+		debug("mirror start pass=%d", pass);
+		
 		while (current < serve->size) {
 			int run = bitset_run_count(map, current, longest_run);
 			
+			debug("mirror current=%d, run=%d", current, run);
+			
 			if (bitset_is_set_at(map, current)) {
+				debug("^^^ writing", current, run);
+				
 				/* dirty area */
 				socket_nbd_write(
 					serve->mirror->client, 
@@ -351,7 +357,7 @@ void* mirror_runner(void* serve_params_uncast)
 
 void control_mirror(struct control_params* client)
 {
-	off64_t size;
+	off64_t size, remote_size;
 	int fd, map_fd;
 	struct mirror_status *mirror;
 	union mysockaddr connect_to;
@@ -376,6 +382,8 @@ void control_mirror(struct control_params* client)
 	connect_to.v4.sin_port = htobe16(connect_to.v4.sin_port);
 	
 	fd = socket_connect(&connect_to.generic); /* FIXME uses wrong error handler */
+	
+	remote_size = socket_nbd_read_hello(fd);
 	
 	mirror = xmalloc(sizeof(struct mirror_status));
 	mirror->client = fd;
