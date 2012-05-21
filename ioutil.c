@@ -18,28 +18,30 @@ char* build_allocation_map(int fd, off64_t size, int resolution)
 {
 	int i;
 	char *allocation_map = xmalloc((size+resolution)/resolution);
-	struct fiemap *fiemap;
+	struct fiemap *fiemap_count, *fiemap;
 
-	fiemap = (struct fiemap*) xmalloc(sizeof(struct fiemap));
+	fiemap_count = (struct fiemap*) xmalloc(sizeof(struct fiemap));
 
-	fiemap->fm_start = 0;
-	fiemap->fm_length = size;
-	fiemap->fm_flags = 0;
-	fiemap->fm_extent_count = 0;
-	fiemap->fm_mapped_extents = 0;
+	fiemap_count->fm_start = 0;
+	fiemap_count->fm_length = size;
+	fiemap_count->fm_flags = 0;
+	fiemap_count->fm_extent_count = 0;
+	fiemap_count->fm_mapped_extents = 0;
 
 	/* Find out how many extents there are */
-	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0)
+	if (ioctl(fd, FS_IOC_FIEMAP, fiemap_count) < 0)
 		return NULL;
 
 	/* Resize fiemap to allow us to read in the extents */
-	fiemap = (struct fiemap*)xrealloc(
-		fiemap,
+	fiemap = (struct fiemap*)xmalloc(
 		sizeof(struct fiemap) + (
 			sizeof(struct fiemap_extent) * 
-        		fiemap->fm_mapped_extents
+        		fiemap_count->fm_mapped_extents
         	)
 	); 
+	
+	/* realloc makes valgrind complain a lot */
+	memcpy(fiemap, fiemap_count, sizeof(struct fiemap));
 
 	fiemap->fm_extent_count = fiemap->fm_mapped_extents;
 	fiemap->fm_mapped_extents = 0;
@@ -74,6 +76,31 @@ char* build_allocation_map(int fd, off64_t size, int resolution)
 	free(fiemap);
 	
 	return allocation_map;
+}
+
+int open_and_mmap(char* filename, int* out_fd, off64_t *out_size, void **out_map)
+{
+	off64_t size;
+	
+	*out_fd = open(filename, O_RDWR|O_DIRECT|O_SYNC);
+	if (*out_fd < 1)
+		return *out_fd;
+	
+	size = lseek64(*out_fd, 0, SEEK_END);
+	if (size < 0)
+		return size;
+	if (out_size)
+		*out_size = size;
+	
+	if (out_map) {
+		*out_map = mmap64(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, 
+		  *out_fd, 0);
+		if (((long) *out_map) == -1)
+			return -1;
+	}
+	debug("opened %s size %ld on fd %d @ %p", filename, size, *out_fd, *out_map);
+	
+	return 0;
 }
 
 
@@ -115,7 +142,7 @@ int sendfileloop(int out_fd, int in_fd, off64_t *offset, size_t count)
 
 int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 {
-	int pipefd[2];
+	int pipefd[2]; /* read end, write end */
 	size_t spliced=0;
 	
 	if (pipe(pipefd) == -1)
@@ -123,10 +150,14 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 	
 	while (spliced < len) {
 		size_t r1,r2;
-		r1 = splice(fd_in, NULL, pipefd[1], NULL, len-spliced, 0);
+		size_t run = len-spliced;
+		/*if (run > 65535)
+			run = 65535;*/
+		r1 = splice(fd_in, NULL, pipefd[1], NULL, run, SPLICE_F_MORE|SPLICE_F_MOVE|SPLICE_F_NONBLOCK);
+		debug("%d", r1);
 		if (r1 <= 0)
 			break;
-		r2 = splice(pipefd[0], NULL, fd_out, NULL, r1, 0);
+		r2 = splice(pipefd[0], NULL, fd_out, NULL, r1, SPLICE_F_MORE|SPLICE_F_MOVE);
 		if (r1 != r2)
 			break;
 		spliced += r1;
