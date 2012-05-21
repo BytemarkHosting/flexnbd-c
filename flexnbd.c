@@ -51,6 +51,8 @@ void params_serve(
 		SERVER_ERROR("Couldn't parse server address '%s' (use 0 if "
 		  "you want to bind to all IPs)", s_ip_address);
 	
+	out->control_socket_name = NULL;
+	
 	if (acl_entries > 0 && s_acl_entries[0][0] == '/') {
 		out->control_socket_name = s_acl_entries[0];
 		s_acl_entries++;
@@ -131,6 +133,7 @@ void do_write(struct mode_readwrite_params* params);
 void mode(char* mode, int argc, char **argv)
 {
 	union mode_params params;
+	memset(&params, 0, sizeof(params));
 	
 	if (strcmp(mode, "serve") == 0) {
 		if (argc >= 3) {
