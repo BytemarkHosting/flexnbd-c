@@ -8,14 +8,31 @@
 
 #include <sys/types.h>
 
+struct mirror_status {
+	pthread_t            thread;
+	int                  client;
+	char                 *filename;
+	off64_t              max_bytes_per_second;
+	
+	char                 *mapped;
+	struct bitset_mapping *dirty_map;
+};
+
+struct control_params {
+	int                       socket;
+	struct mode_serve_params* serve;
+};
+
 struct mode_serve_params {
 	union mysockaddr     bind_to;
 	int                  acl_entries;
-	struct ip_and_mask  *acl[0];
+	struct ip_and_mask   (*acl)[0];
 	char*                filename;
 	int                  tcp_backlog;
 	char*                control_socket_name;
-	
+	off64_t              size;
+
+	struct mirror_status* mirror;
 	int                  server;
 	int                  control;
 	
@@ -38,12 +55,8 @@ struct client_params {
 	off64_t size;
 	char*   mapped;
 	
-	char*                block_allocation_map;
-};
-
-struct control_params {
-	int                       socket;
-	struct mode_serve_params* serve;
+	char*   block_allocation_map;
+	struct mode_serve_params* serve; /* FIXME: remove above duplication */
 };
 
 union mode_params {

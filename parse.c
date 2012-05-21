@@ -43,8 +43,9 @@ int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 	return 0;
 }
 
-int parse_acl(struct ip_and_mask *out[], int max, char **entries)
+int parse_acl(struct ip_and_mask (**out)[], int max, char **entries)
 {
+	struct ip_and_mask (*list)[0];
 	int i;
 	
 	if (max == 0) {
@@ -56,10 +57,12 @@ int parse_acl(struct ip_and_mask *out[], int max, char **entries)
 		debug("acl alloc: %p", *out);
 	}
 	
+	list = *out;
+	
 	for (i = 0; i < max; i++) {
 #               define MAX_MASK_BITS (outentry->ip.family == AF_INET ? 32 : 128)
 		int j;
-		struct ip_and_mask* outentry = *out+i;
+		struct ip_and_mask* outentry = list[i];
 		
 		if (parse_ip_to_sockaddr(&outentry->ip.generic, entries[i]) == 0)
 			return i;
@@ -78,7 +81,7 @@ int parse_acl(struct ip_and_mask *out[], int max, char **entries)
 	}
 	
 	for (i=0; i < max; i++) {
-		struct ip_and_mask* entry = *out+i;
+		struct ip_and_mask* entry = list[i];
 		debug("acl entry %d @ %p has mask %d", i, entry, entry->mask);
 	}
 	
