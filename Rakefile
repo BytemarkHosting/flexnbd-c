@@ -1,6 +1,6 @@
 DEBUG  = true
 
-SOURCES = %w( flexnbd ioutil readwrite serve util parse )
+SOURCES = %w( flexnbd ioutil readwrite serve util parse control )
 OBJECTS = SOURCES.map { |s| "#{s}.o" }
 LIBS    = %w( pthread )
 CCFLAGS = %w( -Wall )

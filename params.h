@@ -59,10 +59,5 @@ struct client_params {
 	struct mode_serve_params* serve; /* FIXME: remove above duplication */
 };
 
-union mode_params {
-	struct mode_serve_params serve;
-	struct mode_readwrite_params readwrite;
-};
-
 #endif
 

@@ -130,6 +130,11 @@ void do_serve(struct mode_serve_params* params);
 void do_read(struct mode_readwrite_params* params);
 void do_write(struct mode_readwrite_params* params);
 
+union mode_params {
+	struct mode_serve_params serve;
+	struct mode_readwrite_params readwrite;
+};
+
 void mode(char* mode, int argc, char **argv)
 {
 	union mode_params params;

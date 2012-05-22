@@ -154,7 +154,7 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 		/*if (run > 65535)
 			run = 65535;*/
 		r1 = splice(fd_in, NULL, pipefd[1], NULL, run, SPLICE_F_MORE|SPLICE_F_MOVE|SPLICE_F_NONBLOCK);
-		debug("%d", r1);
+		debug("%ld", r1);
 		if (r1 <= 0)
 			break;
 		r2 = splice(pipefd[0], NULL, fd_out, NULL, r1, SPLICE_F_MORE|SPLICE_F_MOVE);
