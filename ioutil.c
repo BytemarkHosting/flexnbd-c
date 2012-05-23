@@ -184,3 +184,21 @@ int read_until_newline(int fd, char* buf, int bufsize)
 	
 	return cur;
 }
+
+int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
+{
+	int lines_count = 0;
+	char line[max_line_length+1];
+	*lines = NULL;
+	
+	while (1) {
+		if (read_until_newline(fd, line, max_line_length) < 0)
+			return lines_count;
+		*lines = xrealloc(*lines, (lines_count+1) * sizeof(char*));
+		(*lines)[lines_count] = strdup(line);
+		if ((*lines)[lines_count][0] == 0)
+			return lines_count;
+		lines_count++;
+	}
+}
+

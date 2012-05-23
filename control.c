@@ -49,8 +49,9 @@ void* mirror_runner(void* serve_params_uncast)
 	return NULL;
 }
 
+#define write_socket(msg) write(client->socket, (msg "\n"), strlen((msg))+1)
 
-void control_mirror(struct control_params* client)
+int control_mirror(struct control_params* client, int linesc, char** lines)
 {
 	off64_t size, remote_size;
 	int fd, map_fd;
@@ -58,25 +59,24 @@ void control_mirror(struct control_params* client)
 	union mysockaddr connect_to;
 	char s_ip_address[64], s_port[8];
 	
-	CLIENT_ERROR_ON_FAILURE(
-		read_until_newline(client->socket, s_ip_address, 64),
-		"Failed to read destination IP"
-	);
-	CLIENT_ERROR_ON_FAILURE(
-		read_until_newline(client->socket, s_port, 8),
-		"Failed to read destination port"
-	);
-		
-	if (parse_ip_to_sockaddr(&connect_to.generic, s_ip_address) == 0)
-		CLIENT_ERROR("Couldn't parse connection address '%s'", 
-		s_ip_address);
+	if (linesc != 2) {
+		write_socket("1: mirror only takes two parameters");
+		return -1;
+	}
+	
+	if (parse_ip_to_sockaddr(&connect_to.generic, s_ip_address) == 0) {
+		write_socket("1: bad IP address");
+		return -1;
+	}
 	
 	connect_to.v4.sin_port = atoi(s_port);
-	if (connect_to.v4.sin_port < 0 || connect_to.v4.sin_port > 65535)
-		CLIENT_ERROR("Port number must be >= 0 and <= 65535");
+	if (connect_to.v4.sin_port < 0 || connect_to.v4.sin_port > 65535) {
+		write_socket("1: bad IP port number");
+		return -1;
+	}
 	connect_to.v4.sin_port = htobe16(connect_to.v4.sin_port);
 	
-	fd = socket_connect(&connect_to.generic); /* FIXME uses wrong error handler */
+	fd = socket_connect(&connect_to.generic);
 	
 	remote_size = socket_nbd_read_hello(fd);
 	remote_size = remote_size; // shush compiler
@@ -110,32 +110,19 @@ void control_mirror(struct control_params* client)
 		),
 		"Failed to create mirror thread"
 	);
+	
+	return 0;
 }
 
-void control_acl(struct control_params* client)
+int control_acl(struct control_params* client, int linesc, char** lines)
 {
 	int acl_entries = 0, parsed;
 	char** s_acl_entry = NULL;
 	struct ip_and_mask (*acl)[], (*old_acl)[];
 	
-	while (1) {
-		char entry[64];
-		int result = read_until_newline(client->socket, entry, 64);
-		if (result == -1)
-			goto done;
-		if (result == 1) /* blank line terminates */
-			break;
-		s_acl_entry = xrealloc(
-			s_acl_entry, 
-			++acl_entries * sizeof(struct s_acl_entry*)
-		);
-		s_acl_entry[acl_entries-1] = strdup(entry);
-		debug("acl_entry = '%s'", s_acl_entry[acl_entries-1]);
-	}
-	
-	parsed = parse_acl(&acl, acl_entries, s_acl_entry);
-	if (parsed != acl_entries) {
-		write(client->socket, "error: ", 7);
+	parsed = parse_acl(&acl, linesc, lines);
+	if (parsed != linesc) {
+		write(client->socket, "3: bad spec ", 12);
 		write(client->socket, s_acl_entry[parsed], 
 		  strlen(s_acl_entry[parsed]));
 		write(client->socket, "\n", 1);
@@ -146,43 +133,53 @@ void control_acl(struct control_params* client)
 		client->serve->acl = acl;
 		client->serve->acl_entries = acl_entries;
 		free(old_acl);
-		write(client->socket, "ok\n", 3);
+		write_socket("0: updated");
 	}
 	
-done:	if (acl_entries > 0) {
-		int i;
-		for (i=0; i<acl_entries; i++)
-			free(s_acl_entry[i]);
-		free(s_acl_entry);
-	}
-	return;
+	return 0;
 }
 
-void control_status(struct control_params* client)
+int control_status(struct control_params* client, int linesc, char** lines)
 {
+	return 0;
 }
+
 void* control_serve(void* client_uncast)
 {
-	const int max = 256;
-	char command[max];
 	struct control_params* client = (struct control_params*) client_uncast;
+	char **lines = NULL;
+	int finished=0;
 	
-	while (1) {
-		CLIENT_ERROR_ON_FAILURE(
-			read_until_newline(client->socket, command, max),
-			"Error reading command"
-		);
+	while (!finished) {
+		int i, linesc;		
+		linesc = read_lines_until_blankline(client->socket, 256, &lines);
 		
-		if (strcmp(command, "acl") == 0)
-			control_acl(client);
-		else if (strcmp(command, "mirror") == 0)
-			control_mirror(client);
-		else if (strcmp(command, "status") == 0)
-			control_status(client);
-		else {
-			write(client->socket, "error: unknown command\n", 23);
-			break;
+		if (linesc < 1)
+		{
+			write(client->socket, "9: missing command\n", 19);
+			finished = 1;
+			/* ignore failure */
 		}
+		else if (strcmp(lines[0], "acl") == 0) {
+			if (control_acl(client, linesc-1, lines+1) < 0)
+				finished = 1;
+		}
+		else if (strcmp(lines[0], "mirror") == 0) {
+			if (control_mirror(client, linesc-1, lines+1) < 0)
+				finished = 1;
+		}
+		else if (strcmp(lines[0], "status") == 0) {
+			if (control_status(client, linesc-1, lines+1) < 0)
+				finished = 1;
+		}
+		else {
+			write(client->socket, "10: unknown command\n", 23);
+			finished = 1;
+		}
+		
+		for (i=0; i<linesc; i++)
+			free(lines[i]);
+		free(lines);
 	}
 	
 	close(client->socket);
