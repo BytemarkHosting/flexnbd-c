@@ -8,11 +8,18 @@
 
 #include <sys/types.h>
 
+enum mirror_finish_action {
+	ACTION_PROXY,
+	ACTION_EXIT,
+	ACTION_NOTHING
+};
+
 struct mirror_status {
 	pthread_t            thread;
 	int                  client;
 	char                 *filename;
 	off64_t              max_bytes_per_second;
+	enum mirror_finish_action action_at_finish;
 	
 	char                 *mapped;
 	struct bitset_mapping *dirty_map;
@@ -24,13 +31,29 @@ struct control_params {
 };
 
 struct mode_serve_params {
+	/* address/port to bind to */
 	union mysockaddr     bind_to;
+	/* number of entries in current access control list*/
 	int                  acl_entries;
+	/* pointer to access control list entries*/
 	struct ip_and_mask   (*acl)[0];
+	/* file name to serve */
 	char*                filename;
+	/* TCP backlog for listen() */
 	int                  tcp_backlog;
+	/* file name of UNIX control socket (or NULL if none) */
 	char*                control_socket_name;
+	/* size of file */
 	off64_t              size;
+	/* if you want the main thread to pause, set this to an writeable
+	 * file descriptor.  The main thread will then write a byte once it
+	 * promises to hang any further writes.
+	 */
+	int                  pause_fd;
+	/* the main thread will set this when writes will be paused */
+	int                  paused;
+	/* set to non-zero to use given destination connection as proxy */
+	int                  proxy_fd;
 
 	struct mirror_status* mirror;
 	int                  server;
@@ -49,13 +72,10 @@ struct mode_readwrite_params {
 
 struct client_params {
 	int     socket;
-	char*   filename;
 	
 	int     fileno;
-	off64_t size;
 	char*   mapped;
 	
-	char*   block_allocation_map;
 	struct mode_serve_params* serve; /* FIXME: remove above duplication */
 };
 

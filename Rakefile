@@ -17,12 +17,19 @@ end
 rule 'default' => 'flexnbd'
 
 namespace "test" do
+  task 'run' => ["unit", "scenarios"]
+  
   task 'build' => TEST_MODULES.map { |n| "tests/check_#{n}" }
-  task 'run' => 'build' do
+  
+  task 'unit' => 'build' do
     TEST_MODULES.each do |n|
       ENV['EF_DISABLE_BANNER'] = '1'
       sh "./tests/check_#{n}"
     end
+  end
+  
+  task 'scenarios' do
+    sh "cd tests; ruby nbd_scenarios"
   end
 end
 
@@ -46,7 +53,7 @@ rule '.o' => '.c' do |t|
 end
 
 rule 'clean' do
-  sh "rm -f flexnbd " + (
+  sh "rm -f *~ flexnbd " + (
     OBJECTS + 
     TEST_MODULES.map { |n| ["tests/check_#{n}", "tests/check_#{n}.o"] }.flatten
   ).

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 static const int longest_run = 8<<20;
 
@@ -15,16 +16,20 @@ void* mirror_runner(void* serve_params_uncast)
 {
 	struct mode_serve_params *serve = (struct mode_serve_params*) serve_params_uncast;
 	
+	const int max_passes = 7; /* biblical */
 	int pass;
 	struct bitset_mapping *map = serve->mirror->dirty_map;
 	
-	for (pass=0; pass < 7 /* biblical */; pass++) {
+	for (pass=0; pass < max_passes; pass++) {
 		uint64_t current = 0;
+		uint64_t written = 0;
 		
 		debug("mirror start pass=%d", pass);
 		
 		while (current < serve->size) {
-			int run = bitset_run_count(map, current, longest_run);
+			int run;
+		
+			run = bitset_run_count(map, current, longest_run);
 			
 			debug("mirror current=%ld, run=%d", current, run);
 			
@@ -41,9 +46,13 @@ void* mirror_runner(void* serve_params_uncast)
 				);
 				
 				bitset_clear_range(map, current, run);
+				written += run;
 			}
 			current += run;
 		}
+		
+		if (written == 0)
+			pass = max_passes-1;
 	}
 	
 	return NULL;
@@ -58,9 +67,11 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	struct mirror_status *mirror;
 	union mysockaddr connect_to;
 	char s_ip_address[64], s_port[8];
+	uint64_t max_bytes_per_second;
+	int action_at_finish;
 	
-	if (linesc != 2) {
-		write_socket("1: mirror only takes two parameters");
+	if (linesc < 2) {
+		write_socket("1: mirror takes at least two parameters");
 		return -1;
 	}
 	
@@ -76,6 +87,30 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	}
 	connect_to.v4.sin_port = htobe16(connect_to.v4.sin_port);
 	
+	max_bytes_per_second = 0;
+	if (linesc > 2) {
+		max_bytes_per_second = atoi(lines[2]);
+	}
+	
+	action_at_finish = ACTION_PROXY;
+	if (linesc > 3) {
+		if (strcmp("proxy", lines[3]) == 0)
+			action_at_finish = ACTION_PROXY;
+		else if (strcmp("exit", lines[3]) == 0)
+			action_at_finish = ACTION_EXIT;
+		else if (strcmp("nothing", lines[3]) == 0)
+			action_at_finish = ACTION_NOTHING;
+		else {
+			write_socket("1: action must be one of 'proxy', 'exit' or 'nothing'");
+			return -1;
+		}
+	}
+	
+	if (linesc > 4) {
+		write_socket("1: unrecognised parameters to mirror");
+		return -1;
+	}
+	
 	fd = socket_connect(&connect_to.generic);
 	
 	remote_size = socket_nbd_read_hello(fd);
@@ -83,7 +118,8 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	
 	mirror = xmalloc(sizeof(struct mirror_status));
 	mirror->client = fd;
-	mirror->max_bytes_per_second = 0;
+	mirror->max_bytes_per_second = max_bytes_per_second;
+	mirror->action_at_finish = action_at_finish;
 	
 	CLIENT_ERROR_ON_FAILURE(
 		open_and_mmap(
@@ -122,7 +158,7 @@ int control_acl(struct control_params* client, int linesc, char** lines)
 	
 	parsed = parse_acl(&acl, linesc, lines);
 	if (parsed != linesc) {
-		write(client->socket, "3: bad spec ", 12);
+		write(client->socket, "1: bad spec ", 12);
 		write(client->socket, s_acl_entry[parsed], 
 		  strlen(s_acl_entry[parsed]));
 		write(client->socket, "\n", 1);

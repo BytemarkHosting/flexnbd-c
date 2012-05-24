@@ -1,0 +1,71 @@
+#!/usr/bin/ruby
+
+require 'test/unit'
+require 'flexnbd'
+require 'test_file_writer'
+
+class NBDScenarios < Test::Unit::TestCase
+  def setup
+    @blocksize = 1024
+    @filename1 = ".flexnbd.test.#{$$}.#{Time.now.to_i}.1"
+    @filename2 = ".flexnbd.test.#{$$}.#{Time.now.to_i}.2"
+    @ip = "127.0.0.1"
+    @available_ports = [*40000..41000] - listening_ports
+    @port1 = @available_ports.shift
+    @port2 = @available_ports.shift
+    @nbd1 = FlexNBD.new("../flexnbd", @ip, @port1)
+  end 
+  
+  def teardown
+    @nbd1.kill rescue nil
+    [@filename1, @filename2].each do |f|
+      File.unlink(f) if File.exists?(f)
+    end
+  end
+  
+  def test_read1
+    writefile1("f"*64)
+    serve1
+    
+    [0, 12, 63].each do |num|
+    
+      assert_equal(
+        @nbd1.read(num*@blocksize, @blocksize), 
+        @file1.read(num*@blocksize, @blocksize)
+      )
+    end
+    
+    [124, 1200, 10028, 25488].each do |num|
+      assert_equal(@nbd1.read(num, 4), @file1.read(num, 4))
+    end
+  end
+  
+  def test_writeread1
+    writefile1("0"*64)
+    serve1
+    
+    [0, 12, 63].each do |num|
+      data = "X"*@blocksize
+      @nbd1.write(num*@blocksize, data)
+      assert_equal(data, @file1.read(num*@blocksize, data.size))
+      assert_equal(data, @nbd1.read(num*@blocksize, data.size))
+    end
+  end
+  
+  protected
+  def serve1(*acl)
+    @nbd1.serve(@ip, @port1, @filename1, *acl)
+  end
+  
+  def writefile1(data)
+    @file1 = TestFileWriter.new(@filename1, @blocksize).write(data)
+  end
+  
+  def listening_ports
+    `netstat -ltn`.
+      split("\n").
+      map { |x| x.split(/\s+/) }[2..-1].
+      map { |l| l[3].split(":")[-1].to_i }
+  end
+end
+

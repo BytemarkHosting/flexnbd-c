@@ -97,7 +97,7 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
 
 #define CHECK_RANGE(error_type) { \
 	off64_t size = socket_nbd_read_hello(params->client); \
-	if (params->from < 0 || (params->from + params->len) >= size) \
+	if (params->from < 0 || (params->from + params->len) > size) \
 		SERVER_ERROR(error_type \
 		  " request %d+%d is out of range given size %d", \
 		  params->from, params->len, size\

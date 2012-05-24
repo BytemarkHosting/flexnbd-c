@@ -37,7 +37,7 @@ static inline void dirty(struct mode_serve_params *serve, off64_t from, int len)
  */
 void write_not_zeroes(struct client_params* client, off64_t from, int len)
 {
-	char *map = client->block_allocation_map;
+	char *map = client->serve->block_allocation_map;
 
 	while (len > 0) {
 		/* so we have to calculate how much of our input to consider
@@ -152,7 +152,7 @@ int client_serve_request(struct client_params* client)
 	case REQUEST_WRITE:
 		/* check it's not out of range */
 		if (be64toh(request.from) < 0 || 
-		    be64toh(request.from)+be32toh(request.len) > client->size) {
+		    be64toh(request.from)+be32toh(request.len) > client->serve->size) {
 			debug("request read %ld+%d out of range", 
 			  be64toh(request.from), 
 			  be32toh(request.len)
@@ -193,7 +193,7 @@ int client_serve_request(struct client_params* client)
 		
 	case REQUEST_WRITE:
 		debug("request write %ld+%d", be64toh(request.from), be32toh(request.len));
-		if (client->block_allocation_map) {
+		if (client->serve->block_allocation_map) {
 			write_not_zeroes(
 				client, 
 				be64toh(request.from), 
@@ -226,7 +226,7 @@ void client_send_hello(struct client_params* client)
 	
 	memcpy(init.passwd, INIT_PASSWD, sizeof(INIT_PASSWD));
 	init.magic = htobe64(INIT_MAGIC);
-	init.size = htobe64(client->size);
+	init.size = htobe64(client->serve->size);
 	memset(init.reserved, 0, 128);
 	CLIENT_ERROR_ON_FAILURE(
 		writeloop(client->socket, &init, sizeof(init)),
@@ -241,12 +241,12 @@ void* client_serve(void* client_uncast)
 	//client_open_file(client);
 	CLIENT_ERROR_ON_FAILURE(
 		open_and_mmap(
-			client->filename,
+			client->serve->filename,
 			&client->fileno,
-			&client->size, 
+			NULL, 
 			(void**) &client->mapped
 		),
-		"Couldn't open/mmap file %s", client->filename
+		"Couldn't open/mmap file %s", client->serve->filename
 	);
 	client_send_hello(client);
 	
@@ -262,7 +262,7 @@ void* client_serve(void* client_uncast)
 
 	close(client->socket);
 	close(client->fileno);
-	munmap(client->mapped, client->size);
+	munmap(client->mapped, client->serve->size);
 	
 	free(client);
 	return NULL;
@@ -357,9 +357,6 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct s
 	
 	client_params = xmalloc(sizeof(struct client_params));
 	client_params->socket = client_fd;
-	client_params->filename = params->filename;
-	client_params->block_allocation_map = 
-	  params->block_allocation_map;
 	client_params->serve = params;
 	
 	SERVER_ERROR_ON_FAILURE(
