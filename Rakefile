@@ -14,13 +14,17 @@ if DEBUG
   CCFLAGS << ["-g -DDEBUG"]
 end
 
+desc "Build flexnbd binary"
 rule 'default' => 'flexnbd'
 
 namespace "test" do
+  desc "Run all tests"
   task 'run' => ["unit", "scenarios"]
   
+  desc "Build C tests"
   task 'build' => TEST_MODULES.map { |n| "tests/check_#{n}" }
   
+  desc "Run C tests"
   task 'unit' => 'build' do
     TEST_MODULES.each do |n|
       ENV['EF_DISABLE_BANNER'] = '1'
@@ -28,7 +32,8 @@ namespace "test" do
     end
   end
   
-  task 'scenarios' do
+  desc "Run NBD test scenarios"
+  task 'scenarios' => 'flexnbd' do
     sh "cd tests; ruby nbd_scenarios"
   end
 end
@@ -52,6 +57,7 @@ rule '.o' => '.c' do |t|
   sh "gcc -I. -c #{CCFLAGS.join(' ')} -o #{t.name} #{t.source} "
 end
 
+desc "Remove all build targets, binaries and temporary files"
 rule 'clean' do
   sh "rm -f *~ flexnbd " + (
     OBJECTS + 

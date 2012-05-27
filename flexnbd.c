@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-
+#include <signal.h>
 
 void syntax()
 {
@@ -175,6 +175,7 @@ void mode(char* mode, int argc, char **argv)
 
 int main(int argc, char** argv)
 {
+	signal(SIGPIPE, SIG_IGN);
 	error_init();
 	
 	if (argc < 2)

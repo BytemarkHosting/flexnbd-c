@@ -30,6 +30,7 @@ struct control_params {
 	struct mode_serve_params* serve;
 };
 
+#define MAX_NBD_CLIENTS 16
 struct mode_serve_params {
 	/* address/port to bind to */
 	union mysockaddr     bind_to;
@@ -60,6 +61,9 @@ struct mode_serve_params {
 	int                  control;
 	
 	char*                block_allocation_map;
+	
+	struct { pthread_t thread; struct sockaddr address; }
+	                     nbd_client[MAX_NBD_CLIENTS];
 };
 
 struct mode_readwrite_params {
@@ -78,6 +82,19 @@ struct client_params {
 	
 	struct mode_serve_params* serve; /* FIXME: remove above duplication */
 };
+
+/* FIXME: wrong place */
+static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
+{
+	struct sockaddr_in*  in  = (struct sockaddr_in*) sockaddr;
+	struct sockaddr_in6* in6 = (struct sockaddr_in6*) sockaddr;
+	
+	if (sockaddr->sa_family == AF_INET)
+		return &in->sin_addr;
+	if (sockaddr->sa_family == AF_INET6)
+		return &in6->sin6_addr;
+	return NULL;
+}
 
 #endif
 

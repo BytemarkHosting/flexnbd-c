@@ -9,9 +9,9 @@
 
 int socket_connect(struct sockaddr* to)
 {
-	int fd = socket(PF_INET, SOCK_STREAM, 0);
+	int fd = socket(to->sa_family == AF_INET ? PF_INET : PF_INET6, SOCK_STREAM, 0);
 	SERVER_ERROR_ON_FAILURE(fd, "Couldn't create client socket");
-	SERVER_ERROR_ON_FAILURE(connect(fd, to, sizeof(*to)),
+	SERVER_ERROR_ON_FAILURE(connect(fd, to, sizeof(struct sockaddr_in6)),
 	  "connect failed");
 	return fd;
 }

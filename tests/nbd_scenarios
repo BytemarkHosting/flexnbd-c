@@ -40,6 +40,8 @@ class NBDScenarios < Test::Unit::TestCase
     end
   end
   
+  # Check that we're not 
+  #
   def test_writeread1
     writefile1("0"*64)
     serve1
@@ -49,6 +51,23 @@ class NBDScenarios < Test::Unit::TestCase
       @nbd1.write(num*@blocksize, data)
       assert_equal(data, @file1.read(num*@blocksize, data.size))
       assert_equal(data, @nbd1.read(num*@blocksize, data.size))
+    end
+  end
+  
+  # Check that we're not overstepping or understepping where our writes end
+  # up.
+  #
+  def test_writeread2
+    writefile1("0"*1024)
+    serve1
+    
+    d0 = "\0"*@blocksize
+    d1 = "X"*@blocksize
+    (0..63).each do |num|
+      @nbd1.write(num*@blocksize*2, d1)
+    end
+    (0..63).each do |num|
+      assert_equal(d0, @nbd1.read(((2*num)+1)*@blocksize, d0.size))
     end
   end
   

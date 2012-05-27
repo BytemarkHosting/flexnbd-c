@@ -326,14 +326,15 @@ int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], struct soc
 
 void serve_open_server_socket(struct mode_serve_params* params)
 {
-	params->server = socket(PF_INET, SOCK_STREAM, 0);
+	params->server = socket(params->bind_to.generic.sa_family == AF_INET ? 
+	  PF_INET : PF_INET6, SOCK_STREAM, 0);
 	
 	SERVER_ERROR_ON_FAILURE(params->server, 
 	  "Couldn't create server socket");
-	  
+
 	SERVER_ERROR_ON_FAILURE(
 		bind(params->server, &params->bind_to.generic, 
-		  sizeof(params->bind_to.generic)),
+		  sizeof(params->bind_to)),
 		"Couldn't bind server to IP address"
 	);
 	
@@ -343,10 +344,54 @@ void serve_open_server_socket(struct mode_serve_params* params)
 	);
 }
 
+int cleanup_and_find_client_slot(struct mode_serve_params* params)
+{
+	int slot=-1, i;
+	
+	for (i=0; i < MAX_NBD_CLIENTS; i++) {
+		void* status;
+		
+		if (params->nbd_client[i].thread != 0) {
+			char s_client_address[64];
+			
+			memset(s_client_address, 0, 64);
+			strcpy(s_client_address, "???");
+			inet_ntop(
+				params->nbd_client[i].address.sa_family, 
+				sockaddr_address_data(&params->nbd_client[i].address), 
+				s_client_address, 
+				64
+			);
+			
+			if (pthread_tryjoin_np(params->nbd_client[i].thread, &status) < 0) {
+				if (errno != EBUSY)
+					SERVER_ERROR_ON_FAILURE(-1, "Problem with joining thread");
+			}
+			else {
+				uint64_t status1 = (uint64_t) status;
+				params->nbd_client[i].thread = 0;
+				debug("nbd thread %d exited (%s)", (int) params->nbd_client[i].thread, s_client_address);
+			}
+		}
+		
+		if (params->nbd_client[i].thread == 0 && slot == -1)
+			slot = i;
+	}
+	
+	return slot;
+}
+
 void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
 {
-	pthread_t client_thread;
 	struct client_params* client_params;
+	int slot = cleanup_and_find_client_slot(params); 
+	char s_client_address[64];
+	
+	if (inet_ntop(client_address->sa_family, sockaddr_address_data(client_address), s_client_address, 64) < 0) {
+		write(client_fd, "Bad client_address", 18);
+		close(client_fd);
+		return;
+	}
 	
 	if (params->acl && 
 	    !is_included_in_acl(params->acl_entries, params->acl, client_address)) {
@@ -355,21 +400,27 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct s
 		return;
 	}
 	
+	if (slot < 0) {
+		write(client_fd, "Too many clients", 16);
+		close(client_fd);
+		return;
+	}
+	
 	client_params = xmalloc(sizeof(struct client_params));
 	client_params->socket = client_fd;
 	client_params->serve = params;
 	
-	SERVER_ERROR_ON_FAILURE(
-		pthread_create(
-			&client_thread, 
-			NULL, 
-			client_serve, 
-			client_params
-		),
-		"Failed to create client thread"
-	);
-	/* FIXME: keep track of them? */
-	/* FIXME: maybe shouldn't be fatal? */
+	if (pthread_create(&params->nbd_client[slot].thread, NULL, client_serve, client_params) < 0) {
+		write(client_fd, "Thread creation problem", 23);
+		free(client_params);
+		close(client_fd);
+		return;
+	}
+	
+	memcpy(&params->nbd_client[slot].address, client_address, 
+	  sizeof(struct sockaddr));
+	
+	debug("nbd thread %d started (%s)", (int) params->nbd_client[slot].thread, s_client_address);
 }
 
 void serve_accept_loop(struct mode_serve_params* params) 

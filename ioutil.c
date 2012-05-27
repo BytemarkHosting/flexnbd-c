@@ -132,16 +132,48 @@ int sendfileloop(int out_fd, int in_fd, off64_t *offset, size_t count)
 {
 	size_t sent=0;
 	while (sent < count) {
-		size_t result = sendfile64(out_fd, in_fd, offset+sent, count-sent);
+		size_t result = sendfile64(out_fd, in_fd, offset, count-sent);
+		debug("sendfile64(out_fd=%d, in_fd=%d, offset=%p, count-sent=%ld) = %ld", out_fd, in_fd, offset, count-sent, result);
+
 		if (result == -1)
 			return -1;
 		sent += result;
+		debug("sent=%ld, count=%ld", sent, count);
 	}
+	debug("exiting sendfileloop");
 	return 0;
+}
+
+#include <errno.h>
+ssize_t spliceloop(int fd_in, loff_t *off_in, int fd_out, loff_t *off_out, size_t len, unsigned int flags2)
+{
+	const unsigned int flags = SPLICE_F_MORE|SPLICE_F_MOVE|flags2;
+	size_t spliced=0;
+	
+	//debug("spliceloop(%d, %ld, %d, %ld, %ld)", fd_in, off_in ? *off_in : 0, fd_out, off_out ? *off_out : 0, len);
+	
+	while (spliced < len) {
+		ssize_t result = splice(fd_in, off_in, fd_out, off_out, len, flags);
+		if (result < 0) {
+			//debug("result=%ld (%s), spliced=%ld, len=%ld", result, strerror(errno), spliced, len);
+			if (errno == EAGAIN && (flags & SPLICE_F_NONBLOCK) ) {
+				return spliced;
+			} 
+			else {
+				return -1;
+			}
+		} else {
+			spliced += result;
+			//debug("result=%ld (%s), spliced=%ld, len=%ld", result, strerror(errno), spliced, len);
+		}
+	}
+	
+	return spliced;
 }
 
 int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 {
+
 	int pipefd[2]; /* read end, write end */
 	size_t spliced=0;
 	
@@ -149,18 +181,17 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 		return -1;
 	
 	while (spliced < len) {
-		size_t r1,r2;
-		size_t run = len-spliced;
+		ssize_t run = len-spliced;
+		ssize_t s2, s1 = spliceloop(fd_in, NULL, pipefd[1], NULL, run, SPLICE_F_NONBLOCK);
 		/*if (run > 65535)
 			run = 65535;*/
-		r1 = splice(fd_in, NULL, pipefd[1], NULL, run, SPLICE_F_MORE|SPLICE_F_MOVE|SPLICE_F_NONBLOCK);
-		debug("%ld", r1);
-		if (r1 <= 0)
+		if (s1 < 0)
 			break;
-		r2 = splice(pipefd[0], NULL, fd_out, NULL, r1, SPLICE_F_MORE|SPLICE_F_MOVE);
-		if (r1 != r2)
+		
+		s2 = spliceloop(pipefd[0], NULL, fd_out, NULL, s1, 0);
+		if (s2 < 0)
 			break;
-		spliced += r1;
+		spliced += s2;
 	}
 	close(pipefd[0]);
 	close(pipefd[1]);
