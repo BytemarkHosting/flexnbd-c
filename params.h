@@ -46,15 +46,13 @@ struct mode_serve_params {
 	char*                control_socket_name;
 	/* size of file */
 	off64_t              size;
-	/* if you want the main thread to pause, set this to an writeable
-	 * file descriptor.  The main thread will then write a byte once it
-	 * promises to hang any further writes.
-	 */
-	int                  pause_fd;
-	/* the main thread will set this when writes will be paused */
-	int                  paused;
-	/* set to non-zero to use given destination connection as proxy */
-	int                  proxy_fd;
+
+        /* NB dining philosophers if we ever mave more than one thread 
+         * that might need to pause the whole server.  At the moment we only
+         * have the one.
+         */
+	pthread_mutex_t      l_accept; /* accept connections lock */
+	pthread_mutex_t      l_io  ;   /* read/write request lock */
 
 	struct mirror_status* mirror;
 	int                  server;

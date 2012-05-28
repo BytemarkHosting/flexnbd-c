@@ -98,7 +98,7 @@ void write_not_zeroes(struct client_params* client, off64_t from, int len)
 				 * hand-optimized something specific.
 				 */
 				if (zerobuffer[0] != 0 || 
-				    memcmp(zerobuffer, zerobuffer + 1, blockrun)) {
+				    memcmp(zerobuffer, zerobuffer + 1, blockrun - 1)) {
 					memcpy(dst, zerobuffer, blockrun);
 					bit_set(map, bit);
 					dirty(client->serve, from, blockrun);
@@ -171,6 +171,11 @@ int client_serve_request(struct client_params* client)
 		CLIENT_ERROR("Unknown request %08x", be32toh(request.type));
 	}
 	
+	CLIENT_ERROR_ON_FAILURE(
+		pthread_mutex_lock(&client->serve->l_io),
+		"Problem with I/O lock"
+	);
+	
 	switch (be32toh(request.type))
 	{
 	case REQUEST_READ:
@@ -217,6 +222,12 @@ int client_serve_request(struct client_params* client)
 		
 		break;
 	}
+
+	CLIENT_ERROR_ON_FAILURE(
+		pthread_mutex_unlock(&client->serve->l_io),
+		"Problem with I/O unlock"
+	);
+
 	return 0;
 }
 
@@ -326,11 +337,18 @@ int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], struct soc
 
 void serve_open_server_socket(struct mode_serve_params* params)
 {
+	int optval=1;
+	
 	params->server = socket(params->bind_to.generic.sa_family == AF_INET ? 
 	  PF_INET : PF_INET6, SOCK_STREAM, 0);
 	
 	SERVER_ERROR_ON_FAILURE(params->server, 
 	  "Couldn't create server socket");
+
+	SERVER_ERROR_ON_FAILURE(
+		setsockopt(params->server, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)),
+		"Couldn't set SO_REUSEADDR"
+	);
 
 	SERVER_ERROR_ON_FAILURE(
 		bind(params->server, &params->bind_to.generic, 
@@ -370,7 +388,7 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
 			else {
 				uint64_t status1 = (uint64_t) status;
 				params->nbd_client[i].thread = 0;
-				debug("nbd thread %d exited (%s)", (int) params->nbd_client[i].thread, s_client_address);
+				debug("nbd thread %d exited (%s) with status %ld", (int) params->nbd_client[i].thread, s_client_address, status1);
 			}
 		}
 		
@@ -387,7 +405,7 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct s
 	int slot = cleanup_and_find_client_slot(params); 
 	char s_client_address[64];
 	
-	if (inet_ntop(client_address->sa_family, sockaddr_address_data(client_address), s_client_address, 64) < 0) {
+	if (inet_ntop(client_address->sa_family, sockaddr_address_data(client_address), s_client_address, 64) == NULL) {
 		write(client_fd, "Bad client_address", 18);
 		close(client_fd);
 		return;
@@ -446,10 +464,20 @@ void serve_accept_loop(struct mode_serve_params* params)
 		client_fd = accept(activity_fd, &client_address, &socklen);
 		SERVER_ERROR_ON_FAILURE(client_fd, "accept() failed");
 		
+		SERVER_ERROR_ON_FAILURE(
+			pthread_mutex_lock(&params->l_accept),
+			"Problem with accept lock"
+		);
+		
 		if (activity_fd == params->server)
 			accept_nbd_client(params, client_fd, &client_address);
 		if (activity_fd == params->control)
 			accept_control_connection(params, client_fd, &client_address);
+			
+		SERVER_ERROR_ON_FAILURE(
+			pthread_mutex_unlock(&params->l_accept),
+			"Problem with accept unlock"
+		);
 	}
 }
 
@@ -469,6 +497,9 @@ void serve_init_allocation_map(struct mode_serve_params* params)
 
 void do_serve(struct mode_serve_params* params)
 {
+	pthread_mutex_init(&params->l_accept, NULL);
+	pthread_mutex_init(&params->l_io, NULL);
+	
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);
 	serve_init_allocation_map(params);

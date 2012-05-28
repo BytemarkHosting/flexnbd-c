@@ -94,6 +94,7 @@ void params_readwrite(
 		SERVER_ERROR("Couldn't parse connection address '%s'", 
 		s_ip_address);
 	
+	/* FIXME: duplicated from above */
 	out->connect_to.v4.sin_port = atoi(s_port);
 	if (out->connect_to.v4.sin_port < 0 || out->connect_to.v4.sin_port > 65535)
 		SERVER_ERROR("Port number must be >= 0 and <= 65535");
@@ -129,6 +130,7 @@ void params_readwrite(
 void do_serve(struct mode_serve_params* params);
 void do_read(struct mode_readwrite_params* params);
 void do_write(struct mode_readwrite_params* params);
+void do_remote_command(char* command, char* mode, int argc, char** argv);
 
 union mode_params {
 	struct mode_serve_params serve;
@@ -162,6 +164,14 @@ void mode(char* mode, int argc, char **argv)
 		if (argc == 4) {
 			params_readwrite(1, &params.readwrite, argv[0], argv[1], argv[2], argv[3]);
 			do_write(&params.readwrite);
+		}
+		else {
+			syntax();
+		}
+	}
+	else if (strcmp(mode, "acl") == 0 || strcmp(mode, "mirror") == 0 || strcmp(mode, "status") == 0) {
+		if (argc >= 1) {
+			do_remote_command(mode, argv[0], argc-1, argv+1);
 		}
 		else {
 			syntax();

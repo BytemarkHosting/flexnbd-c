@@ -8,6 +8,7 @@ int atoi(const char *nptr);
                               ((x) >= 'A' && (x) <= 'F' ) || \
                                (x) == ':' || (x) == '.'      \
                             )
+/* FIXME: should change this to return negative on error like everything else */
 int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 {
 	char temp[64];

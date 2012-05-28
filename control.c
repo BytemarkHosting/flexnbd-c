@@ -66,7 +66,6 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	int fd, map_fd;
 	struct mirror_status *mirror;
 	union mysockaddr connect_to;
-	char s_ip_address[64], s_port[8];
 	uint64_t max_bytes_per_second;
 	int action_at_finish;
 	
@@ -75,12 +74,12 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		return -1;
 	}
 	
-	if (parse_ip_to_sockaddr(&connect_to.generic, s_ip_address) == 0) {
+	if (parse_ip_to_sockaddr(&connect_to.generic, lines[0]) == 0) {
 		write_socket("1: bad IP address");
 		return -1;
 	}
 	
-	connect_to.v4.sin_port = atoi(s_port);
+	connect_to.v4.sin_port = atoi(lines[1]);
 	if (connect_to.v4.sin_port < 0 || connect_to.v4.sin_port > 65535) {
 		write_socket("1: bad IP port number");
 		return -1;
@@ -153,14 +152,13 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 int control_acl(struct control_params* client, int linesc, char** lines)
 {
 	int acl_entries = 0, parsed;
-	char** s_acl_entry = NULL;
 	struct ip_and_mask (*acl)[], (*old_acl)[];
 	
 	parsed = parse_acl(&acl, linesc, lines);
 	if (parsed != linesc) {
-		write(client->socket, "1: bad spec ", 12);
-		write(client->socket, s_acl_entry[parsed], 
-		  strlen(s_acl_entry[parsed]));
+		write(client->socket, "1: bad spec: ", 13);
+		write(client->socket, lines[parsed], 
+		  strlen(lines[parsed]));
 		write(client->socket, "\n", 1);
 		free(acl);
 	}
@@ -256,7 +254,7 @@ void serve_open_control_socket(struct mode_serve_params* params)
 	
 	memset(&bind_address, 0, sizeof(bind_address));
 	bind_address.sun_family = AF_UNIX;
-	strcpy(bind_address.sun_path, params->control_socket_name);
+	strncpy(bind_address.sun_path, params->control_socket_name, sizeof(bind_address.sun_path)-1);
 	
 	unlink(params->control_socket_name); /* ignore failure */
 	

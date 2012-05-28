@@ -16,7 +16,7 @@ void error_init()
 	main_thread = pthread_self();
 }
 
-void error(int consult_errno, int close_socket, const char* format, ...)
+void error(int consult_errno, int close_socket, pthread_mutex_t* unlock, const char* format, ...)
 {
 	va_list argptr;
 	
@@ -32,6 +32,9 @@ void error(int consult_errno, int close_socket, const char* format, ...)
 	
 	if (close_socket)
 		close(close_socket);
+	
+	if (unlock)
+		pthread_mutex_unlock(unlock);
 	
 	fprintf(stderr, "\n");
 	
