@@ -14,9 +14,11 @@ class FlexNBD
   end
   
   def serve(ip, port, file, *acl)
+    File.unlink(ctrl) if File.exists?(ctrl)
     @pid = fork do
       exec("#{@bin} serve #{ip} #{port} #{file} #{ctrl} #{acl.join(' ')}")
     end
+    sleep 0.1 until File.socket?(ctrl)
   end
   
   def kill
