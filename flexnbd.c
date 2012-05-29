@@ -1,3 +1,24 @@
+/*  FlexNBD server (C) Bytemark Hosting 2012
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/** main() function for parsing and dispatching commands.  Each mode has
+ *  a corresponding structure which is filled in and passed to a do_ function
+ *  elsewhere in the program.
+ */
+
 #include "params.h"
 #include "util.h"
 
@@ -22,6 +43,7 @@ void syntax()
 	"        flexnbd write  <IP address> <port> <offset> <file to write>\n"
 	"        flexnbd acl    <control socket> [allowed connection addresses ...]\n"
 	"        flexnbd mirror <control socket> <dst IP address> <dst port>\n"
+	"                          [bytes per second] [proxy|nothing|exit]"
 	"        flexnbd status <control socket>\n"
 	);
 	exit(1);
@@ -185,12 +207,12 @@ void mode(char* mode, int argc, char **argv)
 
 int main(int argc, char** argv)
 {
-	signal(SIGPIPE, SIG_IGN);
-	error_init();
+	signal(SIGPIPE, SIG_IGN); /* calls to splice() unhelpfully throw this */
+	error_init(); 
 	
 	if (argc < 2)
 		syntax();
-	mode(argv[1], argc-2, argv+2);
+	mode(argv[1], argc-2, argv+2); /* never returns */
 	
 	return 0;
 }

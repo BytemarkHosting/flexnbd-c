@@ -9,26 +9,32 @@
 
 static inline char char_with_bit_set(int num) { return 1<<(num%8); }
 
+/** Return 1 if the bit at ''idx'' in array ''b'' is set */
 static inline int bit_is_set(char* b, int idx) {
 	return (b[idx/8] & char_with_bit_set(idx)) != 0;
 }
+/** Return 1 if the bit at ''idx'' in array ''b'' is clear */
 static inline int bit_is_clear(char* b, int idx) {
 	return !bit_is_set(b, idx);
 }
+/** Tests whether the bit at ''idx'' in array ''b'' has value ''value'' */
 static inline int bit_has_value(char* b, int idx, int value) {
 	if (value)
 		return bit_is_set(b, idx);
 	else
 		return bit_is_clear(b, idx);
 }
+/** Sets the bit ''idx'' in array ''b'' */
 static inline void bit_set(char* b, int idx) {
 	b[idx/8] |= char_with_bit_set(idx);
 	//__sync_fetch_and_or(b+(idx/8), char_with_bit_set(idx));
 }
+/** Clears the bit ''idx'' in array ''b'' */
 static inline void bit_clear(char* b, int idx) {
 	b[idx/8] &= ~char_with_bit_set(idx);
 	//__sync_fetch_and_nand(b+(idx/8), char_with_bit_set(idx));
 }
+/** Sets ''len'' bits in array ''b'' starting at offset ''from'' */
 static inline void bit_set_range(char* b, int from, int len) {
 	for (; from%8 != 0 && len > 0; len--)
 		bit_set(b, from++);
@@ -37,6 +43,7 @@ static inline void bit_set_range(char* b, int from, int len) {
 	for (; len > 0; len--)
 		bit_set(b, from++);
 }
+/** Clears ''len'' bits in array ''b'' starting at offset ''from'' */
 static inline void bit_clear_range(char* b, int from, int len) {
 	for (; from%8 != 0 && len > 0; len--)
 		bit_clear(b, from++);
@@ -46,6 +53,10 @@ static inline void bit_clear_range(char* b, int from, int len) {
 		bit_clear(b, from++);
 }
 
+/** Counts the number of contiguous bits in array ''b'', starting at ''from'' 
+  * up to a maximum number of bits ''len''.  Returns the number of contiguous
+  * bits that are the same as the first one specified.
+  */
 static inline int bit_run_count(char* b, int from, int len) {
 	int count;
 	int first_value = bit_is_set(b, from);
@@ -72,12 +83,19 @@ static inline int bit_run_count(char* b, int from, int len) {
 	return count;
 }
 
+/** An application of a bitset - a bitset mapping represents a file of ''size'' 
+  * broken down into ''resolution''-sized chunks.  The bit set is assumed to
+  * represent one bit per chunk.
+  */
 struct bitset_mapping {
 	uint64_t size;
 	int resolution;
 	char bits[];
 };
 
+/** Allocate a bitset_mapping for a file of the given size, and chunks of the
+  * given resolution.
+  */
 static inline struct bitset_mapping* bitset_alloc(
 	uint64_t size, 
 	int resolution
@@ -97,6 +115,9 @@ static inline struct bitset_mapping* bitset_alloc(
       last = (from+len-1)/set->resolution, \
       bitlen = last-first+1
 
+/** Set the bits in a bitset which correspond to the given bytes in the larger
+  * file.
+  */
 static inline void bitset_set_range(
 	struct bitset_mapping* set, 
 	uint64_t from, 
@@ -106,6 +127,9 @@ static inline void bitset_set_range(
 	bit_set_range(set->bits, first, bitlen);
 }
 
+/** Clear the bits in a bitset which correspond to the given bytes in the 
+  * larger file.
+  */
 static inline void bitset_clear_range(
 	struct bitset_mapping* set, 
 	uint64_t from, 
@@ -115,6 +139,9 @@ static inline void bitset_clear_range(
 	bit_clear_range(set->bits, first, bitlen);
 }
 
+/** Counts the number of contiguous bytes that are represented as a run in
+  * the bit field.
+  */
 static inline int bitset_run_count(
 	struct bitset_mapping* set, 
 	uint64_t from, 
@@ -124,6 +151,8 @@ static inline int bitset_run_count(
 	return bit_run_count(set->bits, first, bitlen) * set->resolution;
 }
 
+/** Tests whether the bit field is clear for the given file offset.
+  */
 static inline int bitset_is_clear_at(
 	struct bitset_mapping* set,
 	uint64_t at
@@ -132,6 +161,8 @@ static inline int bitset_is_clear_at(
 	return bit_is_clear(set->bits, at/set->resolution);
 }
 
+/** Tests whether the bit field is set for the given file offset.
+  */
 static inline int bitset_is_set_at(
 	struct bitset_mapping* set,
 	uint64_t at

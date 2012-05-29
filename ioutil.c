@@ -222,6 +222,8 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
 	char line[max_line_length+1];
 	*lines = NULL;
 	
+	memset(line, 0, max_line_length+1);
+	
 	while (1) {
 		if (read_until_newline(fd, line, max_line_length) < 0)
 			return lines_count;

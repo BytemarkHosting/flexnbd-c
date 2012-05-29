@@ -32,27 +32,36 @@ struct control_params {
 
 #define MAX_NBD_CLIENTS 16
 struct mode_serve_params {
-	/* address/port to bind to */
+	/** address/port to bind to */
 	union mysockaddr     bind_to;
-	/* number of entries in current access control list*/
+	/** number of entries in current access control list*/
 	int                  acl_entries;
-	/* pointer to access control list entries*/
+	/** pointer to access control list entries*/
 	struct ip_and_mask   (*acl)[0];
-	/* file name to serve */
+	/** file name to serve */
 	char*                filename;
-	/* TCP backlog for listen() */
+	/** TCP backlog for listen() */
 	int                  tcp_backlog;
-	/* file name of UNIX control socket (or NULL if none) */
+	/** file name of UNIX control socket (or NULL if none) */
 	char*                control_socket_name;
-	/* size of file */
+	/** size of file */
 	off64_t              size;
 
         /* NB dining philosophers if we ever mave more than one thread 
          * that might need to pause the whole server.  At the moment we only
          * have the one.
          */
-	pthread_mutex_t      l_accept; /* accept connections lock */
-	pthread_mutex_t      l_io  ;   /* read/write request lock */
+       
+	/** Claimed around any accept/thread starting loop */
+	pthread_mutex_t      l_accept; 
+	/** Claims around any I/O to this file */
+	pthread_mutex_t      l_io;
+	
+	/** set to non-zero to cause r/w requests to go via this fd */
+	int                  proxy_fd;
+	
+	/** to interrupt accept loop and clients, write() to close_signal[1] */
+	int                  close_signal[2];
 
 	struct mirror_status* mirror;
 	int                  server;

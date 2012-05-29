@@ -23,6 +23,14 @@ static inline void dirty(struct mode_serve_params *serve, off64_t from, int len)
 		bitset_set_range(serve->mirror->dirty_map, from, len);
 }
 
+int server_detect_closed(struct mode_serve_params* serve)
+{
+	int errno_old = errno;
+	int result = fcntl(serve->server, F_GETFD, 0) < 0;
+	errno = errno_old;
+	return result;
+}
+
 /**
  * So waiting on client->socket is len bytes of data, and we must write it all
  * to client->mapped.  However while doing do we must consult the bitmap
@@ -126,7 +134,17 @@ int client_serve_request(struct client_params* client)
 	off64_t               offset;
 	struct nbd_request    request;
 	struct nbd_reply      reply;
+	fd_set                fds;
 	
+	FD_ZERO(&fds);
+	FD_SET(client->socket, &fds);
+	FD_SET(client->serve->close_signal[0], &fds);
+	CLIENT_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, NULL, NULL, NULL), 
+	  "select() failed");
+	
+	if (FD_ISSET(client->serve->close_signal[0], &fds))
+		return 1;
+		
 	if (readloop(client->socket, &request, sizeof(request)) == -1) {
 		if (errno == 0) {
 			debug("EOF reading request");
@@ -175,6 +193,14 @@ int client_serve_request(struct client_params* client)
 		pthread_mutex_lock(&client->serve->l_io),
 		"Problem with I/O lock"
 	);
+	
+	if (server_detect_closed(client->serve)) {
+		CLIENT_ERROR_ON_FAILURE(
+			pthread_mutex_unlock(&client->serve->l_io),
+			"Problem with I/O unlock"
+		);
+		return 1;
+	}
 	
 	switch (be32toh(request.type))
 	{
@@ -269,18 +295,20 @@ void* client_serve(void* client_uncast)
 		"Couldn't close socket %d", 
 		client->socket
 	);
-	
 
 	close(client->socket);
 	close(client->fileno);
 	munmap(client->mapped, client->serve->size);
-	
 	free(client);
+	
 	return NULL;
 }
 
 static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
 
+/** Test whether AF_INET or AF_INET6 sockaddr is included in the given access
+  * control list, returning 1 if it is, and 0 if not.
+  */
 int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], struct sockaddr* test)
 {
 	int i;
@@ -335,6 +363,7 @@ int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], struct soc
 	return 0;
 }
 
+/** Prepares a listening socket for the NBD server, binding etc. */
 void serve_open_server_socket(struct mode_serve_params* params)
 {
 	int optval=1;
@@ -362,6 +391,10 @@ void serve_open_server_socket(struct mode_serve_params* params)
 	);
 }
 
+/** We can only accommodate MAX_NBD_CLIENTS connections at once.  This function
+ *  goes through the current list, waits for any threads that have finished
+ *  and returns the next slot free (or -1 if there are none).
+ */
 int cleanup_and_find_client_slot(struct mode_serve_params* params)
 {
 	int slot=-1, i;
@@ -399,6 +432,10 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
 	return slot;
 }
 
+/** Dispatch function for accepting an NBD connection and starting a thread
+  * to handle it.  Rejects the connection if there is an ACL, and the far end's
+  * address doesn't match, or if there are too many clients already connected.
+  */
 void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
 {
 	struct client_params* client_params;
@@ -441,6 +478,7 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct s
 	debug("nbd thread %d started (%s)", (int) params->nbd_client[slot].thread, s_client_address);
 }
 
+/** Accept either an NBD or control socket connection, dispatch appropriately */
 void serve_accept_loop(struct mode_serve_params* params) 
 {
 	while (1) {
@@ -451,18 +489,19 @@ void serve_accept_loop(struct mode_serve_params* params)
 		
 		FD_ZERO(&fds);
 		FD_SET(params->server, &fds);
+		FD_SET(params->close_signal[0], &fds);
 		if (params->control_socket_name)
 			FD_SET(params->control, &fds);
 		
-		SERVER_ERROR_ON_FAILURE(
-			select(FD_SETSIZE, &fds, NULL, NULL, NULL),
-			"select() failed"
-		);
+		SERVER_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, 
+		  NULL, NULL, NULL), "select() failed");
+		
+		if (FD_ISSET(params->close_signal[0], &fds))
+			return;
 		
 		activity_fd = FD_ISSET(params->server, &fds) ? params->server : 
 		  params->control;
 		client_fd = accept(activity_fd, &client_address, &socklen);
-		SERVER_ERROR_ON_FAILURE(client_fd, "accept() failed");
 		
 		SERVER_ERROR_ON_FAILURE(
 			pthread_mutex_lock(&params->l_accept),
@@ -481,6 +520,9 @@ void serve_accept_loop(struct mode_serve_params* params)
 	}
 }
 
+/** Initialisation function that sets up the initial allocation map, i.e. so
+  * we know which blocks of the file are allocated.
+  */
 void serve_init_allocation_map(struct mode_serve_params* params)
 {
 	int fd = open(params->filename, O_RDONLY);
@@ -495,14 +537,50 @@ void serve_init_allocation_map(struct mode_serve_params* params)
 	close(fd);
 }
 
+/** Closes sockets, frees memory and waits for all client threads to finish */
+void serve_cleanup(struct mode_serve_params* params)
+{
+	int i;
+	
+	close(params->server);
+	close(params->control);
+	if (params->acl)
+		free(params->acl);
+	//free(params->filename);
+	if (params->control_socket_name)
+		//free(params->control_socket_name);
+	pthread_mutex_destroy(&params->l_accept);
+	pthread_mutex_destroy(&params->l_io);
+	if (params->proxy_fd);
+		close(params->proxy_fd);
+	close(params->close_signal[0]);
+	close(params->close_signal[1]);
+	free(params->block_allocation_map);
+	
+	if (params->mirror)
+		debug("mirror thread running! this should not happen!");
+	
+	for (i=0; i < MAX_NBD_CLIENTS; i++) {
+		void* status;
+		
+		if (params->nbd_client[i].thread != 0) {
+			debug("joining thread %d", i);
+			pthread_join(params->nbd_client[i].thread, &status);
+		}
+	}
+}
+
+/** Full lifecycle of the server */
 void do_serve(struct mode_serve_params* params)
 {
 	pthread_mutex_init(&params->l_accept, NULL);
 	pthread_mutex_init(&params->l_io, NULL);
+	SERVER_ERROR_ON_FAILURE(pipe(params->close_signal) , "pipe failed");
 	
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);
 	serve_init_allocation_map(params);
 	serve_accept_loop(params);
+	serve_cleanup(params);
 }
 
