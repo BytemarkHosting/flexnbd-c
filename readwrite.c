@@ -43,9 +43,9 @@ void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 	SERVER_ERROR_ON_FAILURE(readloop(fd, reply, sizeof(*reply)),
 	  "Couldn't read reply");
 	if (be32toh(reply->magic) != REPLY_MAGIC)
-		SERVER_ERROR("Reply magic incorrect (%p)", reply->magic);
+		SERVER_ERROR("Reply magic incorrect (%p)", be32toh(reply->magic));
 	if (be32toh(reply->error) != 0)
-		SERVER_ERROR("Server replied with error %d", reply->error);
+		SERVER_ERROR("Server replied with error %d", be32toh(reply->error));
 	if (strncmp(request->handle, reply->handle, 8) != 0)
 		SERVER_ERROR("Did not reply with correct handle");
 }

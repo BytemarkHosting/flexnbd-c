@@ -92,6 +92,9 @@ void params_serve(
 	out->bind_to.v4.sin_port = htobe16(out->bind_to.v4.sin_port);
 	
 	out->filename = s_file;
+	out->filename_incomplete = xmalloc(strlen(s_file)+11);
+	strcpy(out->filename_incomplete, s_file);
+	strcpy(out->filename_incomplete + strlen(s_file), ".INCOMPLETE");
 }
 
 void params_readwrite(

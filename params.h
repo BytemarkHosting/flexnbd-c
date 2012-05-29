@@ -38,11 +38,13 @@ struct mode_serve_params {
 	int                  acl_entries;
 	/** pointer to access control list entries*/
 	struct ip_and_mask   (*acl)[0];
-	/** file name to serve */
+	/** (static) file name to serve */
 	char*                filename;
+	/** file name of INCOMPLETE flag */
+	char*                filename_incomplete;
 	/** TCP backlog for listen() */
 	int                  tcp_backlog;
-	/** file name of UNIX control socket (or NULL if none) */
+	/** (static) file name of UNIX control socket (or NULL if none) */
 	char*                control_socket_name;
 	/** size of file */
 	off64_t              size;
