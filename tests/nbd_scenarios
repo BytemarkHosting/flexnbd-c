@@ -13,39 +13,39 @@ class NBDScenarios < Test::Unit::TestCase
     @available_ports = [*40000..41000] - listening_ports
     @port1 = @available_ports.shift
     @port2 = @available_ports.shift
-    @nbd1 = FlexNBD.new("../flexnbd", @ip, @port1)
-  end 
-  
+    @nbd1 = FlexNBD.new("../build/flexnbd", @ip, @port1)
+  end
+
   def teardown
     @nbd1.kill rescue nil
     [@filename1, @filename2].each do |f|
       File.unlink(f) if File.exists?(f)
     end
   end
-  
+
   def test_read1
     writefile1("f"*64)
     serve1
-    
+
     [0, 12, 63].each do |num|
-    
+
       assert_equal(
-        @nbd1.read(num*@blocksize, @blocksize), 
+        @nbd1.read(num*@blocksize, @blocksize),
         @file1.read(num*@blocksize, @blocksize)
       )
     end
-    
+
     [124, 1200, 10028, 25488].each do |num|
       assert_equal(@nbd1.read(num, 4), @file1.read(num, 4))
     end
   end
-  
-  # Check that we're not 
+
+  # Check that we're not
   #
   def test_writeread1
     writefile1("0"*64)
     serve1
-    
+
     [0, 12, 63].each do |num|
       data = "X"*@blocksize
       @nbd1.write(num*@blocksize, data)
@@ -53,14 +53,14 @@ class NBDScenarios < Test::Unit::TestCase
       assert_equal(data, @nbd1.read(num*@blocksize, data.size))
     end
   end
-  
+
   # Check that we're not overstepping or understepping where our writes end
   # up.
   #
   def test_writeread2
     writefile1("0"*1024)
     serve1
-    
+
     d0 = "\0"*@blocksize
     d1 = "X"*@blocksize
     (0..63).each do |num|
@@ -70,16 +70,16 @@ class NBDScenarios < Test::Unit::TestCase
       assert_equal(d0, @nbd1.read(((2*num)+1)*@blocksize, d0.size))
     end
   end
-  
+
   protected
   def serve1(*acl)
     @nbd1.serve(@ip, @port1, @filename1, *acl)
   end
-  
+
   def writefile1(data)
     @file1 = TestFileWriter.new(@filename1, @blocksize).write(data)
   end
-  
+
   def listening_ports
     `netstat -ltn`.
       split("\n").

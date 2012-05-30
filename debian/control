@@ -1,0 +1,14 @@
+Source: flexnbd
+Section: unknown
+Priority: extra
+Maintainer: Alex Young <alex@bytemark.co.uk>
+Build-Depends: cdbs, debhelper (>= 7), ruby, rake, gcc
+Standards-Version: 3.8.1
+Homepage: http://bigv.io/
+
+Package: flexnbd
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: FlexNBD server
+  An NBD server offering push-mirroring and intelligent sparse file handling
+

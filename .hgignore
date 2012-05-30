@@ -1,3 +1,5 @@
 .o$
 ~$
 ^flexnbd$
+^build/
+^pkg/
