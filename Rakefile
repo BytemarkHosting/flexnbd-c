@@ -1,3 +1,6 @@
+require 'rake_utils/debian'
+include RakeUtils::DSL
+
 DEBUG  = true
 
 ALL_SOURCES =FileList['src/*']
@@ -75,9 +78,14 @@ OBJECTS.zip( SOURCES ).each do |o,c|
 end
 
 desc "Remove all build targets, binaries and temporary files"
-rule 'clean' do
-  sh "rm -rf *~ build " + (
-    TEST_MODULES.map { |n| ["tests/check_#{n}", "tests/check_#{n}.o"] }.flatten
-  ).
-  join(" ")
+task :clean do
+  sh "rm -rf *~ build"
+end
+
+namespace :pkg do
+  deb do |t|
+    t.code_files = ALL_SOURCES + ["Rakefile"]
+    t.pkg_name = "flexnbd"
+    t.generate_changelog!
+  end
 end
