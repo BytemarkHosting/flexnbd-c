@@ -24,12 +24,20 @@
 
 #define IS_CMD(x,c) (strncmp((x),(c),(LEN_CMD_MAX)) == 0)
 
+#define GETOPT_HELP GETOPT_FLAG( OPT_HELP, 'h' )
+#define GETOPT_ADDR GETOPT_ARG( OPT_ADDR, 'l' )
+#define GETOPT_PORT GETOPT_ARG( OPT_PORT, 'p' )
+#define GETOPT_FILE GETOPT_ARG( OPT_FILE, 'f' )
+#define GETOPT_SOCK GETOPT_ARG( OPT_SOCK, 's' )
+#define GETOPT_FROM GETOPT_ARG( OPT_FROM, 'F' )
+#define GETOPT_SIZE GETOPT_ARG( OPT_SIZE, 'S' )
+
 static struct option serve_options[] = {
-	GETOPT_FLAG( OPT_HELP, 'h' ),
-	GETOPT_ARG( OPT_ADDR, 'l' ),
-	GETOPT_ARG( OPT_PORT, 'p' ),
-	GETOPT_ARG( OPT_FILE, 'f' ),
-	GETOPT_ARG( OPT_SOCK, 's' ),
+	GETOPT_HELP,
+	GETOPT_ADDR,
+	GETOPT_PORT,
+	GETOPT_FILE,
+	GETOPT_SOCK,
 	{0}
 };
 static char serve_short_options[] = "hl:p:f:s:";
@@ -43,12 +51,12 @@ static char serve_help_text[] =
 	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket to open.\n";
 
 static struct option read_options[] = {
-	GETOPT_FLAG( OPT_HELP, 'h' ),
-	GETOPT_ARG( OPT_ADDR, 'l' ),
-	GETOPT_ARG( OPT_PORT, 'p' ),
-	GETOPT_ARG( OPT_FROM, 'F' ),
-	GETOPT_ARG( OPT_SIZE, 'S' ),
-  	{0}
+	GETOPT_HELP,
+	GETOPT_ADDR,
+	GETOPT_PORT,
+	GETOPT_FROM,
+	GETOPT_SIZE,
+	{0}
 };
 static char read_short_options[] = "hl:p:F:S:";
 static char read_help_text[] =
@@ -73,8 +81,8 @@ static char write_help_text[] =
 	"\t--" OPT_SIZE ",-S <SIZE>\tBytes to write.\n";
 
 struct option acl_options[] = {
-	GETOPT_FLAG( OPT_HELP, 'h' ),
-	GETOPT_ARG( OPT_SOCK, 's' ),
+	GETOPT_HELP,
+	GETOPT_SOCK,
 	{0}
 };
 static char acl_short_options[] = "hs:";
@@ -85,10 +93,10 @@ static char acl_help_text[] =
 	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket.\n";
 
 struct option mirror_options[] = {
-	GETOPT_FLAG( OPT_HELP, 'h' ),
-	GETOPT_ARG( OPT_SOCK, 's' ),
-	GETOPT_ARG( OPT_ADDR, 'l' ),
-	GETOPT_ARG( OPT_PORT, 'p' ),
+	GETOPT_HELP,
+	GETOPT_SOCK,
+	GETOPT_ADDR,
+	GETOPT_PORT,
 	{0}
 };
 static char mirror_short_options[] = "hs:l:p:";
@@ -102,8 +110,8 @@ static char mirror_help_text[] =
 	
 
 struct option status_options[] = {
-	GETOPT_FLAG( OPT_HELP, 'h' ),
-	GETOPT_ARG( OPT_SOCK, 's' ),	
+	GETOPT_HELP,
+	GETOPT_SOCK,
 	{0}
 };
 static char status_short_options[] = "hs:";
