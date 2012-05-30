@@ -15,7 +15,13 @@ class FlexNBD
   
   def serve(ip, port, file, *acl)
     @pid = fork do
-      exec("#{@bin} serve #{ip} #{port} #{file} #{ctrl} #{acl.join(' ')}")
+      cmd ="#{@bin} serve "\
+           "--addr #{ip} "\
+           "--port #{port} "\
+           "--file #{file} "\
+           "--sock #{ctrl} "\
+           "#{acl.join(' ')}"
+      exec(cmd)
     end
   end
   
@@ -25,14 +31,22 @@ class FlexNBD
   end
   
   def read(offset, length)
-    IO.popen("#{@bin} read #{ip} #{port} #{offset} #{length}","r") do |fh|
+    IO.popen("#{@bin} read "\
+             "--addr #{ip} "\
+             "--port #{port} "\
+             "--from #{offset} "\
+             "--size #{length}","r") do |fh|
       return fh.read
     end
     raise "read failed" unless $?.success?
   end
   
   def write(offset, data)
-    IO.popen("#{@bin} write #{ip} #{port} #{offset} #{data.length}","w") do |fh|
+    IO.popen("#{@bin} write "\
+             "--addr #{ip} "\
+             "--port #{port} "\
+             "--from #{offset} "\
+             "--size #{data.length}","w") do |fh|
       fh.write(data)
     end
     raise "write failed" unless $?.success?
