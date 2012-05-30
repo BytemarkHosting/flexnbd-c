@@ -1,6 +1,7 @@
 DEBUG  = true
 
-SOURCES = FileList['src/*.c']
+ALL_SOURCES =FileList['src/*']
+SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
 OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
 
 LIBS    = %w( pthread )
