@@ -43,7 +43,7 @@ void syntax()
 	"        flexnbd write  <IP address> <port> <offset> <file to write>\n"
 	"        flexnbd acl    <control socket> [allowed connection addresses ...]\n"
 	"        flexnbd mirror <control socket> <dst IP address> <dst port>\n"
-	"                          [bytes per second] [proxy|nothing|exit]"
+	"                          [bytes per second] [proxy|nothing|exit]\n"
 	"        flexnbd status <control socket>\n"
 	);
 	exit(1);
