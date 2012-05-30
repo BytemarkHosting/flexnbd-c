@@ -71,7 +71,7 @@ struct mode_serve_params {
 	
 	char*                block_allocation_map;
 	
-	struct { pthread_t thread; struct sockaddr address; }
+	struct { pthread_t thread; union mysockaddr address; }
 	                     nbd_client[MAX_NBD_CLIENTS];
 };
 

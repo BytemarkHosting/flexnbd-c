@@ -333,7 +333,7 @@ void* control_serve(void* client_uncast)
 	return NULL;
 }
 
-void accept_control_connection(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
+void accept_control_connection(struct mode_serve_params* params, int client_fd, union mysockaddr* client_address)
 {
 	pthread_t control_thread;
 	struct control_params* control_params;

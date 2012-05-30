@@ -315,37 +315,35 @@ static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
 /** Test whether AF_INET or AF_INET6 sockaddr is included in the given access
   * control list, returning 1 if it is, and 0 if not.
   */
-int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], struct sockaddr* test)
+int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], union mysockaddr* test)
 {
 	int i;
 	
 	for (i=0; i < list_length; i++) {
 		struct ip_and_mask *entry = &(*list)[i];
 		int testbits;
-		char *raw_address1, *raw_address2;
+		unsigned char *raw_address1, *raw_address2;
 		
-		debug("checking acl entry %d (%d/%d)", i, test->sa_family, entry->ip.family);
+		debug("checking acl entry %d (%d/%d)", i, test->generic.sa_family, entry->ip.family);
 		
-		if (test->sa_family != entry->ip.family)
+		if (test->generic.sa_family != entry->ip.family)
 			continue;
 		
-		if (test->sa_family == AF_INET) {
+		if (test->generic.sa_family == AF_INET) {
 			debug("it's an AF_INET");
-			raw_address1 = (char*) 
-			  &((struct sockaddr_in*) test)->sin_addr;
-			raw_address2 = (char*) &entry->ip.v4.sin_addr;
+			raw_address1 = (unsigned char*) &test->v4.sin_addr;
+			raw_address2 = (unsigned char*) &entry->ip.v4.sin_addr;
 		}
-		else if (test->sa_family == AF_INET6) {
+		else if (test->generic.sa_family == AF_INET6) {
 			debug("it's an AF_INET6");
-			raw_address1 = (char*) 
-			  &((struct sockaddr_in6*) test)->sin6_addr;
-			raw_address2 = (char*) &entry->ip.v6.sin6_addr;
+			raw_address1 = (unsigned char*) &test->v6.sin6_addr;
+			raw_address2 = (unsigned char*) &entry->ip.v6.sin6_addr;
 		}
 		
 		debug("testbits=%d", entry->mask);
 		
 		for (testbits = entry->mask; testbits > 0; testbits -= 8) {
-			debug("testbits=%d, c1=%d, c2=%d", testbits, raw_address1[0], raw_address2[0]);
+			debug("testbits=%d, c1=%02x, c2=%02x", testbits, raw_address1[0], raw_address2[0]);
 			if (testbits >= 8) {
 				if (raw_address1[0] != raw_address2[0])
 					goto no_match;
@@ -414,9 +412,8 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
 			memset(s_client_address, 0, 64);
 			strcpy(s_client_address, "???");
 			inet_ntop(
-				params->nbd_client[i].address.sa_family, 
-				sockaddr_address_data(&params->nbd_client[i].address), 
-				s_client_address, 
+				params->nbd_client[i].address.generic.sa_family, 
+				sockaddr_address_data(&params->nbd_client[i].address.generic), 				s_client_address, 
 				64
 			);
 			
@@ -442,13 +439,13 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
   * to handle it.  Rejects the connection if there is an ACL, and the far end's
   * address doesn't match, or if there are too many clients already connected.
   */
-void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct sockaddr* client_address)
+void accept_nbd_client(struct mode_serve_params* params, int client_fd, union mysockaddr* client_address)
 {
 	struct client_params* client_params;
 	int slot = cleanup_and_find_client_slot(params); 
 	char s_client_address[64];
 	
-	if (inet_ntop(client_address->sa_family, sockaddr_address_data(client_address), s_client_address, 64) == NULL) {
+	if (inet_ntop(client_address->generic.sa_family, sockaddr_address_data(&client_address->generic), s_client_address, 64) == NULL) {
 		write(client_fd, "Bad client_address", 18);
 		close(client_fd);
 		return;
@@ -479,7 +476,7 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct s
 	}
 	
 	memcpy(&params->nbd_client[slot].address, client_address, 
-	  sizeof(struct sockaddr));
+	  sizeof(union mysockaddr));
 	
 	debug("nbd thread %d started (%s)", (int) params->nbd_client[slot].thread, s_client_address);
 }
@@ -488,10 +485,10 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, struct s
 void serve_accept_loop(struct mode_serve_params* params) 
 {
 	while (1) {
-		int             activity_fd, client_fd;
-		struct sockaddr client_address;
-		fd_set          fds;
-		socklen_t       socklen=sizeof(client_address);
+		int              activity_fd, client_fd;
+		union mysockaddr client_address;
+		fd_set           fds;
+		socklen_t        socklen=sizeof(client_address);
 		
 		FD_ZERO(&fds);
 		FD_SET(params->server, &fds);
@@ -507,7 +504,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		
 		activity_fd = FD_ISSET(params->server, &fds) ? params->server : 
 		  params->control;
-		client_fd = accept(activity_fd, &client_address, &socklen);
+		client_fd = accept(activity_fd, &client_address.generic, &socklen);
 		
 		SERVER_ERROR_ON_FAILURE(
 			pthread_mutex_lock(&params->l_accept),
