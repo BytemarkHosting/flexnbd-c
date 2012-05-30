@@ -261,7 +261,7 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 /** Command parser to alter access control list from socket input */
 int control_acl(struct control_params* client, int linesc, char** lines)
 {
-	int acl_entries = 0, parsed;
+	int parsed;
 	struct ip_and_mask (*acl)[], (*old_acl)[];
 	
 	parsed = parse_acl(&acl, linesc, lines);
@@ -275,7 +275,7 @@ int control_acl(struct control_params* client, int linesc, char** lines)
 	else {
 		old_acl = client->serve->acl;
 		client->serve->acl = acl;
-		client->serve->acl_entries = acl_entries;
+		client->serve->acl_entries = linesc;
 		free(old_acl);
 		write_socket("0: updated");
 	}
