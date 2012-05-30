@@ -1,7 +1,9 @@
 DEBUG  = true
 
-SOURCES = %w( flexnbd ioutil readwrite serve util parse control remote )
-OBJECTS = SOURCES.map { |s| "#{s}.o" }
+ALL_SOURCES =FileList['src/*']
+SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
+OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
+
 LIBS    = %w( pthread )
 CCFLAGS = %w( -Wall )
 LDFLAGS = []
@@ -15,52 +17,66 @@ if DEBUG
 end
 
 desc "Build flexnbd binary"
-rule 'default' => 'flexnbd'
+task :flexnbd => 'build/flexnbd'
 
 namespace "test" do
   desc "Run all tests"
   task 'run' => ["unit", "scenarios"]
-  
+
   desc "Build C tests"
-  task 'build' => TEST_MODULES.map { |n| "tests/check_#{n}" }
-  
+  task 'build' => TEST_MODULES.map { |n| "build/tests/check_#{n}" }
+
   desc "Run C tests"
   task 'unit' => 'build' do
     TEST_MODULES.each do |n|
       ENV['EF_DISABLE_BANNER'] = '1'
-      sh "./tests/check_#{n}"
+      sh "build/tests/check_#{n}"
     end
   end
-  
+
   desc "Run NBD test scenarios"
   task 'scenarios' => 'flexnbd' do
     sh "cd tests; ruby nbd_scenarios"
   end
 end
 
+
 def gcc_link(target, objects)
+  FileUtils.mkdir_p File.dirname( target )
+
   sh "gcc #{LDFLAGS.join(' ')} "+
     LIBS.map { |l| "-l#{l}" }.join(" ")+
+    " -I src" +
     " -o #{target} "+
     objects.join(" ")
 end
 
-rule 'flexnbd' => OBJECTS do |t|
+rule 'build/flexnbd' => OBJECTS do |t|
   gcc_link(t.name, t.sources)
 end
 
-rule(/tests\/check_[a-z]+$/ => [ proc { |target| [target+".o", "util.o"] } ]) do |t|
-  gcc_link(t.name, t.sources + [LIBCHECK])
+TEST_MODULES.each do |m|
+  deps = ["tests/check_#{m}.c", "build/util.o"]
+  maybe_obj_name = "build/#{m}.o"
+
+  deps << maybe_obj_name if OBJECTS.include?( maybe_obj_name )
+
+  file "build/tests/check_#{m}" => deps do |t|
+    gcc_link(t.name, deps + [LIBCHECK])
+  end
 end
 
-rule '.o' => '.c' do |t|
-  sh "gcc -I. -c #{CCFLAGS.join(' ')} -o #{t.name} #{t.source} "
+
+OBJECTS.zip( SOURCES ).each do |o,c|
+  file o => c do |t|
+    FileUtils.mkdir_p File.dirname( o )
+    sh "gcc -Isrc -c #{CCFLAGS.join(' ')} -o #{o} #{c} "
+  end
 end
 
 desc "Remove all build targets, binaries and temporary files"
 rule 'clean' do
-  sh "rm -f *~ flexnbd " + (
-    OBJECTS + 
+  sh "rm -rf *~ build " + (
     TEST_MODULES.map { |n| ["tests/check_#{n}", "tests/check_#{n}.o"] }.flatten
   ).
   join(" ")
