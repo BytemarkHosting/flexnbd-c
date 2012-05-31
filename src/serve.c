@@ -132,12 +132,13 @@ void write_not_zeroes(struct client_params* client, off64_t from, int len)
 	}
 }
 
-int client_serve_request(struct client_params* client)
+
+/* Returns 1 if *request was filled with a valid request which we should
+ * try to honour. 0 otherwise. */
+int client_read_request( struct client_params * client , struct nbd_request *out_request )
 {
-	off64_t               offset;
-	struct nbd_request    request;
-	struct nbd_reply      reply;
-	fd_set                fds;
+	struct nbd_request_raw request_raw;
+	fd_set                 fds;
 	
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);
@@ -146,53 +147,135 @@ int client_serve_request(struct client_params* client)
 	  "select() failed");
 	
 	if (FD_ISSET(client->serve->close_signal[0], &fds))
-		return 1;
-		
-	if (readloop(client->socket, &request, sizeof(request)) == -1) {
+		return 0;
+
+	if (readloop(client->socket, &request_raw, sizeof(request_raw)) == -1) {
 		if (errno == 0) {
 			debug("EOF reading request");
-			return 1; /* neat point to close the socket */
+			return 0; /* neat point to close the socket */
 		}
 		else {
 			CLIENT_ERROR_ON_FAILURE(-1, "Error reading request");
 		}
 	}
+
+	nbd_r2h_request( &request_raw, out_request );
+
+	return 1;
+}
+
+
+int client_write_reply( struct client_params * client, struct nbd_request *request, int error )
+{
+	struct nbd_reply     reply;
+	struct nbd_reply_raw reply_raw;
+
+	reply.magic = REPLY_MAGIC;
+	reply.error = error;
+	memcpy( reply.handle, &request->handle, 8 );
+
+	nbd_h2r_reply( &reply, &reply_raw );
+
+	write( client->socket, &reply_raw, sizeof( reply_raw ) );
+
+	return 1;
+}
+
+
+int client_request_needs_reply( struct client_params * client, struct nbd_request request, int *request_err )
+{
+	debug("request type %d", request.type);
 	
-	reply.magic = htobe32(REPLY_MAGIC);
-	reply.error = htobe32(0);
-	memcpy(reply.handle, request.handle, 8);
-	
-	debug("request type %d", be32toh(request.type));
-	
-	if (be32toh(request.magic) != REQUEST_MAGIC)
-		CLIENT_ERROR("Bad magic %08x", be32toh(request.magic));
+	if (request.magic != REQUEST_MAGIC)
+		CLIENT_ERROR("Bad magic %08x", request.magic);
 		
-	switch (be32toh(request.type))
+	switch (request.type)
 	{
 	case REQUEST_READ:
 		break;
 	case REQUEST_WRITE:
 		/* check it's not out of range */
-		if (be64toh(request.from) < 0 || 
-		    be64toh(request.from)+be32toh(request.len) > client->serve->size) {
+		if (request.from < 0 || 
+		    request.from+request.len > client->serve->size) {
 			debug("request read %ld+%d out of range", 
-			  be64toh(request.from), 
-			  be32toh(request.len)
+			  request.from, 
+			  request.len
 			);
-			reply.error = htobe32(1);
-			write(client->socket, &reply, sizeof(reply));
+			client_write_reply( client, &request, 1 );
+			*request_err = 0;
 			return 0;
 		}
 		break;
 		
 	case REQUEST_DISCONNECT:
 		debug("request disconnect");
-		return 1;
+		*request_err  = 1;
+		return 0;
 		
 	default:
-		CLIENT_ERROR("Unknown request %08x", be32toh(request.type));
+		CLIENT_ERROR("Unknown request %08x", request.type);
 	}
-	
+	return 1;
+}
+
+
+void client_reply_to_read( struct client_params* client, struct nbd_request request )
+{
+	off64_t offset;
+
+	debug("request read %ld+%d", request.from, request.len);
+	client_write_reply( client, &request, 0);
+
+	offset = request.from;
+	CLIENT_ERROR_ON_FAILURE(
+			sendfileloop(
+				client->socket, 
+				client->fileno, 
+				&offset, 
+				request.len),
+			"sendfile failed from=%ld, len=%d",
+			offset,
+			request.len);
+}
+
+
+void client_reply_to_write( struct client_params* client, struct nbd_request request )
+{
+	debug("request write %ld+%d", request.from, request.len);
+	if (client->serve->block_allocation_map) {
+		write_not_zeroes( client, request.from, request.len );
+	}
+	else {
+		CLIENT_ERROR_ON_FAILURE(
+				readloop(
+					client->socket,
+					client->mapped + request.from,
+					request.len),
+				"read failed from=%ld, len=%d",
+				request.from,
+				request.len );
+		dirty(client->serve, request.from, request.len);
+	}
+	client_write_reply( client, &request, 0);
+}
+
+
+void client_reply( struct client_params* client, struct nbd_request request )
+{
+	switch (request.type) {
+	case REQUEST_READ:
+		client_reply_to_read( client, request );
+		break;
+
+	case REQUEST_WRITE:
+		client_reply_to_write( client, request );
+		break;
+	}
+}
+
+
+int client_lock_io( struct client_params * client )
+{
 	CLIENT_ERROR_ON_FAILURE(
 		pthread_mutex_lock(&client->serve->l_io),
 		"Problem with I/O lock"
@@ -203,63 +286,42 @@ int client_serve_request(struct client_params* client)
 			pthread_mutex_unlock(&client->serve->l_io),
 			"Problem with I/O unlock"
 		);
-		return 1;
-	}
-	
-	switch (be32toh(request.type))
-	{
-	case REQUEST_READ:
-		debug("request read %ld+%d", be64toh(request.from), be32toh(request.len));
-		write(client->socket, &reply, sizeof(reply));
-				
-		offset = be64toh(request.from);
-		CLIENT_ERROR_ON_FAILURE(
-			sendfileloop(
-				client->socket, 
-				client->fileno, 
-				&offset, 
-				be32toh(request.len)
-			),
-			"sendfile failed from=%ld, len=%d",
-			offset,
-			be32toh(request.len)
-		);
-		break;
-		
-	case REQUEST_WRITE:
-		debug("request write %ld+%d", be64toh(request.from), be32toh(request.len));
-		if (client->serve->block_allocation_map) {
-			write_not_zeroes(
-				client, 
-				be64toh(request.from), 
-				be32toh(request.len)
-			);
-		}
-		else {
-			CLIENT_ERROR_ON_FAILURE(
-				readloop(
-					client->socket,
-					client->mapped + be64toh(request.from),
-					be32toh(request.len)
-				),
-				"read failed from=%ld, len=%d",
-				be64toh(request.from),
-				be32toh(request.len)
-			);
-			dirty(client->serve, be64toh(request.from), be32toh(request.len));
-		}
-		write(client->socket, &reply, sizeof(reply));
-		
-		break;
+		return 0;
 	}
 
+	return 1;
+}
+
+
+void client_unlock_io( struct client_params * client )
+{
 	CLIENT_ERROR_ON_FAILURE(
 		pthread_mutex_unlock(&client->serve->l_io),
 		"Problem with I/O unlock"
 	);
+}
+
+
+int client_serve_request(struct client_params* client)
+{
+	struct nbd_request    request;
+	int                   request_err;
+		
+	if ( !client_read_request( client, &request ) ) { return 1; }
+	if ( !client_request_needs_reply( client, request, &request_err ) )  {
+		return request_err;
+	} 
+
+	if ( client_lock_io( client ) ){
+		client_reply( client, request );
+		client_unlock_io( client );
+	} else { 
+		return 1; 
+	}
 
 	return 0;
 }
+
 
 void client_send_hello(struct client_params* client)
 {

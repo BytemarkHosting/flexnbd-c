@@ -2,7 +2,10 @@
 #define __PARAMS_H
 
 #define _GNU_SOURCE
-#define _LARGEFILE64_SOURCE
+
+#ifndef _LARGEFILE64_SOURCE
+# define _LARGEFILE64_SOURCE
+#endif
 
 #include "parse.h"
 
