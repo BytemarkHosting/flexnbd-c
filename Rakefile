@@ -1,8 +1,6 @@
 require 'rake_utils/debian'
 include RakeUtils::DSL
 
-DEBUG  = true
-
 ALL_SOURCES =FileList['src/*']
 SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
 OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
@@ -14,7 +12,7 @@ LIBCHECK = "/usr/lib/libcheck.a"
 
 TEST_MODULES = Dir["tests/check_*.c"].map { |n| n[12..-3] }
 
-if DEBUG
+if ENV['DEBUG']
   LDFLAGS << ["-g"]
   CCFLAGS << ["-g -DDEBUG"]
 end

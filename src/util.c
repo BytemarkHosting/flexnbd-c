@@ -10,6 +10,7 @@
 #include "util.h"
 
 static pthread_t main_thread;
+static int global_debug;
 
 void error_init()
 {
@@ -58,4 +59,24 @@ void* xmalloc(size_t size)
 	memset(p, 0, size);
 	return p;
 }
+
+
+void set_debug(int value) {
+	global_debug = value;
+}
+
+#ifdef DEBUG
+#  include <sys/times.h>
+#  include <stdarg.h>
+
+void debug(const char *msg, ...) {
+  va_list argp;
+
+	if ( global_debug ) {
+    fprintf(stderr, "%08x %4d: ", (int) pthread_self(), (int) clock() );
+    fprintf(stderr, msg, argp);
+    fprintf(stderr, "\n");
+	}
+}
+#endif
 

@@ -5,7 +5,6 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "util.h"
 
 static inline char char_with_bit_set(int num) { return 1<<(num%8); }
 

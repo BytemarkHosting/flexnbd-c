@@ -12,12 +12,9 @@ void* xrealloc(void* ptr, size_t size);
 
 void* xmalloc(size_t size);
 
-#ifndef DEBUG
-#  define debug(msg, ...)
-#else
-#  include <sys/times.h>
-#  define debug(msg, ...) fprintf(stderr, "%08x %4d: " msg "\n" , \
-     (int) pthread_self(), (int) clock(), ##__VA_ARGS__)
+void set_debug(int value);
+#ifdef DEBUG
+void debug(const char*msg, ...);
 #endif
 
 #define CLIENT_ERROR(msg, ...) \

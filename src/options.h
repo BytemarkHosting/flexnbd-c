@@ -32,23 +32,36 @@
 #define GETOPT_FROM GETOPT_ARG( OPT_FROM, 'F' )
 #define GETOPT_SIZE GETOPT_ARG( OPT_SIZE, 'S' )
 
+#ifdef DEBUG
+#  define OPT_DEBUG "debug"
+#  define GETOPT_DEBUG GETOPT_FLAG( OPT_DEBUG, 'd' )
+#  define DEBUG_LINE \
+  "\t--" OPT_DEBUG ",-d\tOutput debug information.\n"
+#else
+#  define GETOPT_DEBUG {0}
+#  define DEBUG_LINE ""
+#endif
+
+
 static struct option serve_options[] = {
 	GETOPT_HELP,
 	GETOPT_ADDR,
 	GETOPT_PORT,
 	GETOPT_FILE,
 	GETOPT_SOCK,
+	GETOPT_DEBUG,
 	{0}
 };
 static char serve_short_options[] = "hl:p:f:s:";
-static char serve_help_text[] = 
+static char serve_help_text[] =
 	"Usage: flexnbd " CMD_SERVE " <options> [<acl address>*]\n\n"
 	"Serve FILE from ADDR:PORT, with an optional control socket at SOCK.\n\n"
 	"\t--" OPT_HELP ",-h\tThis text.\n"
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to serve on.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to serve on.\n"
 	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
-	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket to open.\n";
+	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket to open.\n"
+	DEBUG_LINE;
 
 static struct option read_options[] = {
 	GETOPT_HELP,
@@ -56,6 +69,7 @@ static struct option read_options[] = {
 	GETOPT_PORT,
 	GETOPT_FROM,
 	GETOPT_SIZE,
+	GETOPT_DEBUG,
 	{0}
 };
 static char read_short_options[] = "hl:p:F:S:";
@@ -66,7 +80,8 @@ static char read_help_text[] =
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to read from.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to read from.\n"
 	"\t--" OPT_FROM ",-F <OFFSET>\tByte offset to read from.\n"
-	"\t--" OPT_SIZE ",-S <SIZE>\tBytes to read.\n";
+	"\t--" OPT_SIZE ",-S <SIZE>\tBytes to read.\n"
+	DEBUG_LINE;
 
 
 static struct option *write_options = read_options;
@@ -78,11 +93,13 @@ static char write_help_text[] =
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to write to.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to write to.\n"
 	"\t--" OPT_FROM ",-F <OFFSET>\tByte offset to write from.\n"
-	"\t--" OPT_SIZE ",-S <SIZE>\tBytes to write.\n";
+	"\t--" OPT_SIZE ",-S <SIZE>\tBytes to write.\n"
+	DEBUG_LINE;
 
 struct option acl_options[] = {
 	GETOPT_HELP,
 	GETOPT_SOCK,
+	GETOPT_DEBUG,
 	{0}
 };
 static char acl_short_options[] = "hs:";
@@ -90,13 +107,15 @@ static char acl_help_text[] =
 	"Usage: flexnbd " CMD_ACL " <options> [<acl address>+]\n\n"
 	"Set the access control list for a server with control socket SOCK.\n\n"
 	"\t--" OPT_HELP ",-h\tThis text.\n"
-	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket.\n";
+	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket.\n"
+	DEBUG_LINE;
 
 struct option mirror_options[] = {
 	GETOPT_HELP,
 	GETOPT_SOCK,
 	GETOPT_ADDR,
 	GETOPT_PORT,
+	GETOPT_DEBUG,
 	{0}
 };
 static char mirror_short_options[] = "hs:l:p:";
@@ -106,12 +125,14 @@ static char mirror_help_text[] =
 	"\t--" OPT_HELP ",-h\tThis text.\n"
 	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket.\n"
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to mirror to.\n"
-	"\t--" OPT_PORT ",-p <PORT>\tThe port to mirror to.\n";
-	
+	"\t--" OPT_PORT ",-p <PORT>\tThe port to mirror to.\n"
+	DEBUG_LINE;
+
 
 struct option status_options[] = {
 	GETOPT_HELP,
 	GETOPT_SOCK,
+	GETOPT_DEBUG,
 	{0}
 };
 static char status_short_options[] = "hs:";
@@ -119,9 +140,10 @@ static char status_help_text[] =
 	"Usage: flexnbd " CMD_STATUS " <options>\n\n"
 	"Get the status for a server with control socket SOCK.\n\n"
 	"\t--" OPT_HELP ",-h\tThis text.\n"
-	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket.\n";
+	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket.\n"
+	DEBUG_LINE;
 
-static char help_help_text[] = 
+static char help_help_text[] =
 	"Usage: flexnbd <cmd> [cmd options]\n\n"
 	"Commands:\n"
 	"\tflexnbd serve\n"

@@ -43,9 +43,9 @@ void exit_err( char *msg )
 }
 
 void params_serve(
-	struct mode_serve_params* out, 
-	char* s_ip_address, 
-	char* s_port, 
+	struct mode_serve_params* out,
+	char* s_ip_address,
+	char* s_port,
 	char* s_file,
 	char *s_ctrl_sock,
 	int acl_entries,
@@ -53,16 +53,16 @@ void params_serve(
 )
 {
 	int parsed;
-	
+
 	out->tcp_backlog = 10; /* does this need to be settable? */
-	
+
 	if (s_ip_address == NULL)
 		SERVER_ERROR("No IP address supplied");
 	if (s_port == NULL)
 		SERVER_ERROR("No port number supplied");
 	if (s_file == NULL)
 		SERVER_ERROR("No filename supplied");
-	
+
 	if (parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address) == 0)
 		SERVER_ERROR("Couldn't parse server address '%s' (use 0 if "
 		  "you want to bind to all IPs)", s_ip_address);
@@ -75,12 +75,12 @@ void params_serve(
 	parsed = parse_acl(&out->acl, acl_entries, s_acl_entries);
 	if (parsed != acl_entries)
 		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[parsed]);
-	
+
 	out->bind_to.v4.sin_port = atoi(s_port);
 	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
 		SERVER_ERROR("Port number must be >= 0 and <= 65535");
 	out->bind_to.v4.sin_port = htobe16(out->bind_to.v4.sin_port);
-	
+
 	out->filename = s_file;
 	out->filename_incomplete = xmalloc(strlen(s_file)+11);
 	strcpy(out->filename_incomplete, s_file);
@@ -104,7 +104,7 @@ void params_serve(
 void params_readwrite(
 	int write_not_read,
 	struct mode_readwrite_params* out,
-	char* s_ip_address, 
+	char* s_ip_address,
 	char* s_port,
 	char* s_from,
 	char* s_length_or_filename
@@ -118,11 +118,11 @@ void params_readwrite(
 		SERVER_ERROR("No from supplied");
 	if (s_length_or_filename == NULL)
 		SERVER_ERROR("No length supplied");
-	
+
 	if (parse_ip_to_sockaddr(&out->connect_to.generic, s_ip_address) == 0)
-		SERVER_ERROR("Couldn't parse connection address '%s'", 
+		SERVER_ERROR("Couldn't parse connection address '%s'",
 		s_ip_address);
-	
+
 	/* FIXME: duplicated from above */
 	out->connect_to.v4.sin_port = atoi(s_port);
 	if (out->connect_to.v4.sin_port < 0 || out->connect_to.v4.sin_port > 65535)
@@ -130,7 +130,7 @@ void params_readwrite(
 	out->connect_to.v4.sin_port = htobe16(out->connect_to.v4.sin_port);
 
 	out->from  = atol(s_from);
-	
+
 	if (write_not_read) {
 		if (s_length_or_filename[0]-48 < 10) {
 			out->len   = atol(s_length_or_filename);
@@ -180,6 +180,9 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 		case 's':
 			*sock = optarg;
 			break;
+		case 'd':
+			set_debug(1);
+			break;
 		default:
 			exit_err( serve_help_text );
 			break;
@@ -206,6 +209,9 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **from, c
 		case 'S':
 			*size = optarg;
 			break;
+		case 'd':
+			set_debug(1);
+			break;
 		default:
 			exit_err( read_help_text );
 			break;
@@ -221,6 +227,9 @@ void read_sock_param( int c, char **sock, char *help_text )
 			break;
 		case 's':
 			*sock = optarg;
+			break;
+		case 'd':
+			set_debug(1);
 			break;
 		default:
 			exit_err( help_text );
@@ -248,6 +257,9 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port )
 			break;
 		case 'p':
 			*ip_port = optarg;
+			break;
+		case 'd':
+			set_debug(1);
 			break;
 		default:
 			exit_err( mirror_help_text );
@@ -370,7 +382,7 @@ int mode_acl( int argc, char *argv[] )
 		if ( c == -1 ) break;
 		read_acl_param( c, &sock );
 	}
-	
+
 	if ( NULL == sock ){
 		fprintf( stderr, "--sock is required.\n" );
 		exit_err( acl_help_text );
@@ -418,13 +430,13 @@ int mode_status( int argc, char *argv[] )
 {
 	int c;
 	char *sock = NULL;
-	
+
 	while (1) {
 		c = getopt_long( argc, argv, status_short_options, status_options, NULL );
 		if ( -1 == c ) break;
 		read_status_param( c, &sock );
 	}
-	
+
 	if ( NULL == sock ){
 		fprintf( stderr, "--sock is required.\n" );
 		exit_err( acl_help_text );
@@ -500,6 +512,7 @@ int main(int argc, char** argv)
 {
 	signal(SIGPIPE, SIG_IGN); /* calls to splice() unhelpfully throw this */
 	error_init();
+	set_debug(0);
 
 	if (argc < 2) {
 		exit_err( help_help_text );
