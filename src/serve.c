@@ -15,6 +15,9 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+
 static const int block_allocation_resolution = 4096;//128<<10;
 
 static inline void dirty(struct mode_serve_params *serve, off64_t from, int len)
@@ -384,7 +387,12 @@ void serve_open_server_socket(struct mode_serve_params* params)
 	);
 
 	SERVER_ERROR_ON_FAILURE(
-		bind(params->server, &params->bind_to.generic, 
+		setsockopt(params->server, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval)),
+		"Couldn't set TCP_NODELAY"
+	);
+
+	SERVER_ERROR_ON_FAILURE(
+		bind(params->server, &params->bind_to.generic,
 		  sizeof(params->bind_to)),
 		"Couldn't bind server to IP address"
 	);
