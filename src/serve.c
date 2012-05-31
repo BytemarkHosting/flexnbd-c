@@ -170,12 +170,7 @@ int client_serve_request(struct client_params* client)
 	switch (be32toh(request.type))
 	{
 	case REQUEST_READ:
-		if (access(client->serve->filename_incomplete, F_OK) == 0 ) {
-			debug("read request while data incomplete");
-			reply.error = htobe32(10);
-			write(client->socket, &reply, sizeof(reply));
-			return 0;
-		}
+		break;
 	case REQUEST_WRITE:
 		/* check it's not out of range */
 		if (be64toh(request.from) < 0 || 
