@@ -165,6 +165,11 @@ int client_read_request( struct client_params * client , struct nbd_request *out
 }
 
 
+/* Writes a reply to request *request, with error, to the client's
+ * socket.
+ * Returns 1; we don't check for errors on the write.
+ * TODO: Check for errors on the write.
+ */
 int client_write_reply( struct client_params * client, struct nbd_request *request, int error )
 {
 	struct nbd_reply     reply;
@@ -181,7 +186,29 @@ int client_write_reply( struct client_params * client, struct nbd_request *reque
 	return 1;
 }
 
+void client_write_init( struct client_params * client, uint64_t size )
+{
+	struct nbd_init init;
+	struct nbd_init_raw init_raw;
 
+	memcpy( init.passwd, INIT_PASSWD, sizeof( INIT_PASSWD ) );
+	init.magic = INIT_MAGIC;
+	init.size = size;
+	memset( init.reserved, 0, 128 );
+
+	nbd_h2r_init( &init, &init_raw );
+
+	CLIENT_ERROR_ON_FAILURE(
+		writeloop(client->socket, &init_raw, sizeof(init_raw)),
+		"Couldn't send hello"
+	);
+}
+
+/* Check to see if the client's request needs a reply constructing.
+ * Returns 1 if we do, 0 otherwise.
+ * request_err is set to 0 if the client sent a bad request, in which
+ * case we send an error reply.
+ */
 int client_request_needs_reply( struct client_params * client, struct nbd_request request, int *request_err )
 {
 	debug("request type %d", request.type);
@@ -325,16 +352,7 @@ int client_serve_request(struct client_params* client)
 
 void client_send_hello(struct client_params* client)
 {
-	struct nbd_init init;
-	
-	memcpy(init.passwd, INIT_PASSWD, sizeof(INIT_PASSWD));
-	init.magic = htobe64(INIT_MAGIC);
-	init.size = htobe64(client->serve->size);
-	memset(init.reserved, 0, 128);
-	CLIENT_ERROR_ON_FAILURE(
-		writeloop(client->socket, &init, sizeof(init)),
-		"Couldn't send hello"
-	);
+	client_write_init( client, client->serve->size );
 }
 
 void* client_serve(void* client_uncast)
