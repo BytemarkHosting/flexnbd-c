@@ -421,7 +421,8 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
 			strcpy(s_client_address, "???");
 			inet_ntop(
 				params->nbd_client[i].address.generic.sa_family, 
-				sockaddr_address_data(&params->nbd_client[i].address.generic), 				s_client_address, 
+				sockaddr_address_data(&params->nbd_client[i].address.generic), 
+                                    s_client_address, 
 				64
 			);
 			
@@ -430,9 +431,8 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
 					SERVER_ERROR_ON_FAILURE(-1, "Problem with joining thread");
 			}
 			else {
-				uint64_t status1 = (uint64_t) status;
 				params->nbd_client[i].thread = 0;
-				debug("nbd thread %d exited (%s) with status %ld", (int) params->nbd_client[i].thread, s_client_address, status1);
+				debug("nbd thread %d exited (%s) with status %ld", (int) params->nbd_client[i].thread, s_client_address, (uint64_t)status);
 			}
 		}
 		

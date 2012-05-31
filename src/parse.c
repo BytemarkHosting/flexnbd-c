@@ -82,8 +82,7 @@ int parse_acl(struct ip_and_mask (**out)[], int max, char **entries)
 	}
 	
 	for (i=0; i < max; i++) {
-		struct ip_and_mask* entry = list[i];
-		debug("acl entry %d @ %p has mask %d", i, entry, entry->mask);
+		debug("acl entry %d @ %p has mask %d", i, list[i], list[i]->mask);
 	}
 	
 	return max;
