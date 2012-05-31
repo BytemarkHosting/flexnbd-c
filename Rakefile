@@ -1,7 +1,8 @@
 require 'rake_utils/debian'
 include RakeUtils::DSL
 
-DEBUG  = true
+DEBUG  = ENV.has_key?('DEBUG') &&
+  %w|yes y ok 1 true t|.include?(ENV['DEBUG'])
 
 ALL_SOURCES =FileList['src/*']
 SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
@@ -89,3 +90,4 @@ namespace :pkg do
     t.generate_changelog!
   end
 end
+
