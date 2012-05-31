@@ -22,6 +22,8 @@ end
 
 desc "Build flexnbd binary"
 task :flexnbd => 'build/flexnbd'
+task :build => :flexnbd
+task :default => :flexnbd
 
 namespace "test" do
   desc "Run all tests"
