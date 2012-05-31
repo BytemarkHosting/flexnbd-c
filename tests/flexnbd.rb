@@ -7,6 +7,9 @@ class FlexNBD
 
   def initialize(bin, ip, port)
     @bin  = bin
+    @debug = `#{@bin} serve --help` =~ /--debug/ ? "--debug" : ""
+    @valgrind = ENV['VALGRIND'] ? "valgrind " : ""
+    @bin = "#{@valgrind}#{@bin}"
     raise "#{bin} not executable" unless File.executable?(bin)
     @ctrl = "/tmp/.flexnbd.ctrl.#{Time.now.to_i}.#{rand}"
     @ip = ip
@@ -16,12 +19,12 @@ class FlexNBD
   def serve(ip, port, file, *acl)
     File.unlink(ctrl) if File.exists?(ctrl)
     @pid = fork do
-      cmd ="valgrind #{@bin} serve "\
+      cmd ="#{@bin} serve "\
            "--addr #{ip} "\
            "--port #{port} "\
            "--file #{file} "\
            "--sock #{ctrl} "\
-           "--debug "\
+           "#{@debug} "\
            "#{acl.join(' ')}"
       exec(cmd)
     end
@@ -34,11 +37,11 @@ class FlexNBD
   end
 
   def read(offset, length)
-    IO.popen("valgrind #{@bin} read "\
+    IO.popen("#{@bin} read "\
              "--addr #{ip} "\
              "--port #{port} "\
              "--from #{offset} "\
-           "--debug "\
+             "#{@debug} "\
              "--size #{length}","r") do |fh|
       return fh.read
     end
@@ -46,11 +49,11 @@ class FlexNBD
   end
 
   def write(offset, data)
-    IO.popen("valgrind #{@bin} write "\
+    IO.popen("#{@bin} write "\
              "--addr #{ip} "\
              "--port #{port} "\
              "--from #{offset} "\
-           "--debug "\
+             "#{@debug} "\
              "--size #{data.length}","w") do |fh|
       fh.write(data)
     end

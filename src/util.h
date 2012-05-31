@@ -15,6 +15,9 @@ void* xmalloc(size_t size);
 void set_debug(int value);
 #ifdef DEBUG
 void debug(const char*msg, ...);
+#else
+/* no-op */
+#  define debug( msg, ...)
 #endif
 
 #define CLIENT_ERROR(msg, ...) \
