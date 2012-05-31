@@ -3,3 +3,4 @@
 ^flexnbd$
 ^build/
 ^pkg/
+\.orig$
