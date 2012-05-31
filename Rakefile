@@ -1,6 +1,9 @@
 require 'rake_utils/debian'
 include RakeUtils::DSL
 
+DEBUG  = ENV.has_key?('DEBUG') &&
+  %w|yes y ok 1 true t|.include?(ENV['DEBUG'])
+
 ALL_SOURCES =FileList['src/*']
 SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
 OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
@@ -12,7 +15,7 @@ LIBCHECK = "/usr/lib/libcheck.a"
 
 TEST_MODULES = Dir["tests/check_*.c"].map { |n| n[12..-3] }
 
-if ENV['DEBUG']
+if DEBUG
   LDFLAGS << ["-g"]
   CCFLAGS << ["-g -DDEBUG"]
 end
@@ -87,3 +90,4 @@ namespace :pkg do
     t.generate_changelog!
   end
 end
+
