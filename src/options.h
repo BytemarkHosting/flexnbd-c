@@ -8,6 +8,7 @@
 #define OPT_SOCK "sock"
 #define OPT_FROM "from"
 #define OPT_SIZE "size"
+#define OPT_DENY "default-deny"
 
 #define CMD_SERVE  "serve"
 #define CMD_READ   "read"
@@ -16,7 +17,7 @@
 #define CMD_MIRROR "mirror"
 #define CMD_STATUS "status"
 #define CMD_HELP   "help"
-#define LEN_CMD_MAX 6
+#define LEN_CMD_MAX 7
 
 #define PATH_LEN_MAX 1024
 #define ADDR_LEN_MAX 64
@@ -25,6 +26,8 @@
 #define IS_CMD(x,c) (strncmp((x),(c),(LEN_CMD_MAX)) == 0)
 
 #define GETOPT_HELP GETOPT_FLAG( OPT_HELP, 'h' )
+#define GETOPT_DENY GETOPT_FLAG( OPT_DENY, 'D' )
+
 #define GETOPT_ADDR GETOPT_ARG( OPT_ADDR, 'l' )
 #define GETOPT_PORT GETOPT_ARG( OPT_PORT, 'p' )
 #define GETOPT_FILE GETOPT_ARG( OPT_FILE, 'f' )
@@ -38,9 +41,10 @@ static struct option serve_options[] = {
 	GETOPT_PORT,
 	GETOPT_FILE,
 	GETOPT_SOCK,
+	GETOPT_DENY,
 	{0}
 };
-static char serve_short_options[] = "hl:p:f:s:";
+static char serve_short_options[] = "Dhl:p:f:s:";
 static char serve_help_text[] = 
 	"Usage: flexnbd " CMD_SERVE " <options> [<acl address>*]\n\n"
 	"Serve FILE from ADDR:PORT, with an optional control socket at SOCK.\n\n"
@@ -48,6 +52,7 @@ static char serve_help_text[] =
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to serve on.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to serve on.\n"
 	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
+	"\t--" OPT_DENY ",-D\tDeny connections by default unless in ACL\n"
 	"\t--" OPT_SOCK ",-s <SOCK>\tPath to the control socket to open.\n";
 
 static struct option read_options[] = {
