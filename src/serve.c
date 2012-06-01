@@ -527,6 +527,8 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, union my
 	struct client_params* client_params;
 	int slot = cleanup_and_find_client_slot(params); 
 	char s_client_address[64];
+	int acl_passed = 0;
+
 	
 	if (inet_ntop(client_address->generic.sa_family, sockaddr_address_data(&client_address->generic), s_client_address, 64) == NULL) {
 		write(client_fd, "Bad client_address", 18);
@@ -534,12 +536,21 @@ void accept_nbd_client(struct mode_serve_params* params, int client_fd, union my
 		return;
 	}
 	
-	if (params->acl && 
-	    !is_included_in_acl(params->acl_entries, params->acl, client_address)) {
-		write(client_fd, "Access control error", 20);
-		close(client_fd);
-		return;
+
+	if (params->acl) {
+		if (is_included_in_acl(params->acl_entries, params->acl, client_address))
+			acl_passed = 1;
+	} else {
+		if (!params->default_deny)
+			acl_passed = 1;
 	}
+
+	if (!acl_passed) {
+ 		write(client_fd, "Access control error", 20);
+ 		close(client_fd);
+ 		return;
+	}
+
 	
 	if (slot < 0) {
 		write(client_fd, "Too many clients", 16);

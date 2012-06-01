@@ -37,6 +37,8 @@ struct control_params {
 struct mode_serve_params {
 	/** address/port to bind to */
 	union mysockaddr     bind_to;
+	/** does an empty ACL mean "deny all"? */
+	int                  default_deny;
 	/** number of entries in current access control list*/
 	int                  acl_entries;
 	/** pointer to access control list entries*/

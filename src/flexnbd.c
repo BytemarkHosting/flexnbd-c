@@ -48,6 +48,7 @@ void params_serve(
 	char* s_port,
 	char* s_file,
 	char *s_ctrl_sock,
+	int default_deny,
 	int acl_entries,
 	char** s_acl_entries /* first may actually be path to control socket */
 )
@@ -70,6 +71,10 @@ void params_serve(
 	/* control_socket_name is optional. It just won't get created if
 	 * we pass NULL. */
 	out->control_socket_name = s_ctrl_sock;
+
+	/* If this is true then an empty ACL means "nobody is allowed to connect",
+	 * rather than "anybody is allowed to connect" */
+	out->default_deny = default_deny;
 
 	out->acl_entries = acl_entries;
 	parsed = parse_acl(&out->acl, acl_entries, s_acl_entries);
@@ -161,7 +166,8 @@ void do_read(struct mode_readwrite_params* params);
 void do_write(struct mode_readwrite_params* params);
 void do_remote_command(char* command, char* mode, int argc, char** argv);
 
-void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char **sock )
+void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char **sock, int *default_deny )
+
 {
 	switch(c){
 		case 'h':
@@ -182,6 +188,8 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 			break;
 		case 'd':
 			set_debug(1);
+		case 'D':
+			*default_deny = 1;
 			break;
 		default:
 			exit_err( serve_help_text );
@@ -279,14 +287,17 @@ int mode_serve( int argc, char *argv[] )
 	char *ip_port = NULL;
 	char *file    = NULL;
 	char *sock    = NULL;
+	int default_deny = 0; // not on by default
 	int err = 0;
 
 	struct mode_serve_params serve;
 
 	while (1) {
 		c = getopt_long(argc, argv, serve_short_options, serve_options, NULL);
-		if ( c == -1 ) break;
-		read_serve_param( c, &ip_addr, &ip_port, &file, &sock );
+		if ( c == -1 )
+			break;
+
+		read_serve_param( c, &ip_addr, &ip_port, &file, &sock, &default_deny );
 	}
 
 	if ( NULL == ip_addr || NULL == ip_port ) {
@@ -300,7 +311,7 @@ int mode_serve( int argc, char *argv[] )
 	if ( err ) { exit_err( serve_help_text ); }
 
 	memset( &serve, 0, sizeof( serve ) );
-	params_serve( &serve, ip_addr, ip_port, file, sock, argc - optind, argv + optind );
+	params_serve( &serve, ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind );
 	do_serve( &serve );
 
 	return 0;
