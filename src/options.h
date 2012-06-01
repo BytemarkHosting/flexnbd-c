@@ -38,11 +38,13 @@
 #ifdef DEBUG
 #  define OPT_DEBUG "debug"
 #  define GETOPT_DEBUG GETOPT_FLAG( OPT_DEBUG, 'd' )
+#  define SOPT_DEBUG "d"
 #  define DEBUG_LINE \
   "\t--" OPT_DEBUG ",-d\tOutput debug information.\n"
 #else
 #  define GETOPT_DEBUG {0}
 #  define DEBUG_LINE ""
+#  define SOPT_DEBUG ""
 #endif
 
 
@@ -56,7 +58,7 @@ static struct option serve_options[] = {
 	GETOPT_DENY,
 	{0}
 };
-static char serve_short_options[] = "Dhl:p:f:s:";
+static char serve_short_options[] = "Dhl:p:f:s:" SOPT_DEBUG;
 static char serve_help_text[] =
 	"Usage: flexnbd " CMD_SERVE " <options> [<acl address>*]\n\n"
 	"Serve FILE from ADDR:PORT, with an optional control socket at SOCK.\n\n"
@@ -77,7 +79,7 @@ static struct option read_options[] = {
 	GETOPT_DEBUG,
 	{0}
 };
-static char read_short_options[] = "hl:p:F:S:";
+static char read_short_options[] = "hl:p:F:S:" SOPT_DEBUG;
 static char read_help_text[] =
 	"Usage: flexnbd " CMD_READ " <options>\n\n"
 	"Read SIZE bytes from a server at ADDR:PORT to stdout, starting at OFFSET.\n\n"
@@ -107,7 +109,7 @@ struct option acl_options[] = {
 	GETOPT_DEBUG,
 	{0}
 };
-static char acl_short_options[] = "hs:";
+static char acl_short_options[] = "hs:" SOPT_DEBUG;
 static char acl_help_text[] =
 	"Usage: flexnbd " CMD_ACL " <options> [<acl address>+]\n\n"
 	"Set the access control list for a server with control socket SOCK.\n\n"
@@ -123,7 +125,7 @@ struct option mirror_options[] = {
 	GETOPT_DEBUG,
 	{0}
 };
-static char mirror_short_options[] = "hs:l:p:";
+static char mirror_short_options[] = "hs:l:p:" SOPT_DEBUG;
 static char mirror_help_text[] =
 	"Usage: flexnbd " CMD_MIRROR " <options>\n\n"
 	"Start mirroring from the server with control socket SOCK to one at ADDR:PORT.\n\n"
@@ -140,7 +142,7 @@ struct option status_options[] = {
 	GETOPT_DEBUG,
 	{0}
 };
-static char status_short_options[] = "hs:";
+static char status_short_options[] = "hs:" SOPT_DEBUG;
 static char status_help_text[] =
 	"Usage: flexnbd " CMD_STATUS " <options>\n\n"
 	"Get the status for a server with control socket SOCK.\n\n"
