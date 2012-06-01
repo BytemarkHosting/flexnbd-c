@@ -522,13 +522,18 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
   * to handle it.  Rejects the connection if there is an ACL, and the far end's
   * address doesn't match, or if there are too many clients already connected.
   */
-void accept_nbd_client(struct mode_serve_params* params, int client_fd, union mysockaddr* client_address)
+void accept_nbd_client(
+		struct mode_serve_params* params, 
+		int client_fd, 
+		union mysockaddr* client_address)
 {
 	struct client_params* client_params;
 	int slot = cleanup_and_find_client_slot(params); 
 	char s_client_address[64];
 	
-	if (inet_ntop(client_address->generic.sa_family, sockaddr_address_data(&client_address->generic), s_client_address, 64) == NULL) {
+	if (inet_ntop(client_address->generic.sa_family,
+				sockaddr_address_data(&client_address->generic),
+				s_client_address, 64) == NULL) {
 		write(client_fd, "Bad client_address", 18);
 		close(client_fd);
 		return;
