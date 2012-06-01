@@ -186,9 +186,9 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 		case 's':
 			*sock = optarg;
 			break;
-		case 'd':
+		case 'v':
 			set_debug(1);
-		case 'D':
+		case 'd':
 			*default_deny = 1;
 			break;
 		default:
@@ -217,7 +217,7 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **from, c
 		case 'S':
 			*size = optarg;
 			break;
-		case 'd':
+		case 'v':
 			set_debug(1);
 			break;
 		default:
@@ -236,7 +236,7 @@ void read_sock_param( int c, char **sock, char *help_text )
 		case 's':
 			*sock = optarg;
 			break;
-		case 'd':
+		case 'v':
 			set_debug(1);
 			break;
 		default:
@@ -266,7 +266,7 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port )
 		case 'p':
 			*ip_port = optarg;
 			break;
-		case 'd':
+		case 'v':
 			set_debug(1);
 			break;
 		default:
