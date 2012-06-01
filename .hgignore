@@ -4,3 +4,6 @@
 ^build/
 ^pkg/
 \.orig$
+.*\.swp$
+cscope.out$
+valgrind.out$
