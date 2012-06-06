@@ -136,10 +136,11 @@ struct option mirror_options[] = {
 	GETOPT_SOCK,
 	GETOPT_ADDR,
 	GETOPT_PORT,
+	GETOPT_BIND,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char mirror_short_options[] = "hs:l:p:" SOPT_VERBOSE;
+static char mirror_short_options[] = "hs:l:p:b:" SOPT_VERBOSE;
 static char mirror_help_text[] =
 	"Usage: flexnbd " CMD_MIRROR " <options>\n\n"
 	"Start mirroring from the server with control socket SOCK to one at ADDR:PORT.\n\n"
@@ -147,6 +148,7 @@ static char mirror_help_text[] =
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to mirror to.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to mirror to.\n"
 	SOCK_LINE
+	BIND_LINE
 	VERBOSE_LINE;
 
 

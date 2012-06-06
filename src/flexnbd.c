@@ -257,7 +257,7 @@ void read_acl_param( int c, char **sock )
 	read_sock_param( c, sock, acl_help_text );
 }
 
-void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port )
+void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port, char **bind_addr )
 {
 	switch( c ){
 		case 'h':
@@ -273,6 +273,8 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port )
 		case 'p':
 			*ip_port = optarg;
 			break;
+		case 'b':
+			*bind_addr = optarg;
 		case 'v':
 			set_debug(1);
 			break;
@@ -426,13 +428,13 @@ int mode_mirror( int argc, char *argv[] )
 {
 	int c;
 	char *sock = NULL;
-	char *remote_argv[3] = {0};
+	char *remote_argv[4] = {0};
 	int err = 0;
 
 	while (1) {
 		c = getopt_long( argc, argv, mirror_short_options, mirror_options, NULL);
 		if ( -1 == c ) break;
-		read_mirror_param( c, &sock, &remote_argv[0], &remote_argv[1] );
+		read_mirror_param( c, &sock, &remote_argv[0], &remote_argv[1], &remote_argv[2] );
 	}
 
 	if ( NULL == sock ){
@@ -444,8 +446,11 @@ int mode_mirror( int argc, char *argv[] )
 		err = 1;
 	}
 	if ( err ) { exit_err( mirror_help_text ); }
-
-	do_remote_command( "mirror", sock, 2, remote_argv );
+	
+	if (argv[2] == NULL)
+		do_remote_command( "mirror", sock, 2, remote_argv );
+	else
+		do_remote_command( "mirror", sock, 3, remote_argv );
 
 	return 0;
 }
