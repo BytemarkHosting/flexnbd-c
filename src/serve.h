@@ -97,18 +97,5 @@ struct client_params {
 	struct server* serve; /* FIXME: remove above duplication */
 };
 
-/* FIXME: wrong place */
-static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
-{
-	struct sockaddr_in*  in  = (struct sockaddr_in*) sockaddr;
-	struct sockaddr_in6* in6 = (struct sockaddr_in6*) sockaddr;
-	
-	if (sockaddr->sa_family == AF_INET)
-		return &in->sin_addr;
-	if (sockaddr->sa_family == AF_INET6)
-		return &in6->sin6_addr;
-	return NULL;
-}
-
 #endif
 

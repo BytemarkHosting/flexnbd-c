@@ -25,7 +25,7 @@
  *  client code to be found in remote.c
  */
 
-#include "params.h"
+#include "serve.h"
 #include "util.h"
 #include "ioutil.h"
 #include "parse.h"

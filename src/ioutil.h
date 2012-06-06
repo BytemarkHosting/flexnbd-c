@@ -2,7 +2,7 @@
 #define __IOUTIL_H
 
 
-#include "params.h"
+#include "serve.h"
 
 /** Returns a bit field representing which blocks are allocated in file 
   * descriptor ''fd''.  You must supply the size, and the resolution at which

@@ -19,7 +19,7 @@
  *  elsewhere in the program.
  */
 
-#include "params.h"
+#include "serve.h"
 #include "util.h"
 
 #include <stdio.h>
