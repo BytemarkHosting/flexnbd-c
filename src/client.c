@@ -23,7 +23,7 @@
  * allocated, we can proceed as normal and make one call to writeloop.  
  * 
  */
-void write_not_zeroes(struct client_params* client, off64_t from, int len)
+void write_not_zeroes(struct client* client, off64_t from, int len)
 {
 	char *map = client->serve->block_allocation_map;
 
@@ -112,7 +112,7 @@ void write_not_zeroes(struct client_params* client, off64_t from, int len)
 
 /* Returns 1 if *request was filled with a valid request which we should
  * try to honour. 0 otherwise. */
-int client_read_request( struct client_params * client , struct nbd_request *out_request )
+int client_read_request( struct client * client , struct nbd_request *out_request )
 {
 	struct nbd_request_raw request_raw;
 	fd_set                 fds;
@@ -147,7 +147,7 @@ int client_read_request( struct client_params * client , struct nbd_request *out
  * Returns 1; we don't check for errors on the write.
  * TODO: Check for errors on the write.
  */
-int client_write_reply( struct client_params * client, struct nbd_request *request, int error )
+int client_write_reply( struct client * client, struct nbd_request *request, int error )
 {
 	struct nbd_reply     reply;
 	struct nbd_reply_raw reply_raw;
@@ -163,7 +163,7 @@ int client_write_reply( struct client_params * client, struct nbd_request *reque
 	return 1;
 }
 
-void client_write_init( struct client_params * client, uint64_t size )
+void client_write_init( struct client * client, uint64_t size )
 {
 	struct nbd_init init;
 	struct nbd_init_raw init_raw;
@@ -186,7 +186,7 @@ void client_write_init( struct client_params * client, uint64_t size )
  * request_err is set to 0 if the client sent a bad request, in which
  * case we send an error reply.
  */
-int client_request_needs_reply( struct client_params * client, struct nbd_request request, int *request_err )
+int client_request_needs_reply( struct client * client, struct nbd_request request, int *request_err )
 {
 	debug("request type %d", request.type);
 	
@@ -223,7 +223,7 @@ int client_request_needs_reply( struct client_params * client, struct nbd_reques
 }
 
 
-void client_reply_to_read( struct client_params* client, struct nbd_request request )
+void client_reply_to_read( struct client* client, struct nbd_request request )
 {
 	off64_t offset;
 
@@ -243,7 +243,7 @@ void client_reply_to_read( struct client_params* client, struct nbd_request requ
 }
 
 
-void client_reply_to_write( struct client_params* client, struct nbd_request request )
+void client_reply_to_write( struct client* client, struct nbd_request request )
 {
 	debug("request write %ld+%d", request.from, request.len);
 	if (client->serve->block_allocation_map) {
@@ -279,7 +279,7 @@ void client_reply_to_write( struct client_params* client, struct nbd_request req
 }
 
 
-void client_reply( struct client_params* client, struct nbd_request request )
+void client_reply( struct client* client, struct nbd_request request )
 {
 	switch (request.type) {
 	case REQUEST_READ:
@@ -293,7 +293,7 @@ void client_reply( struct client_params* client, struct nbd_request request )
 }
 
 
-int client_lock_io( struct client_params * client )
+int client_lock_io( struct client * client )
 {
 	CLIENT_ERROR_ON_FAILURE(
 		pthread_mutex_lock(&client->serve->l_io),
@@ -312,7 +312,7 @@ int client_lock_io( struct client_params * client )
 }
 
 
-void client_unlock_io( struct client_params * client )
+void client_unlock_io( struct client * client )
 {
 	CLIENT_ERROR_ON_FAILURE(
 		pthread_mutex_unlock(&client->serve->l_io),
@@ -321,7 +321,7 @@ void client_unlock_io( struct client_params * client )
 }
 
 
-int client_serve_request(struct client_params* client)
+int client_serve_request(struct client* client)
 {
 	struct nbd_request    request;
 	int                   request_err;
@@ -342,14 +342,14 @@ int client_serve_request(struct client_params* client)
 }
 
 
-void client_send_hello(struct client_params* client)
+void client_send_hello(struct client* client)
 {
 	client_write_init( client, client->serve->size );
 }
 
 void* client_serve(void* client_uncast)
 {
-	struct client_params* client = (struct client_params*) client_uncast;
+	struct client* client = (struct client*) client_uncast;
 	
 	//client_open_file(client);
 	CLIENT_ERROR_ON_FAILURE(

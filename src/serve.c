@@ -176,7 +176,7 @@ void accept_nbd_client(
 		int client_fd, 
 		union mysockaddr* client_address)
 {
-	struct client_params* client_params;
+	struct client* client_params;
 	int slot = cleanup_and_find_client_slot(params); 
 	char s_client_address[64];
 	int acl_passed = 0;
@@ -212,7 +212,7 @@ void accept_nbd_client(
 		return;
 	}
 	
-	client_params = xmalloc(sizeof(struct client_params));
+	client_params = xmalloc(sizeof(struct client));
 	client_params->socket = client_fd;
 	client_params->serve = params;
 	
