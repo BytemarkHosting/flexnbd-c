@@ -294,34 +294,6 @@ void client_reply( struct client* client, struct nbd_request request )
 }
 
 
-int client_lock_io( struct client * client )
-{
-	CLIENT_ERROR_ON_FAILURE(
-		pthread_mutex_lock(&client->serve->l_io),
-		"Problem with I/O lock"
-	);
-	
-	if (server_detect_closed(client->serve)) {
-		CLIENT_ERROR_ON_FAILURE(
-			pthread_mutex_unlock(&client->serve->l_io),
-			"Problem with I/O unlock"
-		);
-		return 0;
-	}
-
-	return 1;
-}
-
-
-void client_unlock_io( struct client * client )
-{
-	CLIENT_ERROR_ON_FAILURE(
-		pthread_mutex_unlock(&client->serve->l_io),
-		"Problem with I/O unlock"
-	);
-}
-
-
 int client_serve_request(struct client* client)
 {
 	struct nbd_request    request;
@@ -332,9 +304,9 @@ int client_serve_request(struct client* client)
 		return request_err;
 	} 
 
-	if ( client_lock_io( client ) ){
+	if ( server_lock_io( client->serve ) ){
 		client_reply( client, request );
-		client_unlock_io( client );
+		server_unlock_io( client->serve );
 	} else { 
 		return 1; 
 	}

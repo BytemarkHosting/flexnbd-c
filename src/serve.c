@@ -38,6 +38,33 @@ void server_dirty(struct server *serve, off64_t from, int len)
 		bitset_set_range(serve->mirror->dirty_map, from, len);
 }
 
+int server_lock_io( struct server * serve)
+{
+	SERVER_ERROR_ON_FAILURE(
+		pthread_mutex_lock(&serve->l_io),
+		"Problem with I/O lock"
+	);
+	
+	if (server_detect_closed(serve)) {
+		SERVER_ERROR_ON_FAILURE(
+			pthread_mutex_unlock(&serve->l_io),
+			"Problem with I/O unlock"
+		);
+		return 0;
+	}
+
+	return 1;
+}
+
+
+void server_unlock_io( struct server* serve )
+{
+	SERVER_ERROR_ON_FAILURE(
+		pthread_mutex_unlock(&serve->l_io),
+		"Problem with I/O unlock"
+	);
+}
+
 static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
 
 /** Test whether AF_INET or AF_INET6 sockaddr is included in the given access
