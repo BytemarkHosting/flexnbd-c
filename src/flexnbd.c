@@ -43,7 +43,7 @@ void exit_err( char *msg )
 }
 
 void params_serve(
-	struct mode_serve_params* out,
+	struct server* out,
 	char* s_ip_address,
 	char* s_port,
 	char* s_file,
@@ -161,7 +161,7 @@ void params_readwrite(
 	}
 }
 
-void do_serve(struct mode_serve_params* params);
+void do_serve(struct server* params);
 void do_read(struct mode_readwrite_params* params);
 void do_write(struct mode_readwrite_params* params);
 void do_remote_command(char* command, char* mode, int argc, char** argv);
@@ -290,7 +290,7 @@ int mode_serve( int argc, char *argv[] )
 	int default_deny = 0; // not on by default
 	int err = 0;
 
-	struct mode_serve_params serve;
+	struct server serve;
 
 	while (1) {
 		c = getopt_long(argc, argv, serve_short_options, serve_options, NULL);

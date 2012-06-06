@@ -20,13 +20,13 @@
 
 static const int block_allocation_resolution = 4096;//128<<10;
 
-static inline void dirty(struct mode_serve_params *serve, off64_t from, int len)
+static inline void dirty(struct server *serve, off64_t from, int len)
 {
 	if (serve->mirror)
 		bitset_set_range(serve->mirror->dirty_map, from, len);
 }
 
-int server_detect_closed(struct mode_serve_params* serve)
+int server_detect_closed(struct server* serve)
 {
 	int errno_old = errno;
 	int result = fcntl(serve->server_fd, F_GETFD, 0) < 0;
@@ -461,7 +461,7 @@ int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], union myso
 }
 
 /** Prepares a listening socket for the NBD server, binding etc. */
-void serve_open_server_socket(struct mode_serve_params* params)
+void serve_open_server_socket(struct server* params)
 {
 	int optval=1;
 	
@@ -497,7 +497,7 @@ void serve_open_server_socket(struct mode_serve_params* params)
  *  goes through the current list, waits for any threads that have finished
  *  and returns the next slot free (or -1 if there are none).
  */
-int cleanup_and_find_client_slot(struct mode_serve_params* params)
+int cleanup_and_find_client_slot(struct server* params)
 {
 	int slot=-1, i;
 	
@@ -538,7 +538,7 @@ int cleanup_and_find_client_slot(struct mode_serve_params* params)
   * address doesn't match, or if there are too many clients already connected.
   */
 void accept_nbd_client(
-		struct mode_serve_params* params, 
+		struct server* params, 
 		int client_fd, 
 		union mysockaddr* client_address)
 {
@@ -596,7 +596,7 @@ void accept_nbd_client(
 }
 
 /** Accept either an NBD or control socket connection, dispatch appropriately */
-void serve_accept_loop(struct mode_serve_params* params) 
+void serve_accept_loop(struct server* params) 
 {
 	while (1) {
 		int              activity_fd, client_fd;
@@ -608,7 +608,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		FD_SET(params->server_fd, &fds);
 		FD_SET(params->close_signal[0], &fds);
 		if (params->control_socket_name)
-			FD_SET(params->control, &fds);
+			FD_SET(params->control_fd, &fds);
 		
 		SERVER_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, 
 		  NULL, NULL, NULL), "select() failed");
@@ -617,7 +617,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 			return;
 		
 		activity_fd = FD_ISSET(params->server_fd, &fds) ? params->server_fd: 
-		  params->control;
+		  params->control_fd;
 		client_fd = accept(activity_fd, &client_address.generic, &socklen);
 		
 		SERVER_ERROR_ON_FAILURE(
@@ -627,7 +627,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		
 		if (activity_fd == params->server_fd)
 			accept_nbd_client(params, client_fd, &client_address);
-		if (activity_fd == params->control)
+		if (activity_fd == params->control_fd)
 			accept_control_connection(params, client_fd, &client_address);
 			
 		SERVER_ERROR_ON_FAILURE(
@@ -640,7 +640,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 /** Initialisation function that sets up the initial allocation map, i.e. so
   * we know which blocks of the file are allocated.
   */
-void serve_init_allocation_map(struct mode_serve_params* params)
+void serve_init_allocation_map(struct server* params)
 {
 	int fd = open(params->filename, O_RDONLY);
 	off64_t size;
@@ -655,12 +655,12 @@ void serve_init_allocation_map(struct mode_serve_params* params)
 }
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
-void serve_cleanup(struct mode_serve_params* params)
+void serve_cleanup(struct server* params)
 {
 	int i;
 	
 	close(params->server_fd);
-	close(params->control);
+	close(params->control_fd);
 	if (params->acl)
 		free(params->acl);
 	//free(params->filename);
@@ -688,7 +688,7 @@ void serve_cleanup(struct mode_serve_params* params)
 }
 
 /** Full lifecycle of the server */
-void do_serve(struct mode_serve_params* params)
+void do_serve(struct server* params)
 {
 	pthread_mutex_init(&params->l_accept, NULL);
 	pthread_mutex_init(&params->l_io, NULL);

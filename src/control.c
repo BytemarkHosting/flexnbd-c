@@ -55,7 +55,7 @@ void* mirror_runner(void* serve_params_uncast)
 {
 	const int last_pass = mirror_maximum_passes-1;
 	int pass;
-	struct mode_serve_params *serve = (struct mode_serve_params*) serve_params_uncast;
+	struct server *serve = (struct server*) serve_params_uncast;
 	struct bitset_mapping *map = serve->mirror->dirty_map;
 	
 	for (pass=0; pass < mirror_maximum_passes; pass++) {
@@ -333,7 +333,7 @@ void* control_serve(void* client_uncast)
 	return NULL;
 }
 
-void accept_control_connection(struct mode_serve_params* params, int client_fd, union mysockaddr* client_address)
+void accept_control_connection(struct server* params, int client_fd, union mysockaddr* client_address)
 {
 	pthread_t control_thread;
 	struct control_params* control_params;
@@ -353,15 +353,15 @@ void accept_control_connection(struct mode_serve_params* params, int client_fd, 
 	);
 }
 
-void serve_open_control_socket(struct mode_serve_params* params)
+void serve_open_control_socket(struct server* params)
 {
 	struct sockaddr_un bind_address;
 	
 	if (!params->control_socket_name)
 		return;
 
-	params->control = socket(AF_UNIX, SOCK_STREAM, 0);
-	SERVER_ERROR_ON_FAILURE(params->control,
+	params->control_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	SERVER_ERROR_ON_FAILURE(params->control_fd ,
 	  "Couldn't create control socket");
 	
 	memset(&bind_address, 0, sizeof(bind_address));
@@ -371,13 +371,13 @@ void serve_open_control_socket(struct mode_serve_params* params)
 	unlink(params->control_socket_name); /* ignore failure */
 	
 	SERVER_ERROR_ON_FAILURE(
-		bind(params->control, &bind_address, sizeof(bind_address)),
+		bind(params->control_fd , &bind_address, sizeof(bind_address)),
 		"Couldn't bind control socket to %s",
 		params->control_socket_name
 	);
 	
 	SERVER_ERROR_ON_FAILURE(
-		listen(params->control, 5),
+		listen(params->control_fd , 5),
 		"Couldn't listen on control socket"
 	);
 }

@@ -30,11 +30,11 @@ struct mirror_status {
 
 struct control_params {
 	int                       socket;
-	struct mode_serve_params* serve;
+	struct server* serve;
 };
 
 #define MAX_NBD_CLIENTS 16
-struct mode_serve_params {
+struct server {
 	/** address/port to bind to */
 	union mysockaddr     bind_to;
 	/** does an empty ACL mean "deny all"? */
@@ -72,7 +72,7 @@ struct mode_serve_params {
 
 	struct mirror_status* mirror;
 	int                  server_fd;
-	int                  control;
+	int                  control_fd;
 	
 	char*                block_allocation_map;
 	
@@ -94,7 +94,7 @@ struct client_params {
 	int     fileno;
 	char*   mapped;
 	
-	struct mode_serve_params* serve; /* FIXME: remove above duplication */
+	struct server* serve; /* FIXME: remove above duplication */
 };
 
 /* FIXME: wrong place */
