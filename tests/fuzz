@@ -1,0 +1,80 @@
+#!/usr/bin/ruby
+
+require 'flexnbd'
+
+binary      = ARGV.shift
+test_size   = ARGV.shift.to_i
+repetitions = ARGV.shift.to_i
+repetitions = 50 if repetitions == 0
+seed        = ARGV.shift.to_i
+
+max_length  = test_size > 10000000 ? 10000000 : test_size
+CHEAT_AND_ROUND_DOWN = false # set to 'false' to expose bugs
+
+srand(seed)
+
+if test_size < 32768 || repetitions < 1 || !File.executable?(binary)
+  STDERR.print "Syntax: #{$0} <flexnbd bin> <test size> [repetitions] [seed]\n"
+  STDERR.print "test_size must be >= 32768 and repeitions must be >= 1"
+  exit 1
+end
+
+testname_local = "#{$0}.test.#{$$}.local"
+testname_serve = "#{$0}.test.#{$$}.serve"
+[testname_local, testname_serve].each do |name|
+  File.open(name, "w+") { |fh| fh.seek(test_size-1, IO::SEEK_SET); fh.write("0") }
+end
+
+@local = File.open(testname_local, "r+")
+
+@serve = FlexNBD.new(binary, "127.0.0.1", 41234)
+@serve.serve(testname_serve)
+
+repetitions.times do |n|
+
+  begin
+  
+    if File.size(testname_local) != File.size(testname_serve)
+      STDERR.print "Before pass #{n}: File sizes are different: local=#{File.size(testname_local)} serve=#{File.size(testname_serve)}\n"
+      exit 1;
+    end
+
+    md5_local = `md5sum < #{testname_local}`.split(" ").first
+    md5_serve = `md5sum < #{testname_serve}`.split(" ").first
+  
+    if md5_local != md5_serve
+      STDERR.print "Before pass #{n}: MD5 error: local=#{md5_local} serve=#{md5_serve}\n"
+      STDERR.print "**** Local contents:\n"
+      system("hexdump #{testname_local}")
+      STDERR.print "**** Serve contents:\n"
+      system("hexdump #{testname_serve}")
+      exit 1
+    end
+
+    length = rand(max_length)
+    length &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
+    offset = rand(test_size - length)
+    offset &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
+    content = (n%2 == 1) ? ("x" * length) : ("\0" * length)
+  
+    @local.seek(offset, IO::SEEK_SET)
+    @local.write(content)
+  
+    @serve.write(offset, content)
+  
+    if @serve.read(offset, length) != content
+      STDERR.print "After pass #{n}: Didn't read back what we wrote!"
+      exit 1
+    end
+    
+  rescue StandardError => ex
+    STDERR.print "During pass #{n}: Exception: #{ex}"
+    STDERR.print ex.backtrace.join("\n") + "\n"
+    exit 2
+  end
+  
+end
+
+File.unlink(testname_local)
+File.unlink(testname_serve)
+
