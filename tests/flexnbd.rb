@@ -67,7 +67,7 @@ class FlexNBD
   end
 
   def mirror(bandwidth=nil, action=nil)
-    control_command("mirror", ip, port, bandwidth, action)
+    control_command("mirror", ip, port, ip, bandwidth, action)
   end
 
   def acl(*acl)
@@ -88,3 +88,4 @@ class FlexNBD
     end
   end
 end
+
