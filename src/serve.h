@@ -88,6 +88,7 @@ void server_dirty(struct server *serve, off64_t from, int len);
 
 struct mode_readwrite_params {
 	union mysockaddr     connect_to;
+	union mysockaddr     connect_from;
 	off64_t              from;
 	off64_t              len;
 	int                  data_fd;

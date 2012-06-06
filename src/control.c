@@ -173,14 +173,17 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	int fd, map_fd;
 	struct mirror_status *mirror;
 	union mysockaddr connect_to;
+	union mysockaddr connect_from;
+	int use_connect_from = 0;
 	uint64_t max_bytes_per_second;
 	int action_at_finish;
+	
 	
 	if (linesc < 2) {
 		write_socket("1: mirror takes at least two parameters");
 		return -1;
 	}
-	
+
 	if (parse_ip_to_sockaddr(&connect_to.generic, lines[0]) == 0) {
 		write_socket("1: bad IP address");
 		return -1;
@@ -192,14 +195,22 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		return -1;
 	}
 	connect_to.v4.sin_port = htobe16(connect_to.v4.sin_port);
-	
-	max_bytes_per_second = 0;
+
 	if (linesc > 2) {
+		if (parse_ip_to_sockaddr(&connect_from.generic, lines[2]) == 0) {
+			write_socket("1: bad bind address");
+			return -1;
+		}
+		use_connect_from = 1;
+	}
+
+	max_bytes_per_second = 0;
+	if (linesc > 3) {
 		max_bytes_per_second = atoi(lines[2]);
 	}
 	
 	action_at_finish = ACTION_PROXY;
-	if (linesc > 3) {
+	if (linesc > 4) {
 		if (strcmp("proxy", lines[3]) == 0)
 			action_at_finish = ACTION_PROXY;
 		else if (strcmp("exit", lines[3]) == 0)
@@ -212,12 +223,17 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		}
 	}
 	
-	if (linesc > 4) {
+	if (linesc > 5) {
 		write_socket("1: unrecognised parameters to mirror");
 		return -1;
 	}
+
+	/** I don't like use_connect_from but socket_connect doesn't take *mysockaddr :( */
+	if (use_connect_from)
+		fd = socket_connect(&connect_to.generic, &connect_from.generic);
+	else
+		fd = socket_connect(&connect_to.generic, NULL);
 	
-	fd = socket_connect(&connect_to.generic);
 	
 	remote_size = socket_nbd_read_hello(fd);
 	remote_size = remote_size; // shush compiler
