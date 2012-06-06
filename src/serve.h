@@ -75,7 +75,7 @@ struct server {
 	                     nbd_client[MAX_NBD_CLIENTS];
 };
 
-int server_detect_closed(struct server* serve);
+int server_is_closed(struct server* serve);
 void server_dirty(struct server *serve, off64_t from, int len);
 int server_lock_io( struct server * serve);
 void server_unlock_io( struct server* serve );

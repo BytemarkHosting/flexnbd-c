@@ -250,7 +250,7 @@ void accept_nbd_client(
 }
 
 
-int server_detect_closed(struct server* serve)
+int server_is_closed(struct server* serve)
 {
 	int errno_old = errno;
 	int result = fcntl(serve->server_fd, F_GETFD, 0) < 0;

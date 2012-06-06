@@ -294,28 +294,28 @@ void client_reply( struct client* client, struct nbd_request request )
 }
 
 
+/* Returns 0 if a request was successfully served. */
 int client_serve_request(struct client* client)
 {
 	struct nbd_request    request;
 	int                   request_err;
-	int                   success = 1;
+	int                   failure = 1;
 
-	if ( !client_read_request( client, &request ) ) { return success; }
+	if ( !client_read_request( client, &request ) ) { return failure; }
 	if ( !client_request_needs_reply( client, request, &request_err ) )  {
 		return request_err;
 	} 
 
 	server_lock_io( client->serve );
-
-	if ( server_detect_closed( client->serve ) ) {
-		success = 0;
-	} else { 
-		client_reply( client, request );
+	{
+		if ( !server_is_closed( client->serve ) ) {
+			client_reply( client, request );
+			failure = 0;
+		}
 	}
-
 	server_unlock_io( client->serve );
 
-	return success;
+	return failure;
 }
 
 
