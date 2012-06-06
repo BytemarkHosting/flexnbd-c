@@ -298,20 +298,24 @@ int client_serve_request(struct client* client)
 {
 	struct nbd_request    request;
 	int                   request_err;
-		
-	if ( !client_read_request( client, &request ) ) { return 1; }
+	int                   success = 1;
+
+	if ( !client_read_request( client, &request ) ) { return success; }
 	if ( !client_request_needs_reply( client, request, &request_err ) )  {
 		return request_err;
 	} 
 
-	if ( server_lock_io( client->serve ) ){
-		client_reply( client, request );
-		server_unlock_io( client->serve );
+	server_lock_io( client->serve );
+
+	if ( server_detect_closed( client->serve ) ) {
+		success = 0;
 	} else { 
-		return 1; 
+		client_reply( client, request );
 	}
 
-	return 0;
+	server_unlock_io( client->serve );
+
+	return success;
 }
 
 

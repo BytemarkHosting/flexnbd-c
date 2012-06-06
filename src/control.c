@@ -71,10 +71,7 @@ void* mirror_runner(void* serve_params_uncast)
 				pthread_mutex_lock(&serve->l_accept),
 				"Problem with accept lock"
 			);
-			SERVER_ERROR_ON_FAILURE(
-				pthread_mutex_lock(&serve->l_io),
-				"Problem with I/O lock"
-			);
+			server_lock_io( serve );
 		}
 		
 		while (current < serve->size) {
@@ -97,11 +94,9 @@ void* mirror_runner(void* serve_params_uncast)
 				 * is likely to slow things down but will be
 				 * safe.
 				 */
-				if (pass < last_pass)
-					SERVER_ERROR_ON_FAILURE(
-						pthread_mutex_lock(&serve->l_io),
-						"Problem with I/O lock"
-					);
+				if (pass < last_pass) {
+					server_lock_io( serve );
+				}
 				
 				/** FIXME: do something useful with bytes/second */
 				
@@ -117,11 +112,9 @@ void* mirror_runner(void* serve_params_uncast)
 				/* now mark it clean */
 				bitset_clear_range(map, current, run);
 				
-				if (pass < last_pass)
-					SERVER_ERROR_ON_FAILURE(
-						pthread_mutex_unlock(&serve->l_io),
-						"Problem with I/O unlock"
-					);
+				if (pass < last_pass) {
+					server_unlock_io( serve );
+				}
 				
 				written += run;
 			}
@@ -157,10 +150,7 @@ void* mirror_runner(void* serve_params_uncast)
 		pthread_mutex_unlock(&serve->l_accept),
 		"Problem with accept unlock"
 	);
-	SERVER_ERROR_ON_FAILURE(
-		pthread_mutex_unlock(&serve->l_io),
-		"Problem with I/O unlock"
-	);
+	server_unlock_io( serve );
 	
 	return NULL;
 }

@@ -45,14 +45,6 @@ int server_lock_io( struct server * serve)
 		"Problem with I/O lock"
 	);
 	
-	if (server_detect_closed(serve)) {
-		SERVER_ERROR_ON_FAILURE(
-			pthread_mutex_unlock(&serve->l_io),
-			"Problem with I/O unlock"
-		);
-		return 0;
-	}
-
 	return 1;
 }
 
