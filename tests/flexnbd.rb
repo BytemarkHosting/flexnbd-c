@@ -16,19 +16,24 @@ class FlexNBD
     @port = port
   end
 
-  def serve(ip, port, file, *acl)
+  def serve(file, *acl)
     File.unlink(ctrl) if File.exists?(ctrl)
+    cmd ="#{@bin} serve "\
+         "--addr #{ip} "\
+         "--port #{port} "\
+         "--file #{file} "\
+         "--sock #{ctrl} "\
+         "#{@debug} "\
+         "#{acl.join(' ')}"
     @pid = fork do
-      cmd ="#{@bin} serve "\
-           "--addr #{ip} "\
-           "--port #{port} "\
-           "--file #{file} "\
-           "--sock #{ctrl} "\
-           "#{@debug} "\
-           "#{acl.join(' ')}"
       exec(cmd)
     end
-    sleep 0.1 until File.socket?(ctrl)
+    while !File.socket?(ctrl)
+      pid, status = Process.wait2(@pid, Process::WNOHANG)
+      raise "server did not start (#{cmd})" if pid
+      sleep 0.1
+    end
+    at_exit { kill }
   end
 
   def kill
