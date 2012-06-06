@@ -348,7 +348,9 @@ void do_serve(struct server* params)
 	pthread_mutex_init(&params->l_io, NULL);
 
 	params->close_signal = self_pipe_create();
-	if ( NULL == params->close_signal) { SERVER_ERROR( "pipe failed" ); }
+	if ( NULL == params->close_signal) { 
+		SERVER_ERROR( "close signal creation failed" ); 
+	}
 	
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);
