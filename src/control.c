@@ -31,6 +31,7 @@
 #include "parse.h"
 #include "readwrite.h"
 #include "bitset.h"
+#include "self_pipe.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -141,7 +142,7 @@ void* mirror_runner(void* serve_params_uncast)
 		break;
 	case ACTION_EXIT:
 		debug("exit!");
-		write(serve->close_signal[1], serve, 1); /* any byte will do */
+		serve_signal_close( serve );
 		/* fall through */
 	case ACTION_NOTHING:
 		debug("nothing!");
@@ -261,14 +262,14 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 /** Command parser to alter access control list from socket input */
 int control_acl(struct control_params* client, int linesc, char** lines)
 {
-	int parsed;
+	int parsedc;
 	struct ip_and_mask (*acl)[], (*old_acl)[];
 	
-	parsed = parse_acl(&acl, linesc, lines);
-	if (parsed != linesc) {
+	parsedc = parse_acl(&acl, linesc, lines);
+	if (parsedc != linesc) {
 		write(client->socket, "1: bad spec: ", 13);
-		write(client->socket, lines[parsed], 
-		  strlen(lines[parsed]));
+		write(client->socket, lines[parsedc], 
+		  strlen(lines[parsedc]));
 		write(client->socket, "\n", 1);
 		free(acl);
 	}

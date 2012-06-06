@@ -5,6 +5,7 @@
 #include "util.h"
 #include "bitset.h"
 #include "control.h"
+#include "self_pipe.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -250,14 +251,14 @@ void serve_accept_loop(struct server* params)
 		
 		FD_ZERO(&fds);
 		FD_SET(params->server_fd, &fds);
-		FD_SET(params->close_signal[0], &fds);
+		self_pipe_fd_set( params->close_signal, &fds );
 		if (params->control_socket_name)
 			FD_SET(params->control_fd, &fds);
 		
 		SERVER_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, 
 		  NULL, NULL, NULL), "select() failed");
 		
-		if (FD_ISSET(params->close_signal[0], &fds))
+		if ( self_pipe_fd_isset( params->close_signal, &fds) )
 			return;
 		
 		activity_fd = FD_ISSET(params->server_fd, &fds) ? params->server_fd: 
@@ -298,6 +299,14 @@ void serve_init_allocation_map(struct server* params)
 	close(fd);
 }
 
+
+/* Tell the server to close all the things. */
+void serve_signal_close( struct server * serve )
+{
+	self_pipe_signal( serve->close_signal );
+}
+
+
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server* params)
 {
@@ -314,8 +323,9 @@ void serve_cleanup(struct server* params)
 	pthread_mutex_destroy(&params->l_io);
 	if (params->proxy_fd);
 		close(params->proxy_fd);
-	close(params->close_signal[0]);
-	close(params->close_signal[1]);
+
+	self_pipe_destroy( params->close_signal );
+
 	free(params->block_allocation_map);
 	
 	if (params->mirror)
@@ -336,7 +346,9 @@ void do_serve(struct server* params)
 {
 	pthread_mutex_init(&params->l_accept, NULL);
 	pthread_mutex_init(&params->l_io, NULL);
-	SERVER_ERROR_ON_FAILURE(pipe(params->close_signal) , "pipe failed");
+
+	params->close_signal = self_pipe_create();
+	if ( NULL == params->close_signal) { SERVER_ERROR( "pipe failed" ); }
 	
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);

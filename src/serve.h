@@ -70,7 +70,7 @@ struct server {
 	int                  proxy_fd;
 	
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
-	int                  close_signal[2];
+	struct self_pipe *   close_signal;
 
 	struct mirror_status* mirror;
 	int                  server_fd;
@@ -84,6 +84,7 @@ struct server {
 
 int server_detect_closed(struct server* serve);
 void server_dirty(struct server *serve, off64_t from, int len);
+void serve_signal_close( struct server *serve );
 
 
 struct mode_readwrite_params {

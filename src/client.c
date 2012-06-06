@@ -4,6 +4,7 @@
 #include "ioutil.h"
 #include "bitset.h"
 #include "nbdtypes.h"
+#include "self_pipe.h"
 
 
 #include <sys/mman.h>
@@ -119,11 +120,11 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);
-	FD_SET(client->serve->close_signal[0], &fds);
+	self_pipe_fd_set( client->serve->close_signal, &fds );
 	CLIENT_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, NULL, NULL, NULL), 
 	  "select() failed");
 	
-	if (FD_ISSET(client->serve->close_signal[0], &fds))
+	if ( self_pipe_fd_isset( client->serve->close_signal, &fds ) )
 		return 0;
 
 	if (readloop(client->socket, &request_raw, sizeof(request_raw)) == -1) {
