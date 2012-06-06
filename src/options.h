@@ -77,7 +77,7 @@ static char serve_help_text[] =
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to serve on.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to serve on.\n"
 	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
-	"\t--" OPT_DENY ",-D\tDeny connections by default unless in ACL.\n"
+	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
 	SOCK_LINE
 	VERBOSE_LINE;
 
