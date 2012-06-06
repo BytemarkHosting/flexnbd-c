@@ -1,3 +1,5 @@
+require 'rake_utils/debian'
+include RakeUtils::DSL
 
 DEBUG  = ENV.has_key?('DEBUG') &&
   %w|yes y ok 1 true t|.include?(ENV['DEBUG'])
@@ -83,10 +85,8 @@ task :clean do
   sh "rm -rf *~ build"
 end
 
-namespace :pkg do  
-  task :deb do |t|
-    require 'rake_utils/debian'
-    
+namespace :pkg do
+  deb do |t|
     t.code_files = ALL_SOURCES + ["Rakefile"]
     t.pkg_name = "flexnbd"
     t.generate_changelog!
