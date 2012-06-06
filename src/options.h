@@ -39,9 +39,6 @@
 #define GETOPT_SIZE GETOPT_ARG( OPT_SIZE, 'S' )
 #define GETOPT_BIND GETOPT_ARG( OPT_BIND, 'b' )
 
-#define HELP_LINE "\t--" OPT_HELP ",-h\t\tThis text.\n"
-
-
 #ifdef DEBUG
 #  define OPT_VERBOSE "verbose"
 #  define SOPT_VERBOSE "v"
