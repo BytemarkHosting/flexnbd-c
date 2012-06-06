@@ -29,7 +29,7 @@ static inline void dirty(struct mode_serve_params *serve, off64_t from, int len)
 int server_detect_closed(struct mode_serve_params* serve)
 {
 	int errno_old = errno;
-	int result = fcntl(serve->server, F_GETFD, 0) < 0;
+	int result = fcntl(serve->server_fd, F_GETFD, 0) < 0;
 	errno = errno_old;
 	return result;
 }
@@ -450,30 +450,30 @@ void serve_open_server_socket(struct mode_serve_params* params)
 {
 	int optval=1;
 	
-	params->server = socket(params->bind_to.generic.sa_family == AF_INET ? 
+	params->server_fd= socket(params->bind_to.generic.sa_family == AF_INET ? 
 	  PF_INET : PF_INET6, SOCK_STREAM, 0);
 	
-	SERVER_ERROR_ON_FAILURE(params->server, 
+	SERVER_ERROR_ON_FAILURE(params->server_fd, 
 	  "Couldn't create server socket");
 
 	SERVER_ERROR_ON_FAILURE(
-		setsockopt(params->server, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)),
+		setsockopt(params->server_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)),
 		"Couldn't set SO_REUSEADDR"
 	);
 
 	SERVER_ERROR_ON_FAILURE(
-		setsockopt(params->server, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval)),
+		setsockopt(params->server_fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval)),
 		"Couldn't set TCP_NODELAY"
 	);
 
 	SERVER_ERROR_ON_FAILURE(
-		bind(params->server, &params->bind_to.generic,
+		bind(params->server_fd, &params->bind_to.generic,
 		  sizeof(params->bind_to)),
 		"Couldn't bind server to IP address"
 	);
 	
 	SERVER_ERROR_ON_FAILURE(
-		listen(params->server, params->tcp_backlog),
+		listen(params->server_fd, params->tcp_backlog),
 		"Couldn't listen on server socket"
 	);
 }
@@ -590,7 +590,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		socklen_t        socklen=sizeof(client_address);
 		
 		FD_ZERO(&fds);
-		FD_SET(params->server, &fds);
+		FD_SET(params->server_fd, &fds);
 		FD_SET(params->close_signal[0], &fds);
 		if (params->control_socket_name)
 			FD_SET(params->control, &fds);
@@ -601,7 +601,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 		if (FD_ISSET(params->close_signal[0], &fds))
 			return;
 		
-		activity_fd = FD_ISSET(params->server, &fds) ? params->server : 
+		activity_fd = FD_ISSET(params->server_fd, &fds) ? params->server_fd: 
 		  params->control;
 		client_fd = accept(activity_fd, &client_address.generic, &socklen);
 		
@@ -610,7 +610,7 @@ void serve_accept_loop(struct mode_serve_params* params)
 			"Problem with accept lock"
 		);
 		
-		if (activity_fd == params->server)
+		if (activity_fd == params->server_fd)
 			accept_nbd_client(params, client_fd, &client_address);
 		if (activity_fd == params->control)
 			accept_control_connection(params, client_fd, &client_address);
@@ -644,7 +644,7 @@ void serve_cleanup(struct mode_serve_params* params)
 {
 	int i;
 	
-	close(params->server);
+	close(params->server_fd);
 	close(params->control);
 	if (params->acl)
 		free(params->acl);

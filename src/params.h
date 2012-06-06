@@ -71,7 +71,7 @@ struct mode_serve_params {
 	int                  close_signal[2];
 
 	struct mirror_status* mirror;
-	int                  server;
+	int                  server_fd;
 	int                  control;
 	
 	char*                block_allocation_map;
