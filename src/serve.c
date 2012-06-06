@@ -283,6 +283,21 @@ void client_reply_to_write( struct client_params* client, struct nbd_request req
 				request.len );
 		dirty(client->serve, request.from, request.len);
 	}
+	
+	if (1) /* not sure whether this is necessary... */
+	{
+		/* multiple of 4K page size */
+		uint64_t from_rounded = request.from & (!0xfff);
+		uint64_t len_rounded = request.len + (request.from - from_rounded);
+		
+		CLIENT_ERROR_ON_FAILURE(
+			msync(
+				client->mapped + from_rounded, 
+				len_rounded, 
+				MS_SYNC),
+			"msync failed %ld %ld", request.from, request.len
+		);
+	}
 	client_write_reply( client, &request, 0);
 }
 
