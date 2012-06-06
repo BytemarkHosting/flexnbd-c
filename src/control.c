@@ -66,11 +66,6 @@ void* mirror_runner(void* serve_params_uncast)
 		debug("mirror start pass=%d", pass);
 		
 		if (pass == last_pass) {
-			/* last pass, stop everything else */
-			SERVER_ERROR_ON_FAILURE(
-				pthread_mutex_lock(&serve->l_accept),
-				"Problem with accept lock"
-			);
 			server_lock_io( serve );
 		}
 		
@@ -146,10 +141,6 @@ void* mirror_runner(void* serve_params_uncast)
 	free(serve->mirror);
 	serve->mirror = NULL; /* and we're gone */
 
-	SERVER_ERROR_ON_FAILURE(
-		pthread_mutex_unlock(&serve->l_accept),
-		"Problem with accept unlock"
-	);
 	server_unlock_io( serve );
 	
 	return NULL;

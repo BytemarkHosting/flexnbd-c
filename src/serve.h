@@ -56,13 +56,6 @@ struct server {
 	/** size of file */
 	off64_t              size;
 
-        /* NB dining philosophers if we ever mave more than one thread 
-         * that might need to pause the whole server.  At the moment we only
-         * have the one.
-         */
-       
-	/** Claimed around any accept/thread starting loop */
-	pthread_mutex_t      l_accept; 
 	/** Claims around any I/O to this file */
 	pthread_mutex_t      l_io;
 	

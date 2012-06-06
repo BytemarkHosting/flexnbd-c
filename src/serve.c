@@ -284,20 +284,12 @@ void serve_accept_loop(struct server* params)
 		  params->control_fd;
 		client_fd = accept(activity_fd, &client_address.generic, &socklen);
 		
-		SERVER_ERROR_ON_FAILURE(
-			pthread_mutex_lock(&params->l_accept),
-			"Problem with accept lock"
-		);
 		
 		if (activity_fd == params->server_fd)
 			accept_nbd_client(params, client_fd, &client_address);
 		if (activity_fd == params->control_fd)
 			accept_control_connection(params, client_fd, &client_address);
 			
-		SERVER_ERROR_ON_FAILURE(
-			pthread_mutex_unlock(&params->l_accept),
-			"Problem with accept unlock"
-		);
 	}
 }
 
@@ -338,7 +330,6 @@ void serve_cleanup(struct server* params)
 	//free(params->filename);
 	if (params->control_socket_name)
 		//free(params->control_socket_name);
-	pthread_mutex_destroy(&params->l_accept);
 	pthread_mutex_destroy(&params->l_io);
 	if (params->proxy_fd);
 		close(params->proxy_fd);
@@ -363,7 +354,6 @@ void serve_cleanup(struct server* params)
 /** Full lifecycle of the server */
 void do_serve(struct server* params)
 {
-	pthread_mutex_init(&params->l_accept, NULL);
 	pthread_mutex_init(&params->l_io, NULL);
 
 	params->close_signal = self_pipe_create();
