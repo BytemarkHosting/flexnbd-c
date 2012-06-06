@@ -7,12 +7,20 @@
 #include <string.h>
 #include <sys/socket.h>
 
-int socket_connect(struct sockaddr* to)
+int socket_connect(struct sockaddr* to, struct sockaddr* from)
 {
 	int fd = socket(to->sa_family == AF_INET ? PF_INET : PF_INET6, SOCK_STREAM, 0);
 	SERVER_ERROR_ON_FAILURE(fd, "Couldn't create client socket");
-	SERVER_ERROR_ON_FAILURE(connect(fd, to, sizeof(struct sockaddr_in6)),
-	  "connect failed");
+
+	if (NULL != from)
+		SERVER_ERROR_ON_FAILURE(
+			bind(fd, from, sizeof(struct sockaddr_in6)),
+			"bind() failed"
+		);
+
+	SERVER_ERROR_ON_FAILURE(
+		connect(fd, to, sizeof(struct sockaddr_in6)),"connect failed"
+	);
 	return fd;
 }
 
@@ -106,7 +114,7 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
   
 void do_read(struct mode_readwrite_params* params)
 {
-	params->client = socket_connect(&params->connect_to.generic);
+	params->client = socket_connect(&params->connect_to.generic, &params->connect_from.generic);
 	CHECK_RANGE("read");
 	socket_nbd_read(params->client, params->from, params->len, 
 	  params->data_fd, NULL);
@@ -115,7 +123,7 @@ void do_read(struct mode_readwrite_params* params)
 
 void do_write(struct mode_readwrite_params* params)
 {
-	params->client = socket_connect(&params->connect_to.generic);
+	params->client = socket_connect(&params->connect_to.generic, &params->connect_from.generic);
 	CHECK_RANGE("write");
 	socket_nbd_write(params->client, params->from, params->len, 
 	  params->data_fd, NULL);
