@@ -91,6 +91,7 @@ void serve_signal_close( struct server *serve );
 
 struct mode_readwrite_params {
 	union mysockaddr     connect_to;
+	union mysockaddr     connect_from;
 	off64_t              from;
 	off64_t              len;
 	int                  data_fd;
