@@ -141,6 +141,7 @@ static char mirror_help_text[] =
 	HELP_LINE
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to mirror to.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to mirror to.\n"
+	SOCK_LINE
 	DEBUG_LINE;
 
 
