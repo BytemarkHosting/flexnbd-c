@@ -1,5 +1,5 @@
-#ifndef __PARAMS_H
-#define __PARAMS_H
+#ifndef SERVE_H
+#define SERVE_H
 
 #define _GNU_SOURCE
 
