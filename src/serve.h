@@ -11,6 +11,8 @@
 
 #include <sys/types.h>
 
+static const int block_allocation_resolution = 4096;//128<<10;
+
 enum mirror_finish_action {
 	ACTION_PROXY,
 	ACTION_EXIT,
@@ -80,6 +82,10 @@ struct server {
 	                     nbd_client[MAX_NBD_CLIENTS];
 };
 
+int server_detect_closed(struct server* serve);
+void server_dirty(struct server *serve, off64_t from, int len);
+
+
 struct mode_readwrite_params {
 	union mysockaddr     connect_to;
 	off64_t              from;
@@ -88,14 +94,6 @@ struct mode_readwrite_params {
 	int                  client;
 };
 
-struct client_params {
-	int     socket;
-	
-	int     fileno;
-	char*   mapped;
-	
-	struct server* serve; /* FIXME: remove above duplication */
-};
 
 #endif
 
