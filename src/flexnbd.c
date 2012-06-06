@@ -111,6 +111,7 @@ void params_readwrite(
 	struct mode_readwrite_params* out,
 	char* s_ip_address,
 	char* s_port,
+	char* s_bind_address,
 	char* s_from,
 	char* s_length_or_filename
 )
@@ -127,6 +128,9 @@ void params_readwrite(
 	if (parse_ip_to_sockaddr(&out->connect_to.generic, s_ip_address) == 0)
 		SERVER_ERROR("Couldn't parse connection address '%s'",
 		s_ip_address);
+
+	if (s_bind_address != NULL && parse_ip_to_sockaddr(&out->connect_from.generic, s_bind_address) == 0)
+		SERVER_ERROR("Couldn't parse bind address '%s'", s_bind_address);
 
 	/* FIXME: duplicated from above */
 	out->connect_to.v4.sin_port = atoi(s_port);
@@ -198,7 +202,7 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 }
 
 
-void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **from, char **size)
+void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_addr, char **from, char **size)
 {
 	switch(c){
 		case 'h':
@@ -216,6 +220,9 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **from, c
 			break;
 		case 'S':
 			*size = optarg;
+			break;
+		case 'b':
+			*bind_addr = optarg;
 			break;
 		case 'd':
 			set_debug(1);
@@ -320,8 +327,9 @@ int mode_serve( int argc, char *argv[] )
 int mode_read( int argc, char *argv[] )
 {
 	int c;
-	char *ip_addr = NULL;
-	char *ip_port = NULL;
+	char *ip_addr   = NULL;
+	char *ip_port   = NULL;
+	char *bind_addr = NULL;
 	char *from = NULL;
 	char *size = NULL;
 	int err = 0;
@@ -330,8 +338,11 @@ int mode_read( int argc, char *argv[] )
 
 	while (1){
 		c = getopt_long(argc, argv, read_short_options, read_options, NULL);
-		if ( c == -1 ) break;
-		read_readwrite_param( c, &ip_addr, &ip_port, &from, &size );
+
+		if ( c == -1 )
+			break;
+
+		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size );
 	}
 
 	if ( NULL == ip_addr || NULL == ip_port ) {
@@ -345,7 +356,7 @@ int mode_read( int argc, char *argv[] )
 	if ( err ) { exit_err( read_help_text ); }
 
 	memset( &readwrite, 0, sizeof( readwrite ) );
-	params_readwrite( 0, &readwrite, ip_addr, ip_port, from, size );
+	params_readwrite( 0, &readwrite, ip_addr, ip_port, bind_addr, from, size );
 	do_read( &readwrite );
 	return 0;
 }
@@ -353,8 +364,9 @@ int mode_read( int argc, char *argv[] )
 int mode_write( int argc, char *argv[] )
 {
 	int c;
-	char *ip_addr = NULL;
-	char *ip_port = NULL;
+	char *ip_addr   = NULL;
+	char *ip_port   = NULL;
+	char *bind_addr = NULL;
 	char *from = NULL;
 	char *size = NULL;
 	int err = 0;
@@ -363,8 +375,10 @@ int mode_write( int argc, char *argv[] )
 
 	while (1){
 		c = getopt_long(argc, argv, write_short_options, write_options, NULL);
-		if ( c == -1 ) break;
-		read_readwrite_param( c, &ip_addr, &ip_port, &from, &size );
+		if ( c == -1 )
+			break;
+
+		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size );
 	}
 
 	if ( NULL == ip_addr || NULL == ip_port ) {
@@ -378,7 +392,7 @@ int mode_write( int argc, char *argv[] )
 	if ( err ) { exit_err( write_help_text ); }
 
 	memset( &readwrite, 0, sizeof( readwrite ) );
-	params_readwrite( 1, &readwrite, ip_addr, ip_port, from, size );
+	params_readwrite( 1, &readwrite, ip_addr, ip_port, bind_addr, from, size );
 	do_write( &readwrite );
 	return 0;
 }

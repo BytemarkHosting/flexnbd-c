@@ -82,6 +82,7 @@ struct mode_serve_params {
 
 struct mode_readwrite_params {
 	union mysockaddr     connect_to;
+	union mysockaddr     connect_from;
 	off64_t              from;
 	off64_t              len;
 	int                  data_fd;

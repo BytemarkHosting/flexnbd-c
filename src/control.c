@@ -217,7 +217,7 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		return -1;
 	}
 	
-	fd = socket_connect(&connect_to.generic);
+	fd = socket_connect(&connect_to.generic, NULL);
 	
 	remote_size = socket_nbd_read_hello(fd);
 	remote_size = remote_size; // shush compiler
