@@ -17,7 +17,6 @@ class NBDScenarios < Test::Unit::TestCase
   end
 
   def teardown
-    @nbd1.kill rescue nil
     [@filename1, @filename2].each do |f|
       File.unlink(f) if File.exists?(f)
     end
@@ -73,7 +72,7 @@ class NBDScenarios < Test::Unit::TestCase
 
   protected
   def serve1(*acl)
-    @nbd1.serve(@ip, @port1, @filename1, *acl)
+    @nbd1.serve(@filename1, *acl)
   end
 
   def writefile1(data)
