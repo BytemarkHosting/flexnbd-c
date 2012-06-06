@@ -192,6 +192,7 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 			break;
 		case 'v':
 			set_debug(1);
+			break;
 		case 'd':
 			*default_deny = 1;
 			break;
