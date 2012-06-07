@@ -8,6 +8,7 @@
 #endif
 
 #include "parse.h"
+#include "acl.h"
 
 #include <sys/types.h>
 
@@ -46,12 +47,8 @@ struct client_tbl_entry {
 struct server {
 	/** address/port to bind to */
 	union mysockaddr     bind_to;
-	/** does an empty ACL mean "deny all"? */
-	int                  default_deny;
-	/** number of entries in current access control list*/
-	int                  acl_entries;
-	/** pointer to access control list entries*/
-	struct ip_and_mask   (*acl)[0];
+	/** access control list */
+	struct acl *         acl;
 	/** (static) file name to serve */
 	char*                filename;
 	/** file name of INCOMPLETE flag */

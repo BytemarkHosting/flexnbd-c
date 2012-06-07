@@ -19,6 +19,7 @@
  *  elsewhere in the program.
  */
 
+
 #include "serve.h"
 #include "util.h"
 
@@ -33,7 +34,9 @@
 #include <signal.h>
 
 #include <getopt.h>
+
 #include "options.h"
+#include "acl.h"
 
 
 void exit_err( char *msg )
@@ -50,11 +53,8 @@ void params_serve(
 	char *s_ctrl_sock,
 	int default_deny,
 	int acl_entries,
-	char** s_acl_entries /* first may actually be path to control socket */
-)
+	char** s_acl_entries )
 {
-	int parsed;
-
 	out->tcp_backlog = 10; /* does this need to be settable? */
 
 	if (s_ip_address == NULL)
@@ -72,14 +72,9 @@ void params_serve(
 	 * we pass NULL. */
 	out->control_socket_name = s_ctrl_sock;
 
-	/* If this is true then an empty ACL means "nobody is allowed to connect",
-	 * rather than "anybody is allowed to connect" */
-	out->default_deny = default_deny;
-
-	out->acl_entries = acl_entries;
-	parsed = parse_acl(&out->acl, acl_entries, s_acl_entries);
-	if (parsed != acl_entries)
-		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[parsed]);
+	out->acl = acl_create( acl_entries, s_acl_entries, default_deny );
+	if (out->acl && out->acl->len != acl_entries)
+		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
 
 	out->bind_to.v4.sin_port = atoi(s_port);
 	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)

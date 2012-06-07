@@ -32,6 +32,7 @@
 #include "readwrite.h"
 #include "bitset.h"
 #include "self_pipe.h"
+#include "acl.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -259,22 +260,21 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 /** Command parser to alter access control list from socket input */
 int control_acl(struct control_params* client, int linesc, char** lines)
 {
-	int parsedc;
-	struct ip_and_mask (*acl)[], (*old_acl)[];
+	NULLCHECK( client );
+
+	struct acl * old_acl = client->serve->acl;
+	struct acl * new_acl = acl_create( linesc, lines, old_acl ? old_acl->default_deny : 0 );
 	
-	parsedc = parse_acl(&acl, linesc, lines);
-	if (parsedc != linesc) {
+	if (new_acl->len != linesc) {
 		write(client->socket, "1: bad spec: ", 13);
-		write(client->socket, lines[parsedc], 
-		  strlen(lines[parsedc]));
+		write(client->socket, lines[new_acl->len], 
+		  strlen(lines[new_acl->len]));
 		write(client->socket, "\n", 1);
-		free(acl);
+		acl_destroy( new_acl );
 	}
 	else {
-		old_acl = client->serve->acl;
-		client->serve->acl = acl;
-		client->serve->acl_entries = linesc;
-		free(old_acl);
+		client->serve->acl = new_acl;
+		acl_destroy( old_acl );
 		write_socket("0: updated");
 	}
 	

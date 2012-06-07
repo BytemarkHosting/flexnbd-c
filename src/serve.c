@@ -65,65 +65,6 @@ void server_unlock_io( struct server* serve )
 	);
 }
 
-static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
-
-/** Test whether AF_INET or AF_INET6 sockaddr is included in the given access
-  * control list, returning 1 if it is, and 0 if not.
-  */
-int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], union mysockaddr* test)
-{
-	NULLCHECK( test );
-
-	int i;
-	
-	for (i=0; i < list_length; i++) {
-		struct ip_and_mask *entry = &(*list)[i];
-		int testbits;
-		unsigned char *raw_address1, *raw_address2;
-		
-		debug("checking acl entry %d (%d/%d)", i, test->generic.sa_family, entry->ip.family);
-		
-		if (test->generic.sa_family != entry->ip.family)
-			continue;
-		
-		if (test->generic.sa_family == AF_INET) {
-			debug("it's an AF_INET");
-			raw_address1 = (unsigned char*) &test->v4.sin_addr;
-			raw_address2 = (unsigned char*) &entry->ip.v4.sin_addr;
-		}
-		else if (test->generic.sa_family == AF_INET6) {
-			debug("it's an AF_INET6");
-			raw_address1 = (unsigned char*) &test->v6.sin6_addr;
-			raw_address2 = (unsigned char*) &entry->ip.v6.sin6_addr;
-		}
-		
-		debug("testbits=%d", entry->mask);
-		
-		for (testbits = entry->mask; testbits > 0; testbits -= 8) {
-			debug("testbits=%d, c1=%02x, c2=%02x", testbits, raw_address1[0], raw_address2[0]);
-			if (testbits >= 8) {
-				if (raw_address1[0] != raw_address2[0])
-					goto no_match;
-			}
-			else {
-				if ((raw_address1[0] & testmasks[testbits%8]) !=
-				    (raw_address2[0] & testmasks[testbits%8]) )
-				    	goto no_match;
-			}
-			
-			raw_address1++;
-			raw_address2++;
-		}
-		
-		return 1;
-		
-		no_match: ;
-		debug("no match");
-	}
-	
-	return 0;
-}
-
 /** Prepares a listening socket for the NBD server, binding etc. */
 void serve_open_server_socket(struct server* params)
 {
@@ -259,13 +200,10 @@ int server_acl_accepts( struct server *params, union mysockaddr * client_address
 	NULLCHECK( client_address );
 
 	if (params->acl) {
-		if (is_included_in_acl(params->acl_entries, params->acl, client_address))
-			return 1;
-	} else {
-		if (!params->default_deny)
-			return 1;
+		return acl_includes( params->acl, client_address );
 	}
-	return 0;
+
+	return 1;
 }
 
 
@@ -405,11 +343,11 @@ void serve_accept_loop(struct server* params)
 		client_fd = accept(activity_fd, &client_address.generic, &socklen);
 		
 		if (activity_fd == params->server_fd) {
-			debug("Accepted nbd client");
+			debug("Accepted nbd client socket");
 			accept_nbd_client(params, client_fd, &client_address);
 		}
 		if (activity_fd == params->control_fd) {
-			debug("Accepted control client"); 
+			debug("Accepted control client socket"); 
 			accept_control_connection(params, client_fd, &client_address);
 		}
 			
