@@ -22,13 +22,20 @@ end
 testname_local = "#{$0}.test.#{$$}.local"
 testname_serve = "#{$0}.test.#{$$}.serve"
 [testname_local, testname_serve].each do |name|
-  File.open(name, "w+") { |fh| fh.seek(test_size-1, IO::SEEK_SET); fh.write("0") }
+  File.open(name, "w+") { |fh| fh.seek(test_size-1, IO::SEEK_SET); fh.write("\0") }
 end
 
 @local = File.open(testname_local, "r+")
 
 @serve = FlexNBD.new(binary, "127.0.0.1", 41234)
 @serve.serve(testname_serve)
+
+$record = []
+def print_record
+  $record.each do |offset, length, byte|
+    STDERR.print "  wrote #{byte} to #{offset}+#{length}\n"
+  end
+end
 
 repetitions.times do |n|
 
@@ -44,6 +51,7 @@ repetitions.times do |n|
   
     if md5_local != md5_serve
       STDERR.print "Before pass #{n}: MD5 error: local=#{md5_local} serve=#{md5_serve}\n"
+      print_record
       STDERR.print "**** Local contents:\n"
       system("hexdump #{testname_local}")
       STDERR.print "**** Serve contents:\n"
@@ -51,24 +59,35 @@ repetitions.times do |n|
       exit 1
     end
 
-    length = rand(max_length)
+    length = rand(max_length/8)
     length &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
     offset = rand(test_size - length)
     offset &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
-    content = (n%2 == 1) ? ("x" * length) : ("\0" * length)
-  
+    
+    content = (n%2 == 0) ? ("\0" * length) : ( (n&255).chr * length)
+    
+    $record << [offset, length, content[0]]
+        
     @local.seek(offset, IO::SEEK_SET)
     @local.write(content)
+    @local.fsync
   
     @serve.write(offset, content)
   
-    if @serve.read(offset, length) != content
-      STDERR.print "After pass #{n}: Didn't read back what we wrote!"
+    check_read = @serve.read(offset, length)
+    if check_read != content
+      STDERR.print "After pass #{n}: Didn't read back what we wrote!\n"
+      print_record
+      STDERR.print "*** We wrote these #{content.length} bytes...\n"
+      IO.popen("hexdump", "w") { |io| io.print(content) }
+      STDERR.print "*** But we got back these #{check_read.length} bytes...\n"
+      IO.popen("hexdump", "w") { |io| io.print(check_read) }
       exit 1
     end
     
   rescue StandardError => ex
     STDERR.print "During pass #{n}: Exception: #{ex}"
+      print_record
     STDERR.print ex.backtrace.join("\n") + "\n"
     exit 2
   end

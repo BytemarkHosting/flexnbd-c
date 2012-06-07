@@ -147,7 +147,8 @@ static inline int bitset_run_count(
 	uint64_t len)
 {
 	INT_FIRST_AND_LAST;
-	return bit_run_count(set->bits, first, bitlen) * set->resolution;
+	return (bit_run_count(set->bits, first, bitlen) * set->resolution) -
+	  (from % set->resolution);
 }
 
 /** Tests whether the bit field is clear for the given file offset.

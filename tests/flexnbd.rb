@@ -99,7 +99,8 @@ class FlexNBD
     IO.popen(cmd) do |fh|
       return fh.read
     end
-    raise "read failed" unless $?.success?
+    raise IOError.new "NBD read failed" unless $?.success?
+    out
   end
 
   def write(offset, data)
@@ -109,7 +110,7 @@ class FlexNBD
     IO.popen(cmd, "w") do |fh|
       fh.write(data)
     end
-    raise "write failed" unless $?.success?
+    raise IOError.new "NBD write failed" unless $?.success?
     nil
   end
 

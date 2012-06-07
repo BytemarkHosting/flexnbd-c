@@ -76,7 +76,7 @@ struct server {
 	int                  server_fd;
 	int                  control_fd;
 	
-	char*                block_allocation_map;
+	struct bitset_mapping* allocation_map;
 	
 	struct client_tbl_entry nbd_client[MAX_NBD_CLIENTS];
 };

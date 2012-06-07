@@ -431,7 +431,7 @@ void serve_init_allocation_map(struct server* params)
 	params->size = size;
 	SERVER_ERROR_ON_FAILURE(size, "Couldn't find size of %s", 
 	  params->filename);
-	params->block_allocation_map = 
+	params->allocation_map = 
 		build_allocation_map(fd, size, block_allocation_resolution);
 	close(fd);
 }
@@ -465,7 +465,7 @@ void serve_cleanup(struct server* params)
 
 	self_pipe_destroy( params->close_signal );
 
-	free(params->block_allocation_map);
+	free(params->allocation_map);
 	
 	if (params->mirror)
 		debug("mirror thread running! this should not happen!");

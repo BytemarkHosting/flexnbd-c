@@ -14,10 +14,10 @@
 #include "util.h"
 #include "bitset.h"
 
-char* build_allocation_map(int fd, off64_t size, int resolution)
+struct bitset_mapping* build_allocation_map(int fd, off64_t size, int resolution)
 {
 	int i;
-	char *allocation_map = xmalloc((size+resolution)/resolution);
+	struct bitset_mapping* allocation_map = bitset_alloc(size, resolution);
 	struct fiemap *fiemap_count, *fiemap;
 
 	fiemap_count = (struct fiemap*) xmalloc(sizeof(struct fiemap));
@@ -49,27 +49,24 @@ char* build_allocation_map(int fd, off64_t size, int resolution)
 	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0)
 		return NULL;
 	
-	for (i=0;i<fiemap->fm_mapped_extents;i++) {
-		int first_bit = fiemap->fm_extents[i].fe_logical / resolution;
-		int last_bit  = (fiemap->fm_extents[i].fe_logical + 
-		  fiemap->fm_extents[i].fe_length + resolution - 1) / 
-		  resolution;
-		int run = last_bit - first_bit;
-		  
-		bit_set_range(allocation_map, first_bit, run);
-	}
+	for (i=0;i<fiemap->fm_mapped_extents;i++)
+		bitset_set_range(
+			allocation_map, 
+			fiemap->fm_extents[i].fe_logical, 
+			fiemap->fm_extents[i].fe_length
+		);
 	
 	for (i=0; i<16; i++) {
 		debug("map[%d] = %d%d%d%d%d%d%d%d",
 		  i,
-		  (allocation_map[i] & 1) == 1,
-		  (allocation_map[i] & 2) == 2,
-		  (allocation_map[i] & 4) == 4,
-		  (allocation_map[i] & 8) == 8,
-		  (allocation_map[i] & 16) == 16,
-		  (allocation_map[i] & 32) == 32,
-		  (allocation_map[i] & 64) == 64,
-		  (allocation_map[i] & 128) == 128
+		  (allocation_map->bits[i] & 1) == 1,
+		  (allocation_map->bits[i] & 2) == 2,
+		  (allocation_map->bits[i] & 4) == 4,
+		  (allocation_map->bits[i] & 8) == 8,
+		  (allocation_map->bits[i] & 16) == 16,
+		  (allocation_map->bits[i] & 32) == 32,
+		  (allocation_map->bits[i] & 64) == 64,
+		  (allocation_map->bits[i] & 128) == 128
 		);
 	}
 	

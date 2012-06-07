@@ -61,7 +61,7 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 {
 	NULLCHECK( client );
 
-	char *map = client->serve->block_allocation_map;
+	struct bitset_mapping *map = client->serve->allocation_map;
 
 	while (len > 0) {
 		/* so we have to calculate how much of our input to consider
@@ -71,17 +71,31 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 		 * how many blocks our write covers, then cut off the start
 		 * and end to get the exact number of bytes.
 		 */
-		int first_bit = from/block_allocation_resolution;
-		int last_bit  = (from+len+block_allocation_resolution-1) / 
-		  block_allocation_resolution;
-		int run = bit_run_count(map, first_bit, last_bit-first_bit) *
-		  block_allocation_resolution;
+		 
+		int run = bitset_run_count(map, from, len);
 		
-		if (run > len)
+		debug("write_not_zeroes: from=%ld, len=%d, run=%d", from, len, run);
+		
+		if (run > len) {
 			run = len;
+			debug("(run adjusted to %d)", run);
+		}
 		
-		debug("write_not_zeroes: %ld+%d, first_bit=%d, last_bit=%d, run=%d", 
-		  from, len, first_bit, last_bit, run);
+		if (0) /* useful but expensive */
+		{
+			int i;
+			fprintf(stderr, "full map resolution=%d: ", map->resolution);
+			for (i=0; i<client->serve->size; i+=map->resolution) {
+				int here = (from >= i && from < i+map->resolution);
+				
+				if (here)
+					fprintf(stderr, ">");
+				fprintf(stderr, bitset_is_set_at(map, i) ? "1" : "0");
+				if (here)
+					fprintf(stderr, "<");
+			}
+			fprintf(stderr, "\n");
+		}
 		
 		#define DO_READ(dst, len) CLIENT_ERROR_ON_FAILURE( \
 			readloop( \
@@ -92,8 +106,8 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 			"read failed %ld+%d", from, (len) \
 		)
 		
-		if (bit_is_set(map, from/block_allocation_resolution)) {
-			debug("writing the lot");
+		if (bitset_is_set_at(map, from)) {
+			debug("writing the lot: from=%ld, run=%d", from, run);
 			/* already allocated, just write it all */
 			DO_READ(client->mapped + from, run);
 			server_dirty(client->serve, from, run);
@@ -104,15 +118,10 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 			char zerobuffer[block_allocation_resolution];
 			/* not allocated, read in block_allocation_resoution */
 			while (run > 0) {
-				char *dst = client->mapped+from;
-				int bit = from/block_allocation_resolution;
 				int blockrun = block_allocation_resolution - 
 				  (from % block_allocation_resolution);
 				if (blockrun > run)
 					blockrun = run;
-				
-				debug("writing partial: bit=%d, blockrun=%d (run=%d)",
-				  bit, blockrun, run);
 				
 				DO_READ(zerobuffer, blockrun);
 				
@@ -123,10 +132,10 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 				 */
 				if (zerobuffer[0] != 0 || 
 				    memcmp(zerobuffer, zerobuffer + 1, blockrun - 1)) {
-					memcpy(dst, zerobuffer, blockrun);
-					bit_set(map, bit);
+					debug("non-zero, writing from=%ld, blockrun=%d", from, blockrun);
+					memcpy(client->mapped+from, zerobuffer, blockrun);
+					bitset_set_range(map, from, blockrun);
 					server_dirty(client->serve, from, blockrun);
-					debug("non-zero, copied and set bit %d", bit);
 					/* at this point we could choose to
 					 * short-cut the rest of the write for
 					 * faster I/O but by continuing to do it
@@ -285,7 +294,7 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 void client_reply_to_write( struct client* client, struct nbd_request request )
 {
 	debug("request write %ld+%d", request.from, request.len);
-	if (client->serve->block_allocation_map) {
+	if (client->serve->allocation_map) {
 		write_not_zeroes( client, request.from, request.len );
 	}
 	else {
