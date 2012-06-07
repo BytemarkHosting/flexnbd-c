@@ -7,7 +7,7 @@ class FlexNBD
 
   def initialize(bin, ip, port)
     @bin  = bin
-    @debug = `#{@bin} serve --help` =~ /--debug/ ? "--debug" : ""
+    @debug = "--verbose" # tests always run in debug mode!
     @valgrind = ENV['VALGRIND'] ? "valgrind " : ""
     @bin = "#{@valgrind}#{@bin}"
     raise "#{bin} not executable" unless File.executable?(bin)
@@ -25,6 +25,7 @@ class FlexNBD
          "--sock #{ctrl} "\
          "#{@debug} "\
          "#{acl.join(' ')}"
+    #STDERR.print "#{cmd}\n"
     @pid = fork do
       exec(cmd)
     end
@@ -42,15 +43,17 @@ class FlexNBD
   end
 
   def read(offset, length)
-    IO.popen("#{@bin} read "\
+    
+    out = IO.popen("#{@bin} read "\
              "--addr #{ip} "\
              "--port #{port} "\
              "--from #{offset} "\
              "#{@debug} "\
              "--size #{length}","r") do |fh|
-      return fh.read
+      fh.read
     end
-    raise "read failed" unless $?.success?
+    raise IOError.new "NBD read failed" unless $?.success?
+    out
   end
 
   def write(offset, data)
@@ -62,7 +65,7 @@ class FlexNBD
              "--size #{data.length}","w") do |fh|
       fh.write(data)
     end
-    raise "write failed" unless $?.success?
+    raise IOError.new "NBD write failed" unless $?.success?
     nil
   end
 

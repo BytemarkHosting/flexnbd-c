@@ -22,7 +22,7 @@ end
 testname_local = "#{$0}.test.#{$$}.local"
 testname_serve = "#{$0}.test.#{$$}.serve"
 [testname_local, testname_serve].each do |name|
-  File.open(name, "w+") { |fh| fh.seek(test_size-1, IO::SEEK_SET); fh.write("0") }
+  File.open(name, "w+") { |fh| fh.seek(test_size-1, IO::SEEK_SET); fh.write("\0") }
 end
 
 @local = File.open(testname_local, "r+")
@@ -55,15 +55,22 @@ repetitions.times do |n|
     length &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
     offset = rand(test_size - length)
     offset &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
-    content = (n%2 == 1) ? ("x" * length) : ("\0" * length)
-  
+    
+    content = (n%2 == 0) ? ("\0" * length) : ( ((n/2)&255).chr * length)
+        
     @local.seek(offset, IO::SEEK_SET)
     @local.write(content)
+    @local.fsync
   
     @serve.write(offset, content)
   
-    if @serve.read(offset, length) != content
-      STDERR.print "After pass #{n}: Didn't read back what we wrote!"
+    check_read = @serve.read(offset, length)
+    if check_read != content
+      STDERR.print "After pass #{n}: Didn't read back what we wrote!\n"
+      STDERR.print "*** We wrote these #{content.length} bytes...\n"
+      IO.popen("hexdump", "w") { |io| io.print(content) }
+      STDERR.print "*** But we got back these #{check_read.length} bytes...\n"
+      IO.popen("hexdump", "w") { |io| io.print(check_read) }
       exit 1
     end
     
