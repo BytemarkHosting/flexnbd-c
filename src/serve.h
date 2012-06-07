@@ -69,7 +69,7 @@ struct server {
 	int                  server_fd;
 	int                  control_fd;
 	
-	char*                block_allocation_map;
+	struct bitset_mapping* allocation_map;
 	
 	struct { pthread_t thread; union mysockaddr address; }
 	                     nbd_client[MAX_NBD_CLIENTS];
