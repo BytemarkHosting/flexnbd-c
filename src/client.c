@@ -46,6 +46,22 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 			debug("(run adjusted to %d)", run);
 		}
 		
+		if (0) /* useful but expensive */
+		{
+			int i;
+			fprintf(stderr, "full map resolution=%d: ", map->resolution);
+			for (i=0; i<client->serve->size; i+=map->resolution) {
+				int here = (from >= i && from < i+map->resolution);
+				
+				if (here)
+					fprintf(stderr, ">");
+				fprintf(stderr, bitset_is_set_at(map, i) ? "1" : "0");
+				if (here)
+					fprintf(stderr, "<");
+			}
+			fprintf(stderr, "\n");
+		}
+		
 		#define DO_READ(dst, len) CLIENT_ERROR_ON_FAILURE( \
 			readloop( \
 				client->socket, \
@@ -81,6 +97,7 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 				 */
 				if (zerobuffer[0] != 0 || 
 				    memcmp(zerobuffer, zerobuffer + 1, blockrun - 1)) {
+					debug("non-zero, writing from=%ld, blockrun=%d", from, blockrun);
 					memcpy(client->mapped+from, zerobuffer, blockrun);
 					bitset_set_range(map, from, blockrun);
 					server_dirty(client->serve, from, blockrun);
