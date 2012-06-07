@@ -25,18 +25,29 @@ task :flexnbd => 'build/flexnbd'
 task :build => :flexnbd
 task :default => :flexnbd
 
+def check(m)
+  "build/tests/check_#{m}"
+end
+
 namespace "test" do
   desc "Run all tests"
   task 'run' => ["unit", "scenarios"]
 
   desc "Build C tests"
-  task 'build' => TEST_MODULES.map { |n| "build/tests/check_#{n}" }
+  task 'build' => TEST_MODULES.map { |n| check n}
+
+  TEST_MODULES.each do |m|
+    desc "Run tests for #{m}"
+    task "check_#{m}" => check(m) do
+      sh check m
+    end
+  end
 
   desc "Run C tests"
   task 'unit' => 'build' do
     TEST_MODULES.each do |n|
       ENV['EF_DISABLE_BANNER'] = '1'
-      sh "build/tests/check_#{n}"
+      sh check n
     end
   end
 
@@ -62,7 +73,7 @@ rule 'build/flexnbd' => OBJECTS do |t|
 end
 
 
-file "build/tests/check_client" => 
+file check("client") => 
 %w{tests/check_client.c
   build/self_pipe.o
   build/nbdtypes.o
@@ -83,7 +94,7 @@ end
 
   deps << maybe_obj_name if OBJECTS.include?( maybe_obj_name )
 
-  file "build/tests/check_#{m}" => deps do |t|
+  file check( m ) => deps do |t|
     gcc_link(t.name, deps + [LIBCHECK])
   end
 end

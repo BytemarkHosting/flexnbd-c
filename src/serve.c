@@ -159,22 +159,11 @@ void serve_open_server_socket(struct server* params)
 	);
 }
 
-/**
- * Check to see if a client thread has finished, and if so, tidy up
- * after it.
- * Returns 1 if the thread was cleaned up and the slot freed, 0
- * otherwise.
- *
- * It's important that client_destroy gets called in the same thread
- * which signals the client threads to stop.  This avoids the
- * possibility of sending a stop signal via a signal which has already
- * been destroyed.  However, it means that stopped client threads,
- * including their signal pipes, won't be cleaned up until the next new
- * client connection attempt.
- */
-int cleanup_client_thread( struct client_tbl_entry * entry )
+int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthread_t, void **) )
 {
+
 	NULLCHECK( entry );
+	NULLCHECK( joinfunc );
 
 	int was_closed = 0;
 	void * status;
@@ -189,7 +178,7 @@ int cleanup_client_thread( struct client_tbl_entry * entry )
 				s_client_address, 
 				64 );
 
-		if (pthread_tryjoin_np(entry->thread, &status) < 0) {
+		if (joinfunc(entry->thread, &status) != 0) {
 			if (errno != EBUSY)
 				SERVER_ERROR_ON_FAILURE(-1, "Problem with joining thread");
 		}
@@ -207,6 +196,35 @@ int cleanup_client_thread( struct client_tbl_entry * entry )
 	return was_closed;
 }
 
+
+/**
+ * Check to see if a client thread has finished, and if so, tidy up
+ * after it.
+ * Returns 1 if the thread was cleaned up and the slot freed, 0
+ * otherwise.
+ *
+ * It's important that client_destroy gets called in the same thread
+ * which signals the client threads to stop.  This avoids the
+ * possibility of sending a stop signal via a signal which has already
+ * been destroyed.  However, it means that stopped client threads,
+ * including their signal pipes, won't be cleaned up until the next new
+ * client connection attempt.
+ */
+int cleanup_client_thread( struct client_tbl_entry * entry )
+{
+	return tryjoin_client_thread( entry, pthread_tryjoin_np );
+}
+
+
+/**
+ * Join a client thread after having sent a stop signal to it.
+ * This function will not return until pthread_join has returned, so
+ * ensures that the client thread is dead.
+ */
+int join_client_thread( struct client_tbl_entry *entry )
+{
+	return tryjoin_client_thread( entry, pthread_join );
+}
 
 /** We can only accommodate MAX_NBD_CLIENTS connections at once.  This function
  *  goes through the current list, waits for any threads that have finished
@@ -296,7 +314,7 @@ void accept_nbd_client(
 	NULLCHECK(client_address);
 
 	struct client* client_params;
-	int slot = cleanup_and_find_client_slot(params); 
+	int slot;
 	char s_client_address[64] = {0};
 
 
@@ -305,6 +323,7 @@ void accept_nbd_client(
 		return;
 	}
 
+	slot = cleanup_and_find_client_slot(params); 
 	if (slot < 0) {
 		write(client_fd, "Too many clients", 16);
 		close(client_fd);
@@ -313,7 +332,10 @@ void accept_nbd_client(
 	
 	debug( "Client %s accepted.", s_client_address );
 	client_params = client_create( params, client_fd );
+
 	params->nbd_client[slot].client = client_params;
+	memcpy(&params->nbd_client[slot].address, client_address, 
+	  sizeof(union mysockaddr));
 	
 	if (pthread_create(&params->nbd_client[slot].thread, NULL, client_serve, client_params) < 0) {
 		debug( "Thread creation problem." );
@@ -323,9 +345,6 @@ void accept_nbd_client(
 		return;
 	}
 	
-	memcpy(&params->nbd_client[slot].address, client_address, 
-	  sizeof(union mysockaddr));
-	
 	debug("nbd thread %d started (%s)", (int) params->nbd_client[slot].thread, s_client_address);
 }
 
@@ -334,6 +353,26 @@ int server_is_closed(struct server* serve)
 {
 	NULLCHECK( serve );
 	return fd_is_closed( serve->server_fd );
+}
+
+
+void server_close_clients( struct server *params )
+{
+	NULLCHECK(params);
+
+	int i, j;
+	struct client_tbl_entry *entry;
+
+	for( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+		entry = &params->nbd_client[i];
+
+		if ( entry->thread != 0 ) {
+			client_signal_stop( entry->client );	
+		}
+	}
+	for( j = 0; j < MAX_NBD_CLIENTS; j++ ) {
+		join_client_thread( &params->nbd_client[i] );
+	}
 }
 
 
@@ -356,13 +395,14 @@ void serve_accept_loop(struct server* params)
 		SERVER_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, 
 		  NULL, NULL, NULL), "select() failed");
 		
-		if ( self_pipe_fd_isset( params->close_signal, &fds) )
+		if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
+			server_close_clients( params );
 			return;
+		}
 		
 		activity_fd = FD_ISSET(params->server_fd, &fds) ? params->server_fd: 
 		  params->control_fd;
 		client_fd = accept(activity_fd, &client_address.generic, &socklen);
-		
 		
 		if (activity_fd == params->server_fd) {
 			debug("Accepted nbd client");

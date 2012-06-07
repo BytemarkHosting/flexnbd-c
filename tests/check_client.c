@@ -1,15 +1,18 @@
 #include <check.h>
 
 #include "self_pipe.h"
+#include "nbdtypes.h"
 
 #include "client.h"
 
+#define FAKE_SERVER ((struct server *)23)
+#define FAKE_SOCKET (42)
 
 START_TEST( test_assigns_socket )
 {
 	struct client * c;
 
-	c = client_create( NULL, 42 );
+	c = client_create( FAKE_SERVER, FAKE_SOCKET );
 
 	fail_unless( 42 == c->socket, "Socket wasn't assigned." );
 }
@@ -22,11 +25,9 @@ START_TEST( test_assigns_server )
 	/* can't predict the storage size so we can't allocate one on
 	 * the stack
 	 */
-	struct server * s = (struct server *)42;
+	c = client_create( FAKE_SERVER, FAKE_SOCKET );
 
-	c = client_create( (struct server *)s, 0 );
-
-	fail_unless( s == c->serve, "Serve wasn't assigned." );
+	fail_unless( FAKE_SERVER == c->serve, "Serve wasn't assigned." );
 
 }
 END_TEST
@@ -34,7 +35,7 @@ END_TEST
 
 START_TEST( test_opens_stop_signal )
 {
-	struct client *c = client_create( NULL, 0 );
+	struct client *c = client_create( FAKE_SERVER, FAKE_SOCKET );
 
 	client_signal_stop( c );
 
@@ -47,7 +48,7 @@ END_TEST
 
 START_TEST( test_closes_stop_signal )
 {
-	struct client *c = client_create( NULL, 0 );
+	struct client *c = client_create( FAKE_SERVER, FAKE_SOCKET );
 	int read_fd = c->stop_signal->read_fd;
 	int write_fd = c->stop_signal->write_fd;
 
@@ -55,6 +56,24 @@ START_TEST( test_closes_stop_signal )
 
 	fail_unless( fd_is_closed( read_fd ), "Stop signal wasn't destroyed." );
 	fail_unless( fd_is_closed( write_fd ), "Stop signal wasn't destroyed." );
+}
+END_TEST
+
+
+START_TEST( test_read_request_quits_on_stop_signal )
+{
+	int fds[2];
+	struct nbd_request nbdr;
+	pipe( fds );
+	struct client *c = client_create( FAKE_SERVER, fds[0] );
+	
+	client_signal_stop( c );
+
+	int client_read_request( struct client *, struct nbd_request *);
+	fail_unless( 0 == client_read_request( c, &nbdr ), "Didn't quit on stop." );
+
+	close( fds[0] );
+	close( fds[1] );
 }
 END_TEST
 
@@ -71,6 +90,7 @@ Suite *client_suite()
 	tcase_add_test(tc_create, test_assigns_server);
 
 	tcase_add_test(tc_signal, test_opens_stop_signal);
+	tcase_add_test(tc_signal, test_read_request_quits_on_stop_signal);
 
 	tcase_add_test( tc_destroy, test_closes_stop_signal );
 

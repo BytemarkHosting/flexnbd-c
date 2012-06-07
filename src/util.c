@@ -17,7 +17,7 @@ void error_init()
 	main_thread = pthread_self();
 }
 
-void error(int consult_errno, int close_socket, pthread_mutex_t* unlock, const char* format, ...)
+void error(int consult_errno, int fatal, int close_socket, pthread_mutex_t* unlock, const char* format, ...)
 {
 	va_list argptr;
 	
@@ -31,18 +31,18 @@ void error(int consult_errno, int close_socket, pthread_mutex_t* unlock, const c
 		fprintf(stderr, " (errno=%d, %s)", errno, strerror(errno));
 	}
 	
-	if (close_socket)
-		close(close_socket);
-	
-	if (unlock)
-		pthread_mutex_unlock(unlock);
+	if (close_socket) { close(close_socket); }
+	if (unlock) { pthread_mutex_unlock(unlock); }
 	
 	fprintf(stderr, "\n");
 	
-	if (pthread_equal(pthread_self(), main_thread))
+	if (fatal || pthread_equal(pthread_self(), main_thread)) {
 		exit(1);
-	else
+	}
+	else {
+		fprintf(stderr, "Killing Thread\n");
 		pthread_exit((void*) 1);
+	}
 }
 
 void* xrealloc(void* ptr, size_t size)

@@ -150,16 +150,19 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
  * try to honour. 0 otherwise. */
 int client_read_request( struct client * client , struct nbd_request *out_request )
 {
+	NULLCHECK( client );
+	NULLCHECK( out_request );
+
 	struct nbd_request_raw request_raw;
 	fd_set                 fds;
 	
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);
-	self_pipe_fd_set( client->serve->close_signal, &fds );
+	self_pipe_fd_set( client->stop_signal, &fds );
 	CLIENT_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, NULL, NULL, NULL), 
 	  "select() failed");
 	
-	if ( self_pipe_fd_isset( client->serve->close_signal, &fds ) )
+	if ( self_pipe_fd_isset( client->stop_signal, &fds ) )
 		return 0;
 
 	if (readloop(client->socket, &request_raw, sizeof(request_raw)) == -1) {
