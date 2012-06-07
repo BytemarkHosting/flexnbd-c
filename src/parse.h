@@ -1,5 +1,5 @@
-#ifndef __PARSE_H
-#define __PARSE_H
+#ifndef PARSE_H
+#define PARSE_H
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
