@@ -31,7 +31,8 @@ void debug(const char*msg, ...);
   if (test < 0) { error(1, 1, 0, NULL, msg, ##__VA_ARGS__); }
 
 
-#define NULLCHECK(x); if ( NULL == (x) ) { SERVER_ERROR( "Null " #x "." ); }
+#define NULLCHECK(x) \
+	do { if ( NULL == (x) ) { SERVER_ERROR( "Null " #x "." ); } } while(0)
 
 #endif
 
