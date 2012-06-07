@@ -1,4 +1,7 @@
 require 'socket'
+require 'thread'
+
+Thread.abort_on_exception = true
 
 # Noddy test class to exercise FlexNBD from the outside for testing.
 #
@@ -7,27 +10,64 @@ class FlexNBD
 
   def initialize(bin, ip, port)
     @bin  = bin
-    @debug = `#{@bin} serve --help` =~ /--debug/ ? "--debug" : ""
+    @debug = `#{@bin} serve --help` =~ /--verbose/ ? "--verbose" : ""
     @valgrind = ENV['VALGRIND'] ? "valgrind " : ""
     @bin = "#{@valgrind}#{@bin}"
     raise "#{bin} not executable" unless File.executable?(bin)
     @ctrl = "/tmp/.flexnbd.ctrl.#{Time.now.to_i}.#{rand}"
     @ip = ip
     @port = port
+    @kill = false
   end
+
+  def debug?
+    !@debug.empty?
+  end
+
+  def debug( msg )
+    $stderr.puts msg if debug?
+  end
+
+
+  def serve_cmd( file, acl )
+    "#{@bin} serve "\
+      "--addr #{ip} "\
+      "--port #{port} "\
+      "--file #{file} "\
+      "--sock #{ctrl} "\
+      "#{@debug} "\
+      "#{acl.join(' ')}"
+  end
+
+
+  def read_cmd( offset, length )
+    "#{@bin} read "\
+      "--addr #{ip} "\
+      "--port #{port} "\
+      "--from #{offset} "\
+      "#{@debug} "\
+      "--size #{length}"
+  end
+
+
+  def write_cmd( offset, data )
+    "#{@bin} write "\
+      "--addr #{ip} "\
+      "--port #{port} "\
+      "--from #{offset} "\
+      "#{@debug} "\
+      "--size #{data.length}"
+  end
+
 
   def serve(file, *acl)
     File.unlink(ctrl) if File.exists?(ctrl)
-    cmd ="#{@bin} serve "\
-         "--addr #{ip} "\
-         "--port #{port} "\
-         "--file #{file} "\
-         "--sock #{ctrl} "\
-         "#{@debug} "\
-         "#{acl.join(' ')}"
-    @pid = fork do
-      exec(cmd)
-    end
+    cmd =serve_cmd( file, acl )
+    debug( cmd )
+
+    @pid = fork do exec(cmd) end
+    start_wait_thread( @pid )
+
     while !File.socket?(ctrl)
       pid, status = Process.wait2(@pid, Process::WNOHANG)
       raise "server did not start (#{cmd})" if pid
@@ -36,30 +76,37 @@ class FlexNBD
     at_exit { kill }
   end
 
+  def start_wait_thread( pid )
+    Thread.start do
+      Process.waitpid2( pid )
+      unless @kill
+        $stderr.puts "flexnbd quit"
+        fail "flexnbd quit early"
+      end
+    end
+  end
+
+
   def kill
+    @kill = true
     Process.kill("INT", @pid)
-    Process.wait(@pid)
   end
 
   def read(offset, length)
-    IO.popen("#{@bin} read "\
-             "--addr #{ip} "\
-             "--port #{port} "\
-             "--from #{offset} "\
-             "#{@debug} "\
-             "--size #{length}","r") do |fh|
+    cmd = read_cmd( offset, length )
+    debug( cmd )
+
+    IO.popen(cmd) do |fh|
       return fh.read
     end
     raise "read failed" unless $?.success?
   end
 
   def write(offset, data)
-    IO.popen("#{@bin} write "\
-             "--addr #{ip} "\
-             "--port #{port} "\
-             "--from #{offset} "\
-             "#{@debug} "\
-             "--size #{data.length}","w") do |fh|
+    cmd = write_cmd( offset, data )
+    debug( cmd )
+    
+    IO.popen(cmd, "w") do |fh|
       fh.write(data)
     end
     raise "write failed" unless $?.success?

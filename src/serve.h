@@ -35,6 +35,13 @@ struct control_params {
 	struct server* serve;
 };
 
+struct client_tbl_entry {
+	pthread_t thread;
+	union mysockaddr address;
+	struct client * client;
+};
+
+
 #define MAX_NBD_CLIENTS 16
 struct server {
 	/** address/port to bind to */
@@ -71,8 +78,7 @@ struct server {
 	
 	char*                block_allocation_map;
 	
-	struct { pthread_t thread; union mysockaddr address; }
-	                     nbd_client[MAX_NBD_CLIENTS];
+	struct client_tbl_entry nbd_client[MAX_NBD_CLIENTS];
 };
 
 int server_is_closed(struct server* serve);

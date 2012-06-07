@@ -190,10 +190,11 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 		case 's':
 			*sock = optarg;
 			break;
-		case 'v':
-			set_debug(1);
 		case 'd':
 			*default_deny = 1;
+			break;
+		case 'v':
+			set_debug(1);
 			break;
 		default:
 			exit_err( serve_help_text );

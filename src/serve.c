@@ -22,6 +22,8 @@
 
 static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
 {
+	NULLCHECK( sockaddr );
+
 	struct sockaddr_in*  in  = (struct sockaddr_in*) sockaddr;
 	struct sockaddr_in6* in6 = (struct sockaddr_in6*) sockaddr;
 	
@@ -34,12 +36,16 @@ static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
 
 void server_dirty(struct server *serve, off64_t from, int len)
 {
+	NULLCHECK( serve );
+
 	if (serve->mirror)
 		bitset_set_range(serve->mirror->dirty_map, from, len);
 }
 
 int server_lock_io( struct server * serve)
 {
+	NULLCHECK( serve );
+
 	SERVER_ERROR_ON_FAILURE(
 		pthread_mutex_lock(&serve->l_io),
 		"Problem with I/O lock"
@@ -51,6 +57,8 @@ int server_lock_io( struct server * serve)
 
 void server_unlock_io( struct server* serve )
 {
+	NULLCHECK( serve );
+
 	SERVER_ERROR_ON_FAILURE(
 		pthread_mutex_unlock(&serve->l_io),
 		"Problem with I/O unlock"
@@ -64,6 +72,8 @@ static int testmasks[9] = { 0,128,192,224,240,248,252,254,255 };
   */
 int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], union mysockaddr* test)
 {
+	NULLCHECK( test );
+
 	int i;
 	
 	for (i=0; i < list_length; i++) {
@@ -117,6 +127,8 @@ int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], union myso
 /** Prepares a listening socket for the NBD server, binding etc. */
 void serve_open_server_socket(struct server* params)
 {
+	NULLCHECK( params );
+
 	int optval=1;
 	
 	params->server_fd= socket(params->bind_to.generic.sa_family == AF_INET ? 
@@ -147,45 +159,129 @@ void serve_open_server_socket(struct server* params)
 	);
 }
 
+/**
+ * Check to see if a client thread has finished, and if so, tidy up
+ * after it.
+ * Returns 1 if the thread was cleaned up and the slot freed, 0
+ * otherwise.
+ *
+ * It's important that client_destroy gets called in the same thread
+ * which signals the client threads to stop.  This avoids the
+ * possibility of sending a stop signal via a signal which has already
+ * been destroyed.  However, it means that stopped client threads,
+ * including their signal pipes, won't be cleaned up until the next new
+ * client connection attempt.
+ */
+int cleanup_client_thread( struct client_tbl_entry * entry )
+{
+	NULLCHECK( entry );
+
+	int was_closed = 0;
+	void * status;
+
+	if (entry->thread != 0) {
+		char s_client_address[64];
+
+		memset(s_client_address, 0, 64);
+		strcpy(s_client_address, "???");
+		inet_ntop( entry->address.generic.sa_family, 
+				sockaddr_address_data(&entry->address.generic), 
+				s_client_address, 
+				64 );
+
+		if (pthread_tryjoin_np(entry->thread, &status) < 0) {
+			if (errno != EBUSY)
+				SERVER_ERROR_ON_FAILURE(-1, "Problem with joining thread");
+		}
+		else {
+			debug("nbd thread %p exited (%s) with status %ld", 
+					(int) entry->thread, 
+					s_client_address, 
+					(uint64_t)status);
+			client_destroy( entry->client );
+			entry->thread = 0;
+			was_closed  = 1;
+		}
+	}
+
+	return was_closed;
+}
+
+
 /** We can only accommodate MAX_NBD_CLIENTS connections at once.  This function
  *  goes through the current list, waits for any threads that have finished
  *  and returns the next slot free (or -1 if there are none).
  */
 int cleanup_and_find_client_slot(struct server* params)
 {
-	int slot=-1, i;
-	
-	for (i=0; i < MAX_NBD_CLIENTS; i++) {
-		void* status;
-		
-		if (params->nbd_client[i].thread != 0) {
-			char s_client_address[64];
-			
-			memset(s_client_address, 0, 64);
-			strcpy(s_client_address, "???");
-			inet_ntop(
-				params->nbd_client[i].address.generic.sa_family, 
-				sockaddr_address_data(&params->nbd_client[i].address.generic), 
-                                    s_client_address, 
-				64
-			);
-			
-			if (pthread_tryjoin_np(params->nbd_client[i].thread, &status) < 0) {
-				if (errno != EBUSY)
-					SERVER_ERROR_ON_FAILURE(-1, "Problem with joining thread");
-			}
-			else {
-				params->nbd_client[i].thread = 0;
-				debug("nbd thread %d exited (%s) with status %ld", (int) params->nbd_client[i].thread, s_client_address, (uint64_t)status);
-			}
+	NULLCHECK( params );
+
+	int slot=-1, i,j;
+
+	for ( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+		cleanup_client_thread( &params->nbd_client[i] );
+	}
+
+	for ( j = 0; j < MAX_NBD_CLIENTS; j++ ) {
+		if( params->nbd_client[j].thread == 0 && slot == -1 ){
+			slot = j;
+			break;
 		}
-		
-		if (params->nbd_client[i].thread == 0 && slot == -1)
-			slot = i;
 	}
 	
+	if ( -1 == slot ) { debug( "No client slot found." ); }
+
 	return slot;
 }
+
+
+int server_acl_accepts( struct server *params, union mysockaddr * client_address )
+{
+	NULLCHECK( params );
+	NULLCHECK( client_address );
+
+	if (params->acl) {
+		if (is_included_in_acl(params->acl_entries, params->acl, client_address))
+			return 1;
+	} else {
+		if (!params->default_deny)
+			return 1;
+	}
+	return 0;
+}
+
+
+int server_should_accept_client( 
+		struct server * params, 
+		int client_fd, 
+		union mysockaddr * client_address,
+		char *s_client_address,
+		size_t s_client_address_len )
+{
+	NULLCHECK( params );
+	NULLCHECK( client_address );
+	NULLCHECK( s_client_address );
+
+	if (inet_ntop(client_address->generic.sa_family,
+				sockaddr_address_data(&client_address->generic),
+				s_client_address, s_client_address_len ) == NULL) {
+		debug( "Rejecting client %s: Bad client_address", s_client_address );
+		write(client_fd, "Bad client_address", 18);
+		return 0;
+	}
+
+	if ( !server_acl_accepts( params, client_address ) ) {
+		debug( "Rejecting client %s: Access control error", s_client_address );
+		debug( "We %s have an acl, and default_deny is %s", 
+				(params->acl ? "do" : "do not"),
+				(params->default_deny ? "true" : "false") );
+ 		write(client_fd, "Access control error", 20);
+ 		return 0;
+	}
+
+	return 1;
+}
+
 
 /** Dispatch function for accepting an NBD connection and starting a thread
   * to handle it.  Rejects the connection if there is an ACL, and the far end's
@@ -196,49 +292,33 @@ void accept_nbd_client(
 		int client_fd, 
 		union mysockaddr* client_address)
 {
+	NULLCHECK(params);
+	NULLCHECK(client_address);
+
 	struct client* client_params;
 	int slot = cleanup_and_find_client_slot(params); 
-	char s_client_address[64];
-	int acl_passed = 0;
+	char s_client_address[64] = {0};
 
-	
-	if (inet_ntop(client_address->generic.sa_family,
-				sockaddr_address_data(&client_address->generic),
-				s_client_address, 64) == NULL) {
-		write(client_fd, "Bad client_address", 18);
-		close(client_fd);
+
+	if ( !server_should_accept_client( params, client_fd, client_address, s_client_address, 64 ) ) {
+		close( client_fd );
 		return;
 	}
-	
 
-	if (params->acl) {
-		if (is_included_in_acl(params->acl_entries, params->acl, client_address))
-			acl_passed = 1;
-	} else {
-		if (!params->default_deny)
-			acl_passed = 1;
-	}
-
-	if (!acl_passed) {
- 		write(client_fd, "Access control error", 20);
- 		close(client_fd);
- 		return;
-	}
-
-	
 	if (slot < 0) {
 		write(client_fd, "Too many clients", 16);
 		close(client_fd);
 		return;
 	}
 	
-	client_params = xmalloc(sizeof(struct client));
-	client_params->socket = client_fd;
-	client_params->serve = params;
+	debug( "Client %s accepted.", s_client_address );
+	client_params = client_create( params, client_fd );
+	params->nbd_client[slot].client = client_params;
 	
 	if (pthread_create(&params->nbd_client[slot].thread, NULL, client_serve, client_params) < 0) {
+		debug( "Thread creation problem." );
 		write(client_fd, "Thread creation problem", 23);
-		free(client_params);
+		client_destroy( client_params );
 		close(client_fd);
 		return;
 	}
@@ -252,16 +332,15 @@ void accept_nbd_client(
 
 int server_is_closed(struct server* serve)
 {
-	int errno_old = errno;
-	int result = fcntl(serve->server_fd, F_GETFD, 0) < 0;
-	errno = errno_old;
-	return result;
+	NULLCHECK( serve );
+	return fd_is_closed( serve->server_fd );
 }
 
 
 /** Accept either an NBD or control socket connection, dispatch appropriately */
 void serve_accept_loop(struct server* params) 
 {
+	NULLCHECK( params );
 	while (1) {
 		int              activity_fd, client_fd;
 		union mysockaddr client_address;
@@ -285,10 +364,14 @@ void serve_accept_loop(struct server* params)
 		client_fd = accept(activity_fd, &client_address.generic, &socklen);
 		
 		
-		if (activity_fd == params->server_fd)
+		if (activity_fd == params->server_fd) {
+			debug("Accepted nbd client");
 			accept_nbd_client(params, client_fd, &client_address);
-		if (activity_fd == params->control_fd)
+		}
+		if (activity_fd == params->control_fd) {
+			debug("Accepted control client"); 
 			accept_control_connection(params, client_fd, &client_address);
+		}
 			
 	}
 }
@@ -298,8 +381,11 @@ void serve_accept_loop(struct server* params)
   */
 void serve_init_allocation_map(struct server* params)
 {
+	NULLCHECK( params );
+
 	int fd = open(params->filename, O_RDONLY);
 	off64_t size;
+
 	SERVER_ERROR_ON_FAILURE(fd, "Couldn't open %s", params->filename);
 	size = lseek64(fd, 0, SEEK_END);
 	params->size = size;
@@ -314,6 +400,7 @@ void serve_init_allocation_map(struct server* params)
 /* Tell the server to close all the things. */
 void serve_signal_close( struct server * serve )
 {
+	NULLCHECK( serve );
 	self_pipe_signal( serve->close_signal );
 }
 
@@ -321,6 +408,8 @@ void serve_signal_close( struct server * serve )
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server* params)
 {
+	NULLCHECK( params );
+
 	int i;
 	
 	close(params->server_fd);
@@ -354,6 +443,8 @@ void serve_cleanup(struct server* params)
 /** Full lifecycle of the server */
 void do_serve(struct server* params)
 {
+	NULLCHECK( params );
+
 	pthread_mutex_init(&params->l_io, NULL);
 
 	params->close_signal = self_pipe_create();

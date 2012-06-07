@@ -61,8 +61,24 @@ rule 'build/flexnbd' => OBJECTS do |t|
   gcc_link(t.name, t.sources)
 end
 
-TEST_MODULES.each do |m|
-  deps = ["tests/check_#{m}.c", "build/util.o"]
+
+file "build/tests/check_client" => 
+%w{tests/check_client.c
+  build/self_pipe.o
+  build/nbdtypes.o
+  build/control.o
+  build/readwrite.o
+  build/parse.o
+  build/client.o
+  build/serve.o 
+  build/ioutil.o 
+  build/util.o} do |t|
+  gcc_link t.name, t.prerequisites + [LIBCHECK]
+end
+
+
+(TEST_MODULES-["client"]).each do |m|
+  deps = ["tests/check_#{m}.c", "build/ioutil.o", "build/util.o"]
   maybe_obj_name = "build/#{m}.o"
 
   deps << maybe_obj_name if OBJECTS.include?( maybe_obj_name )

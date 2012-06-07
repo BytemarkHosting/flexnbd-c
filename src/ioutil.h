@@ -54,5 +54,10 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines);
   */
 int open_and_mmap(char* filename, int* out_fd, off64_t *out_size, void **out_map);
 
+
+/** Check to see whether the given file descriptor is closed.
+ */
+int fd_is_closed( int fd_in );
+
 #endif
 

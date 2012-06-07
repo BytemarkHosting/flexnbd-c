@@ -30,5 +30,8 @@ void debug(const char*msg, ...);
 #define SERVER_ERROR_ON_FAILURE(test, msg, ...) \
   if (test < 0) { error(1, 0, NULL, msg, ##__VA_ARGS__); }
 
+
+#define NULLCHECK(x); if ( NULL == (x) ) { SERVER_ERROR( "Null " #x "." ); }
+
 #endif
 

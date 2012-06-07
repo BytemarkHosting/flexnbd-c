@@ -12,6 +12,39 @@
 #include <stdlib.h>
 
 
+struct client *client_create( struct server *serve, int socket )
+{
+	NULLCHECK( serve );
+
+	struct client *c;
+
+	c = xmalloc( sizeof( struct server ) );
+	c->socket = socket;
+	c->serve = serve;
+
+	c->stop_signal = self_pipe_create();
+
+	return c;
+}
+
+
+void client_signal_stop( struct client *client )
+{
+	NULLCHECK( client );
+
+	self_pipe_signal( client->stop_signal );
+}
+
+void client_destroy( struct client *client )
+{
+	NULLCHECK( client );
+
+	self_pipe_destroy( client->stop_signal );
+	free( client );
+}
+
+
+
 /**
  * So waiting on client->socket is len bytes of data, and we must write it all
  * to client->mapped.  However while doing do we must consult the bitmap
@@ -26,6 +59,8 @@
  */
 void write_not_zeroes(struct client* client, off64_t from, int len)
 {
+	NULLCHECK( client );
+
 	char *map = client->serve->block_allocation_map;
 
 	while (len > 0) {
@@ -349,10 +384,8 @@ void* client_serve(void* client_uncast)
 		client->socket
 	);
 
-	close(client->socket);
 	close(client->fileno);
 	munmap(client->mapped, client->serve->size);
-	free(client);
 	
 	return NULL;
 }

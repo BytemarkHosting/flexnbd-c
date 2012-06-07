@@ -100,14 +100,16 @@ int self_pipe_signal( struct self_pipe * sig )
 /** 
  * Clear a received signal from the pipe.  Every signal sent must be
  * cleared by one (and only one) recipient when they return from select().
+ * Returns the number of bytes read, which will be 1 on success and 0 if
+ * there was no signal.
  */
 int self_pipe_signal_clear( struct self_pipe *sig )
 {
 	char buf[1];
 
-	read( sig->read_fd, buf, 1 );
-	return 1;
+	return read( sig->read_fd, buf, 1 );
 }
+
 
 /**
  * Close the pipe and free the self_pipe.  Do not try to use the
@@ -115,6 +117,8 @@ int self_pipe_signal_clear( struct self_pipe *sig )
  */
 int self_pipe_destroy( struct self_pipe * sig )
 {
+	NULLCHECK(sig);
+
 	while( close( sig->read_fd  ) == -1 && errno == EINTR );
 	while( close( sig->write_fd ) == -1 && errno == EINTR );
 

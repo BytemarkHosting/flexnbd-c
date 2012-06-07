@@ -70,13 +70,16 @@ void set_debug(int value) {
 #  include <stdarg.h>
 
 void debug(const char *msg, ...) {
-  va_list argp;
+	va_list argp;
+	va_start( argp, msg );
 
 	if ( global_debug ) {
-    fprintf(stderr, "%08x %4d: ", (int) pthread_self(), (int) clock() );
-    fprintf(stderr, msg, argp);
-    fprintf(stderr, "\n");
+		fprintf(stderr, "%08x %4d: ", (int) pthread_self(), (int) clock() );
+		vfprintf(stderr, msg, argp);
+		fprintf(stderr, "\n");
 	}
+
+	va_end( argp );
 }
 #endif
 

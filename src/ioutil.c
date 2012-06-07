@@ -235,3 +235,11 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
 	}
 }
 
+
+int fd_is_closed( int fd_in )
+{
+	int errno_old = errno;
+	int result = fcntl( fd_in, F_GETFD, 9 ) < 0;
+	errno = errno_old;
+	return result;
+}
