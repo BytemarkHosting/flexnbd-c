@@ -66,17 +66,21 @@ void set_debug(int value) {
 }
 
 #ifdef DEBUG
+
 #  include <sys/times.h>
 #  include <stdarg.h>
 
-void debug(const char *msg, ...) {
-  va_list argp;
-
-	if ( global_debug ) {
-    fprintf(stderr, "%08x %4d: ", (int) pthread_self(), (int) clock() );
-    fprintf(stderr, msg, argp);
-    fprintf(stderr, "\n");
-	}
+void debug(const char *format, ...) {
+	va_list argptr;
+	
+	if (!global_debug)
+		return;
+	
+	fprintf(stderr, "%08x %4d: ", (int) pthread_self(), (int) clock() );
+	va_start(argptr, format);
+	vfprintf(stderr, format, argptr);
+	va_end(argptr);
+	fprintf(stderr, "\n");
 }
 #endif
 
