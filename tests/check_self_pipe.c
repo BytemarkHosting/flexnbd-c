@@ -69,6 +69,15 @@ START_TEST( test_signals )
 END_TEST
 
 
+START_TEST( test_clear_returns_immediately )
+{
+	struct self_pipe *sig;
+	sig =  self_pipe_create();
+	fail_unless( 0 == self_pipe_signal_clear( sig ), "Wrong clear result." );
+}
+END_TEST
+
+
 START_TEST( test_destroy_closes_read_pipe )
 {
 	struct self_pipe* sig;
@@ -170,6 +179,7 @@ Suite *self_pipe_suite()
 
 	tcase_add_test(tc_create, test_opens_pipe);
 	tcase_add_test(tc_signal, test_signals );
+	tcase_add_test(tc_signal, test_clear_returns_immediately );
 	tcase_add_test(tc_destroy, test_destroy_closes_read_pipe );
 	tcase_add_test(tc_destroy, test_destroy_closes_write_pipe );
 	/* We don't test that destroy free()'s the self_pipe pointer because
