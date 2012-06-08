@@ -47,8 +47,6 @@ struct client_tbl_entry {
 struct server {
 	/** address/port to bind to */
 	union mysockaddr     bind_to;
-	/** access control list */
-	struct acl *         acl;
 	/** (static) file name to serve */
 	char*                filename;
 	/** file name of INCOMPLETE flag */
@@ -69,10 +67,13 @@ struct server {
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
 	struct self_pipe *   close_signal;
 
+	/** access control list */
+	struct acl *         acl;
 	/** acl_updated_signal will be signalled after the acl struct
 	 * has been replaced
 	 */
 	struct self_pipe *   acl_updated_signal;
+	pthread_mutex_t      l_acl;
 
 	struct mirror_status* mirror;
 	int                  server_fd;
@@ -85,7 +86,7 @@ struct server {
 
 int server_is_closed(struct server* serve);
 void server_dirty(struct server *serve, off64_t from, int len);
-int server_lock_io( struct server * serve);
+void server_lock_io( struct server * serve);
 void server_unlock_io( struct server* serve );
 void serve_signal_close( struct server *serve );
 

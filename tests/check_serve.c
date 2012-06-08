@@ -7,8 +7,10 @@
 
 START_TEST( test_replaces_acl )
 {
-	struct server s;
+	struct server s = {0};
 	s.acl_updated_signal = self_pipe_create();
+	pthread_mutex_init( &s.l_acl, NULL );
+
 	struct acl * acl = acl_create( 0, NULL, 0 );
 
 	server_replace_acl( &s, acl );
@@ -21,10 +23,11 @@ END_TEST
 
 START_TEST( test_signals_acl_updated )
 {
-	struct server s;
+	struct server s = {0};
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
 	s.acl_updated_signal = self_pipe_create();
+	pthread_mutex_init( &s.l_acl, NULL );
 	s.acl = acl_create( 0, NULL, 0);
 
 

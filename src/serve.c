@@ -42,28 +42,33 @@ void server_dirty(struct server *serve, off64_t from, int len)
 		bitset_set_range(serve->mirror->dirty_map, from, len);
 }
 
-int server_lock_io( struct server * serve)
+#define SERVER_LOCK( s, f, msg ) \
+	{ NULLCHECK( s ); \
+	 SERVER_ERROR_ON_FAILURE( pthread_mutex_lock( &s->f ), msg ); }
+#define SERVER_UNLOCK( s, f, msg ) \
+	{ NULLCHECK( s ); \
+	 SERVER_ERROR_ON_FAILURE( pthread_mutex_unlock( &s->f ), msg ); }
+
+void server_lock_io( struct server * serve)
 {
-	NULLCHECK( serve );
-
-	SERVER_ERROR_ON_FAILURE(
-		pthread_mutex_lock(&serve->l_io),
-		"Problem with I/O lock"
-	);
-	
-	return 1;
+	SERVER_LOCK( serve, l_io, "Problem with I/O lock" );
 }
-
 
 void server_unlock_io( struct server* serve )
 {
-	NULLCHECK( serve );
-
-	SERVER_ERROR_ON_FAILURE(
-		pthread_mutex_unlock(&serve->l_io),
-		"Problem with I/O unlock"
-	);
+	SERVER_UNLOCK( serve, l_io, "Problem with I/O unlock" );
 }
+
+void server_lock_acl( struct server *serve )
+{
+	SERVER_LOCK( serve, l_acl, "Problem with ACL lock" );
+}
+
+void server_unlock_acl( struct server *serve )
+{
+	SERVER_UNLOCK( serve, l_acl, "Problem with ACL unlock" );
+}
+
 
 /** Prepares a listening socket for the NBD server, binding etc. */
 void serve_open_server_socket(struct server* params)
@@ -194,16 +199,26 @@ int cleanup_and_find_client_slot(struct server* params)
 }
 
 
+/** Check whether the address client_address is allowed or not according
+ * to the current acl.  If params->acl is NULL, the result will be 1,
+ * otherwise it will be the result of acl_includes().
+ */
 int server_acl_accepts( struct server *params, union mysockaddr * client_address )
 {
 	NULLCHECK( params );
 	NULLCHECK( client_address );
 
-	if (params->acl) {
-		return acl_includes( params->acl, client_address );
-	}
+	struct acl * acl;
+	int accepted;
 
-	return 1;
+	server_lock_acl( params );
+	{
+		acl = params->acl;
+		accepted = acl ? acl_includes( acl, client_address ) : 1;
+	}
+	server_unlock_acl( params );
+
+	return accepted;
 }
 
 
@@ -319,11 +334,18 @@ void server_replace_acl( struct server *serve, struct acl * new_acl )
 	NULLCHECK(serve);
 	NULLCHECK(new_acl);
 
-	struct acl * old_acl = serve->acl;
+	/* We need to lock around updates to the acl in case we try to
+	 * destroy the old acl while checking against it.
+	 */
+	server_lock_acl( serve );
+	{
+		struct acl * old_acl = serve->acl;
+		serve->acl = new_acl;
+		/* We should always have an old_acl, but just in case... */
+		if ( old_acl ) { acl_destroy( old_acl ); }
+	}
+	server_unlock_acl( serve );
 
-	serve->acl = new_acl;
-
-	if ( old_acl ) { acl_destroy( old_acl ); }
 	self_pipe_signal( serve->acl_updated_signal );
 }
 
@@ -439,6 +461,7 @@ void do_serve(struct server* params)
 	NULLCHECK( params );
 
 	pthread_mutex_init(&params->l_io, NULL);
+	pthread_mutex_init(&params->l_acl, NULL);
 
 	params->close_signal = self_pipe_create();
 	NULLCHECK( params->close_signal );
