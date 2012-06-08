@@ -314,6 +314,20 @@ void server_close_clients( struct server *params )
 }
 
 
+void server_replace_acl( struct server *serve, struct acl * new_acl )
+{
+	NULLCHECK(serve);
+	NULLCHECK(new_acl);
+
+	struct acl * old_acl = serve->acl;
+
+	serve->acl = new_acl;
+
+	if ( old_acl ) { acl_destroy( old_acl ); }
+	self_pipe_signal( serve->acl_updated_signal );
+}
+
+
 /** Accept either an NBD or control socket connection, dispatch appropriately */
 void serve_accept_loop(struct server* params) 
 {
@@ -402,6 +416,7 @@ void serve_cleanup(struct server* params)
 		close(params->proxy_fd);
 
 	self_pipe_destroy( params->close_signal );
+	self_pipe_destroy( params->acl_updated_signal );
 
 	free(params->allocation_map);
 	
@@ -426,9 +441,9 @@ void do_serve(struct server* params)
 	pthread_mutex_init(&params->l_io, NULL);
 
 	params->close_signal = self_pipe_create();
-	if ( NULL == params->close_signal) { 
-		SERVER_ERROR( "close signal creation failed" ); 
-	}
+	NULLCHECK( params->close_signal );
+	params->acl_updated_signal = self_pipe_create();
+	NULLCHECK( params->acl_updated_signal );
 	
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);

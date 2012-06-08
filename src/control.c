@@ -273,8 +273,7 @@ int control_acl(struct control_params* client, int linesc, char** lines)
 		acl_destroy( new_acl );
 	}
 	else {
-		client->serve->acl = new_acl;
-		acl_destroy( old_acl );
+		server_replace_acl( client->serve, new_acl );
 		write_socket("0: updated");
 	}
 	

@@ -3,14 +3,14 @@
 
 #define _GNU_SOURCE
 
-#ifndef _LARGEFILE64_SOURCE
-# define _LARGEFILE64_SOURCE
-#endif
+#define _LARGEFILE64_SOURCE
+
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "parse.h"
 #include "acl.h"
 
-#include <sys/types.h>
 
 static const int block_allocation_resolution = 4096;//128<<10;
 
@@ -68,6 +68,11 @@ struct server {
 	
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
 	struct self_pipe *   close_signal;
+
+	/** acl_updated_signal will be signalled after the acl struct
+	 * has been replaced
+	 */
+	struct self_pipe *   acl_updated_signal;
 
 	struct mirror_status* mirror;
 	int                  server_fd;
