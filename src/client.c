@@ -171,8 +171,9 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	CLIENT_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, NULL, NULL, NULL), 
 	  "select() failed");
 	
-	if ( self_pipe_fd_isset( client->stop_signal, &fds ) )
+	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
 		return 0;
+	}
 
 	if (readloop(client->socket, &request_raw, sizeof(request_raw)) == -1) {
 		if (errno == 0) {

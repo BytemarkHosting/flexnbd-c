@@ -34,6 +34,75 @@ static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
 	return NULL;
 }
 
+struct server * server_create (
+	char* s_ip_address,
+	char* s_port,
+	char* s_file,
+	char *s_ctrl_sock,
+	int default_deny,
+	int acl_entries,
+	char** s_acl_entries )
+{
+	struct server * out;
+	out = xmalloc( sizeof( struct server ) );
+
+	out->tcp_backlog = 10; /* does this need to be settable? */
+
+	if (s_ip_address == NULL)
+		SERVER_ERROR("No IP address supplied");
+	if (s_port == NULL)
+		SERVER_ERROR("No port number supplied");
+	if (s_file == NULL)
+		SERVER_ERROR("No filename supplied");
+
+	if (parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address) == 0)
+		SERVER_ERROR("Couldn't parse server address '%s' (use 0 if "
+		  "you want to bind to all IPs)", s_ip_address);
+
+	/* control_socket_name is optional. It just won't get created if
+	 * we pass NULL. */
+	out->control_socket_name = s_ctrl_sock;
+
+	out->acl = acl_create( acl_entries, s_acl_entries, default_deny );
+	if (out->acl && out->acl->len != acl_entries)
+		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
+
+	out->bind_to.v4.sin_port = atoi(s_port);
+	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
+		SERVER_ERROR("Port number must be >= 0 and <= 65535");
+	out->bind_to.v4.sin_port = htobe16(out->bind_to.v4.sin_port);
+
+	out->filename = s_file;
+	out->filename_incomplete = xmalloc(strlen(s_file)+11+1);
+	strcpy(out->filename_incomplete, s_file);
+	strcpy(out->filename_incomplete + strlen(s_file), ".INCOMPLETE");
+
+	pthread_mutex_init(&out->l_io, NULL);
+	pthread_mutex_init(&out->l_acl, NULL);
+
+	out->close_signal = self_pipe_create();
+	out->acl_updated_signal = self_pipe_create();
+
+	NULLCHECK( out->close_signal );
+	NULLCHECK( out->acl_updated_signal );
+
+	return out;
+}
+
+void server_destroy( struct server * serve )
+{
+	self_pipe_destroy( serve->acl_updated_signal );
+	self_pipe_destroy( serve->close_signal );
+
+	pthread_mutex_destroy( &serve->l_acl );
+	pthread_mutex_destroy( &serve->l_io );
+
+	if ( serve->acl ) { acl_destroy( serve->acl ); }
+
+	free( serve );
+}
+
+
 void server_dirty(struct server *serve, off64_t from, int len)
 {
 	NULLCHECK( serve );
@@ -67,6 +136,23 @@ void server_lock_acl( struct server *serve )
 void server_unlock_acl( struct server *serve )
 {
 	SERVER_UNLOCK( serve, l_acl, "Problem with ACL unlock" );
+}
+
+
+/** Return the actual port the server bound to.  This is used because we
+ * are allowed to pass "0" on the command-line.
+ */
+int server_port( struct server * server )
+{
+	NULLCHECK( server );
+	union mysockaddr addr;
+	socklen_t len = sizeof( addr.v4 );
+
+	if ( getsockname( server->server_fd, &addr.v4, &len ) < 0 ) {
+		SERVER_ERROR( "Failed to get the port number." );
+	}
+
+	return be16toh( addr.v4.sin_port );
 }
 
 
@@ -104,6 +190,8 @@ void serve_open_server_socket(struct server* params)
 		"Couldn't listen on server socket"
 	);
 }
+
+
 
 int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthread_t, void **) )
 {
@@ -290,7 +378,7 @@ void accept_nbd_client(
 	memcpy(&params->nbd_client[slot].address, client_address, 
 	  sizeof(union mysockaddr));
 	
-	if (pthread_create(&params->nbd_client[slot].thread, NULL, client_serve, client_params) < 0) {
+	if (pthread_create(&params->nbd_client[slot].thread, NULL, client_serve, client_params) != 0) {
 		debug( "Thread creation problem." );
 		write(client_fd, "Thread creation problem", 23);
 		client_destroy( client_params );
@@ -299,6 +387,30 @@ void accept_nbd_client(
 	}
 	
 	debug("nbd thread %d started (%s)", (int) params->nbd_client[slot].thread, s_client_address);
+}
+
+
+void server_audit_clients( struct server * serve)
+{
+	NULLCHECK( serve );
+
+	int i;
+	struct client_tbl_entry * entry;
+
+	/* There's an apparent race here.  If the acl updates while
+	 * we're traversing the nbd_clients array, the earlier entries
+	 * won't have been audited against the later acl.  This isn't a
+	 * problem though, because in order to update the acl
+	 * server_replace_acl must have been called, so the
+	 * server_accept loop will see a second acl_updated signal as
+	 * soon as it hits select, and a second audit will be run.
+	 */
+	for( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+		entry = &serve->nbd_client[i];
+		if ( 0 == entry->thread ) { continue; }
+		if ( server_acl_accepts( serve, &entry->address ) ) { continue; }
+		client_signal_stop( entry->client );
+	}
 }
 
 
@@ -329,6 +441,9 @@ void server_close_clients( struct server *params )
 }
 
 
+/** Replace the current acl with a new one.  The old one will be thrown
+ * away.
+ */
 void server_replace_acl( struct server *serve, struct acl * new_acl )
 {
 	NULLCHECK(serve);
@@ -351,43 +466,54 @@ void server_replace_acl( struct server *serve, struct acl * new_acl )
 
 
 /** Accept either an NBD or control socket connection, dispatch appropriately */
-void serve_accept_loop(struct server* params) 
+int server_accept( struct server * params )
 {
 	NULLCHECK( params );
-	while (1) {
-		int              activity_fd, client_fd;
-		union mysockaddr client_address;
-		fd_set           fds;
-		socklen_t        socklen=sizeof(client_address);
-		
-		FD_ZERO(&fds);
-		FD_SET(params->server_fd, &fds);
-		self_pipe_fd_set( params->close_signal, &fds );
-		if (params->control_socket_name)
-			FD_SET(params->control_fd, &fds);
-		
-		SERVER_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, 
-		  NULL, NULL, NULL), "select() failed");
-		
-		if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
-			server_close_clients( params );
-			return;
-		}
-		
-		activity_fd = FD_ISSET(params->server_fd, &fds) ? params->server_fd: 
-		  params->control_fd;
-		client_fd = accept(activity_fd, &client_address.generic, &socklen);
-		
-		if (activity_fd == params->server_fd) {
-			debug("Accepted nbd client socket");
-			accept_nbd_client(params, client_fd, &client_address);
-		}
-		if (activity_fd == params->control_fd) {
-			debug("Accepted control client socket"); 
-			accept_control_connection(params, client_fd, &client_address);
-		}
-			
+
+	int              activity_fd, client_fd;
+	union mysockaddr client_address;
+	fd_set           fds;
+	socklen_t        socklen=sizeof(client_address);
+
+	FD_ZERO(&fds);
+	FD_SET(params->server_fd, &fds);
+	self_pipe_fd_set( params->close_signal, &fds );
+	self_pipe_fd_set( params->acl_updated_signal, &fds );
+	if (params->control_socket_name)
+		FD_SET(params->control_fd, &fds);
+
+	SERVER_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, 
+				NULL, NULL, NULL), "select() failed");
+
+	if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
+		server_close_clients( params );
+		return 0;
 	}
+
+	if ( self_pipe_fd_isset( params->acl_updated_signal, &fds ) ) {
+		server_audit_clients( params );
+	}
+
+	activity_fd = FD_ISSET(params->server_fd, &fds) ? params->server_fd: 
+		params->control_fd;
+	client_fd = accept(activity_fd, &client_address.generic, &socklen);
+
+	if (activity_fd == params->server_fd) {
+		debug("Accepted nbd client socket");
+		accept_nbd_client(params, client_fd, &client_address);
+	}
+	if (activity_fd == params->control_fd) {
+		debug("Accepted control client socket"); 
+		accept_control_connection(params, client_fd, &client_address);
+	}
+
+	return 1;
+}
+
+
+void serve_accept_loop(struct server* params) 
+{
+	while( server_accept( params ) );
 }
 
 /** Initialisation function that sets up the initial allocation map, i.e. so
@@ -404,7 +530,7 @@ void serve_init_allocation_map(struct server* params)
 	size = lseek64(fd, 0, SEEK_END);
 	params->size = size;
 	SERVER_ERROR_ON_FAILURE(size, "Couldn't find size of %s", 
-	  params->filename);
+			params->filename);
 	params->allocation_map = 
 		build_allocation_map(fd, size, block_allocation_resolution);
 	close(fd);
@@ -428,17 +554,11 @@ void serve_cleanup(struct server* params)
 	
 	close(params->server_fd);
 	close(params->control_fd);
-	if (params->acl)
-		free(params->acl);
-	//free(params->filename);
-	if (params->control_socket_name)
+	if (params->control_socket_name){ 
 		//free(params->control_socket_name);
-	pthread_mutex_destroy(&params->l_io);
+	}
 	if (params->proxy_fd);
 		close(params->proxy_fd);
-
-	self_pipe_destroy( params->close_signal );
-	self_pipe_destroy( params->acl_updated_signal );
 
 	free(params->allocation_map);
 	
@@ -460,14 +580,6 @@ void do_serve(struct server* params)
 {
 	NULLCHECK( params );
 
-	pthread_mutex_init(&params->l_io, NULL);
-	pthread_mutex_init(&params->l_acl, NULL);
-
-	params->close_signal = self_pipe_create();
-	NULLCHECK( params->close_signal );
-	params->acl_updated_signal = self_pipe_create();
-	NULLCHECK( params->acl_updated_signal );
-	
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);
 	serve_init_allocation_map(params);

@@ -45,48 +45,6 @@ void exit_err( char *msg )
 	exit( 1 );
 }
 
-void params_serve(
-	struct server* out,
-	char* s_ip_address,
-	char* s_port,
-	char* s_file,
-	char *s_ctrl_sock,
-	int default_deny,
-	int acl_entries,
-	char** s_acl_entries )
-{
-	out->tcp_backlog = 10; /* does this need to be settable? */
-
-	if (s_ip_address == NULL)
-		SERVER_ERROR("No IP address supplied");
-	if (s_port == NULL)
-		SERVER_ERROR("No port number supplied");
-	if (s_file == NULL)
-		SERVER_ERROR("No filename supplied");
-
-	if (parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address) == 0)
-		SERVER_ERROR("Couldn't parse server address '%s' (use 0 if "
-		  "you want to bind to all IPs)", s_ip_address);
-
-	/* control_socket_name is optional. It just won't get created if
-	 * we pass NULL. */
-	out->control_socket_name = s_ctrl_sock;
-
-	out->acl = acl_create( acl_entries, s_acl_entries, default_deny );
-	if (out->acl && out->acl->len != acl_entries)
-		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
-
-	out->bind_to.v4.sin_port = atoi(s_port);
-	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
-		SERVER_ERROR("Port number must be >= 0 and <= 65535");
-	out->bind_to.v4.sin_port = htobe16(out->bind_to.v4.sin_port);
-
-	out->filename = s_file;
-	out->filename_incomplete = xmalloc(strlen(s_file)+11+1);
-	strcpy(out->filename_incomplete, s_file);
-	strcpy(out->filename_incomplete + strlen(s_file), ".INCOMPLETE");
-}
-
 /* TODO: Separate this function.
  * It should be:
  * params_read( struct mode_readwrite_params* out,
@@ -295,7 +253,7 @@ int mode_serve( int argc, char *argv[] )
 	int default_deny = 0; // not on by default
 	int err = 0;
 
-	struct server serve;
+	struct server * serve;
 
 	while (1) {
 		c = getopt_long(argc, argv, serve_short_options, serve_options, NULL);
@@ -315,9 +273,9 @@ int mode_serve( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( serve_help_text ); }
 
-	memset( &serve, 0, sizeof( serve ) );
-	params_serve( &serve, ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind );
-	do_serve( &serve );
+	serve = server_create( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind );
+	do_serve( serve );
+	server_destroy( serve );
 
 	return 0;
 }

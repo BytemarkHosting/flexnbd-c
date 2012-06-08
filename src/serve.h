@@ -84,11 +84,15 @@ struct server {
 	struct client_tbl_entry nbd_client[MAX_NBD_CLIENTS];
 };
 
+struct server * server_create( char* s_ip_address, char* s_port, char* s_file,
+	char *s_ctrl_sock, int default_deny, int acl_entries, char** s_acl_entries );
+void server_destroy( struct server * );
 int server_is_closed(struct server* serve);
 void server_dirty(struct server *serve, off64_t from, int len);
 void server_lock_io( struct server * serve);
 void server_unlock_io( struct server* serve );
 void serve_signal_close( struct server *serve );
+void server_replace_acl( struct server *serve, struct acl * acl);
 
 
 struct mode_readwrite_params {
