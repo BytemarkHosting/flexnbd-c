@@ -22,6 +22,8 @@ enum mirror_finish_action {
 
 struct mirror_status {
 	pthread_t            thread;
+	/* set to 1, then join thread to make mirror terminate early */
+	int                  signal_abandon;
 	int                  client;
 	char                 *filename;
 	off64_t              max_bytes_per_second;

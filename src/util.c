@@ -9,47 +9,43 @@
 
 #include "util.h"
 
-static pthread_t main_thread;
-static int global_debug;
+pthread_key_t cleanup_handler_key;
+
+int log_level = 1;
 
 void error_init()
 {
-	main_thread = pthread_self();
+	pthread_key_create(&cleanup_handler_key, free);
 }
 
-void error(int consult_errno, int fatal, int close_socket, pthread_mutex_t* unlock, const char* format, ...)
+void error_handler(int fatal)
+{
+	DECLARE_ERROR_CONTEXT(context);
+	
+	if (!context) {
+		pthread_exit((void*) 1);
+	}
+		
+	longjmp(context->jmp, 1);
+}
+
+void mylog(int line_level, const char* format, ...)
 {
 	va_list argptr;
 	
-	fprintf(stderr, "*** ");
+	if (line_level < log_level)
+		return;
 	
 	va_start(argptr, format);
 	vfprintf(stderr, format, argptr);
 	va_end(argptr);
-	
-	if (consult_errno) {
-		fprintf(stderr, " (errno=%d, %s)", errno, strerror(errno));
-	}
-	
-	if (close_socket) { close(close_socket); }
-	if (unlock) { pthread_mutex_unlock(unlock); }
-	
 	fprintf(stderr, "\n");
-	
-	if (fatal || pthread_equal(pthread_self(), main_thread)) {
-		exit(1);
-	}
-	else {
-		fprintf(stderr, "Killing Thread\n");
-		pthread_exit((void*) 1);
-	}
 }
 
 void* xrealloc(void* ptr, size_t size)
 {
 	void* p = realloc(ptr, size);
-	if (p == NULL)
-		SERVER_ERROR("couldn't xrealloc %d bytes", size);
+	FATAL_IF_NULL(p, "couldn't xrealloc %d bytes", ptr ? "realloc" : "malloc", size);
 	return p;
 }
 
@@ -59,27 +55,4 @@ void* xmalloc(size_t size)
 	memset(p, 0, size);
 	return p;
 }
-
-
-void set_debug(int value) {
-	global_debug = value;
-}
-
-#ifdef DEBUG
-#  include <sys/times.h>
-#  include <stdarg.h>
-
-void debug(const char *msg, ...) {
-	va_list argp;
-	va_start( argp, msg );
-
-	if ( global_debug ) {
-		fprintf(stderr, "%08x %4d: ", (int) pthread_self(), (int) clock() );
-		vfprintf(stderr, msg, argp);
-		fprintf(stderr, "\n");
-	}
-
-	va_end( argp );
-}
-#endif
 

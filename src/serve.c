@@ -46,7 +46,7 @@ int server_lock_io( struct server * serve)
 {
 	NULLCHECK( serve );
 
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		pthread_mutex_lock(&serve->l_io),
 		"Problem with I/O lock"
 	);
@@ -59,7 +59,7 @@ void server_unlock_io( struct server* serve )
 {
 	NULLCHECK( serve );
 
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		pthread_mutex_unlock(&serve->l_io),
 		"Problem with I/O unlock"
 	);
@@ -75,26 +75,26 @@ void serve_open_server_socket(struct server* params)
 	params->server_fd= socket(params->bind_to.generic.sa_family == AF_INET ? 
 	  PF_INET : PF_INET6, SOCK_STREAM, 0);
 	
-	SERVER_ERROR_ON_FAILURE(params->server_fd, 
+	FATAL_IF_NEGATIVE(params->server_fd, 
 	  "Couldn't create server socket");
 
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		setsockopt(params->server_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)),
 		"Couldn't set SO_REUSEADDR"
 	);
 
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		setsockopt(params->server_fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval)),
 		"Couldn't set TCP_NODELAY"
 	);
 
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		bind(params->server_fd, &params->bind_to.generic,
 		  sizeof(params->bind_to)),
 		"Couldn't bind server to IP address"
 	);
 	
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		listen(params->server_fd, params->tcp_backlog),
 		"Couldn't listen on server socket"
 	);
@@ -121,7 +121,7 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 
 		if (joinfunc(entry->thread, &status) != 0) {
 			if (errno != EBUSY)
-				SERVER_ERROR_ON_FAILURE(-1, "Problem with joining thread");
+				FATAL_IF_NEGATIVE(-1, "Problem with joining thread");
 		}
 		else {
 			debug("nbd thread %p exited (%s) with status %ld", 
@@ -187,8 +187,6 @@ int cleanup_and_find_client_slot(struct server* params)
 			break;
 		}
 	}
-	
-	if ( -1 == slot ) { debug( "No client slot found." ); }
 
 	return slot;
 }
@@ -230,7 +228,7 @@ int server_should_accept_client(
 		debug( "Rejecting client %s: Access control error", s_client_address );
 		debug( "We %s have an acl, and default_deny is %s", 
 				(params->acl ? "do" : "do not"),
-				(params->default_deny ? "true" : "false") );
+				(params->acl->default_deny ? "true" : "false") );
  		write(client_fd, "Access control error", 20);
  		return 0;
 	}
@@ -263,6 +261,7 @@ void accept_nbd_client(
 
 	slot = cleanup_and_find_client_slot(params); 
 	if (slot < 0) {
+		warn("too many clients to accept connection");
 		write(client_fd, "Too many clients", 16);
 		close(client_fd);
 		return;
@@ -297,6 +296,8 @@ int server_is_closed(struct server* serve)
 void server_close_clients( struct server *params )
 {
 	NULLCHECK(params);
+	
+	info("closing all clients");
 
 	int i, j;
 	struct client_tbl_entry *entry;
@@ -318,6 +319,7 @@ void server_close_clients( struct server *params )
 void serve_accept_loop(struct server* params) 
 {
 	NULLCHECK( params );
+	info("accept loop starting");
 	while (1) {
 		int              activity_fd, client_fd;
 		union mysockaddr client_address;
@@ -330,7 +332,7 @@ void serve_accept_loop(struct server* params)
 		if (params->control_socket_name)
 			FD_SET(params->control_fd, &fds);
 		
-		SERVER_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, 
+		FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds, 
 		  NULL, NULL, NULL), "select() failed");
 		
 		if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
@@ -343,11 +345,11 @@ void serve_accept_loop(struct server* params)
 		client_fd = accept(activity_fd, &client_address.generic, &socklen);
 		
 		if (activity_fd == params->server_fd) {
-			debug("Accepted nbd client socket");
+			info("Accepted nbd client socket");
 			accept_nbd_client(params, client_fd, &client_address);
 		}
 		if (activity_fd == params->control_fd) {
-			debug("Accepted control client socket"); 
+			info("Accepted control client socket"); 
 			accept_control_connection(params, client_fd, &client_address);
 		}
 			
@@ -364,10 +366,10 @@ void serve_init_allocation_map(struct server* params)
 	int fd = open(params->filename, O_RDONLY);
 	off64_t size;
 
-	SERVER_ERROR_ON_FAILURE(fd, "Couldn't open %s", params->filename);
+	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", params->filename);
 	size = lseek64(fd, 0, SEEK_END);
 	params->size = size;
-	SERVER_ERROR_ON_FAILURE(size, "Couldn't find size of %s", 
+	FATAL_IF_NEGATIVE(size, "Couldn't find size of %s", 
 	  params->filename);
 	params->allocation_map = 
 		build_allocation_map(fd, size, block_allocation_resolution);
@@ -379,34 +381,43 @@ void serve_init_allocation_map(struct server* params)
 void serve_signal_close( struct server * serve )
 {
 	NULLCHECK( serve );
+	info("signalling close");
 	self_pipe_signal( serve->close_signal );
 }
 
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
-void serve_cleanup(struct server* params)
+void serve_cleanup(struct server* params, int fatal)
 {
 	NULLCHECK( params );
+	
+	info("cleaning up");
 
 	int i;
 	
-	close(params->server_fd);
-	close(params->control_fd);
+	if (params->server_fd)
+		close(params->server_fd);
+	if (params->control_fd)
+		close(params->control_fd);
 	if (params->acl)
 		free(params->acl);
-	//free(params->filename);
 	if (params->control_socket_name)
-		//free(params->control_socket_name);
+		;
 	pthread_mutex_destroy(&params->l_io);
 	if (params->proxy_fd);
 		close(params->proxy_fd);
 
-	self_pipe_destroy( params->close_signal );
+	if (params->close_signal)
+		self_pipe_destroy( params->close_signal );
 
-	free(params->allocation_map);
+	if (params->allocation_map)
+		free(params->allocation_map);
 	
-	if (params->mirror)
-		debug("mirror thread running! this should not happen!");
+	if (params->mirror) {
+		pthread_t mirror_t = params->mirror->thread;
+		params->mirror->signal_abandon = 1;
+		pthread_join(mirror_t, NULL);
+	}
 	
 	for (i=0; i < MAX_NBD_CLIENTS; i++) {
 		void* status;
@@ -422,18 +433,19 @@ void serve_cleanup(struct server* params)
 void do_serve(struct server* params)
 {
 	NULLCHECK( params );
-
+	
+	error_set_handler((cleanup_handler*) serve_cleanup, params);
 	pthread_mutex_init(&params->l_io, NULL);
 
 	params->close_signal = self_pipe_create();
 	if ( NULL == params->close_signal) { 
-		SERVER_ERROR( "close signal creation failed" ); 
+		fatal( "close signal creation failed" ); 
 	}
 	
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);
 	serve_init_allocation_map(params);
 	serve_accept_loop(params);
-	serve_cleanup(params);
+	serve_cleanup(params, 0);
 }
 

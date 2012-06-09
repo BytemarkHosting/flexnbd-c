@@ -57,16 +57,16 @@ void params_serve(
 {
 	out->tcp_backlog = 10; /* does this need to be settable? */
 
-	if (s_ip_address == NULL)
-		SERVER_ERROR("No IP address supplied");
-	if (s_port == NULL)
-		SERVER_ERROR("No port number supplied");
-	if (s_file == NULL)
-		SERVER_ERROR("No filename supplied");
+	FATAL_IF_NULL(s_ip_address, "No IP address supplied");
+	FATAL_IF_NULL(s_port, "No port number supplied");
+	FATAL_IF_NULL(s_file, "No filename supplied");
 
-	if (parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address) == 0)
-		SERVER_ERROR("Couldn't parse server address '%s' (use 0 if "
-		  "you want to bind to all IPs)", s_ip_address);
+	FATAL_IF_ZERO(
+		parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address),
+		"Couldn't parse server address '%s' (use 0 if "
+		"you want to bind to all IPs)", 
+		s_ip_address
+	);
 
 	/* control_socket_name is optional. It just won't get created if
 	 * we pass NULL. */
@@ -74,11 +74,11 @@ void params_serve(
 
 	out->acl = acl_create( acl_entries, s_acl_entries, default_deny );
 	if (out->acl && out->acl->len != acl_entries)
-		SERVER_ERROR("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
+		fatal("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
 
 	out->bind_to.v4.sin_port = atoi(s_port);
 	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
-		SERVER_ERROR("Port number must be >= 0 and <= 65535");
+		fatal("Port number must be >= 0 and <= 65535");
 	out->bind_to.v4.sin_port = htobe16(out->bind_to.v4.sin_port);
 
 	out->filename = s_file;
@@ -111,26 +111,24 @@ void params_readwrite(
 	char* s_length_or_filename
 )
 {
-	if (s_ip_address == NULL)
-		SERVER_ERROR("No IP address supplied");
-	if (s_port == NULL)
-		SERVER_ERROR("No port number supplied");
-	if (s_from == NULL)
-		SERVER_ERROR("No from supplied");
-	if (s_length_or_filename == NULL)
-		SERVER_ERROR("No length supplied");
+	FATAL_IF_NULL(s_ip_address, "No IP address supplied");
+	FATAL_IF_NULL(s_port, "No port number supplied");
+	FATAL_IF_NULL(s_from, "No from supplied");
+	FATAL_IF_NULL(s_length_or_filename, "No length supplied");
 
-	if (parse_ip_to_sockaddr(&out->connect_to.generic, s_ip_address) == 0)
-		SERVER_ERROR("Couldn't parse connection address '%s'",
-		s_ip_address);
+	FATAL_IF_ZERO(
+		parse_ip_to_sockaddr(&out->connect_to.generic, s_ip_address),
+		"Couldn't parse connection address '%s'",
+		s_ip_address
+	);
 
 	if (s_bind_address != NULL && parse_ip_to_sockaddr(&out->connect_from.generic, s_bind_address) == 0)
-		SERVER_ERROR("Couldn't parse bind address '%s'", s_bind_address);
+		fatal("Couldn't parse bind address '%s'", s_bind_address);
 
 	/* FIXME: duplicated from above */
 	out->connect_to.v4.sin_port = atoi(s_port);
 	if (out->connect_to.v4.sin_port < 0 || out->connect_to.v4.sin_port > 65535)
-		SERVER_ERROR("Port number must be >= 0 and <= 65535");
+		fatal("Port number must be >= 0 and <= 65535");
 	out->connect_to.v4.sin_port = htobe16(out->connect_to.v4.sin_port);
 
 	out->from  = atol(s_from);
@@ -143,12 +141,12 @@ void params_readwrite(
 		else {
 			out->data_fd = open(
 			  s_length_or_filename, O_RDONLY);
-			SERVER_ERROR_ON_FAILURE(out->data_fd,
+			FATAL_IF_NEGATIVE(out->data_fd,
 			  "Couldn't open %s", s_length_or_filename);
 			out->len = lseek64(out->data_fd, 0, SEEK_END);
-			SERVER_ERROR_ON_FAILURE(out->len,
+			FATAL_IF_NEGATIVE(out->len,
 			  "Couldn't find length of %s", s_length_or_filename);
-			SERVER_ERROR_ON_FAILURE(
+			FATAL_IF_NEGATIVE(
 				lseek64(out->data_fd, 0, SEEK_SET),
 				"Couldn't rewind %s", s_length_or_filename
 			);
@@ -189,7 +187,7 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 			*default_deny = 1;
 			break;
 		case 'v':
-			set_debug(1);
+			log_level = 0;
 			break;
 		default:
 			exit_err( serve_help_text );
@@ -221,7 +219,7 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_ad
 			*bind_addr = optarg;
 			break;
 		case 'v':
-			set_debug(1);
+			log_level = 0;
 			break;
 		default:
 			exit_err( read_help_text );
@@ -240,7 +238,7 @@ void read_sock_param( int c, char **sock, char *help_text )
 			*sock = optarg;
 			break;
 		case 'v':
-			set_debug(1);
+			log_level = 0;
 			break;
 		default:
 			exit_err( help_text );
@@ -272,7 +270,7 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port, char
 		case 'b':
 			*bind_addr = optarg;
 		case 'v':
-			set_debug(1);
+			log_level = 0;
 			break;
 		default:
 			exit_err( mirror_help_text );
@@ -538,7 +536,6 @@ int main(int argc, char** argv)
 {
 	signal(SIGPIPE, SIG_IGN); /* calls to splice() unhelpfully throw this */
 	error_init();
-	set_debug(0);
 
 	if (argc < 2) {
 		exit_err( help_help_text );

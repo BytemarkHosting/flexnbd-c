@@ -1,8 +1,8 @@
 #ifndef __IOUTIL_H
 #define __IOUTIL_H
 
-
 #include "serve.h"
+struct bitset_mapping; /* don't need whole of bitset.h here */
 
 /** Returns a bit field representing which blocks are allocated in file 
   * descriptor ''fd''.  You must supply the size, and the resolution at which
@@ -10,7 +10,7 @@
   * allocated blocks at a finer resolution than you've asked for, any block
   * or part block will count as "allocated" with the corresponding bit set.
   */
-char* build_allocation_map(int fd, off64_t size, int resolution);
+struct bitset_mapping* build_allocation_map(int fd, off64_t size, int resolution);
 
 /** Repeat a write() operation that succeeds partially until ''size'' bytes
   * are written, or an error is returned, when it returns -1 as usual.

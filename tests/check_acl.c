@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "acl.h"
+#include "util.h"
 
 START_TEST( test_null_acl )
 {
@@ -110,11 +111,11 @@ Suite* acl_suite()
 
 int main(void)
 {
-	set_debug(1);
 	int number_failed;
 	Suite *s = acl_suite();
 	SRunner *sr = srunner_create(s);
 	srunner_run_all(sr, CK_NORMAL);
+	log_level = 0;
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 	return (number_failed == 0) ? 0 : 1;

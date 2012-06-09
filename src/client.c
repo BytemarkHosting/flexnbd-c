@@ -97,7 +97,7 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 			fprintf(stderr, "\n");
 		}
 		
-		#define DO_READ(dst, len) CLIENT_ERROR_ON_FAILURE( \
+		#define DO_READ(dst, len) FATAL_IF_NEGATIVE( \
 			readloop( \
 				client->socket, \
 				(dst), \
@@ -168,7 +168,7 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);
 	self_pipe_fd_set( client->stop_signal, &fds );
-	CLIENT_ERROR_ON_FAILURE(select(FD_SETSIZE, &fds, NULL, NULL, NULL), 
+	FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds, NULL, NULL, NULL), 
 	  "select() failed");
 	
 	if ( self_pipe_fd_isset( client->stop_signal, &fds ) )
@@ -180,7 +180,7 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 			return 0; /* neat point to close the socket */
 		}
 		else {
-			CLIENT_ERROR_ON_FAILURE(-1, "Error reading request");
+			FATAL_IF_NEGATIVE(-1, "Error reading request");
 		}
 	}
 
@@ -223,7 +223,7 @@ void client_write_init( struct client * client, uint64_t size )
 
 	nbd_h2r_init( &init, &init_raw );
 
-	CLIENT_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		writeloop(client->socket, &init_raw, sizeof(init_raw)),
 		"Couldn't send hello"
 	);
@@ -239,7 +239,7 @@ int client_request_needs_reply( struct client * client, struct nbd_request reque
 	debug("request type %d", request.type);
 	
 	if (request.magic != REQUEST_MAGIC)
-		CLIENT_ERROR("Bad magic %08x", request.magic);
+		fatal("Bad magic %08x", request.magic);
 		
 	switch (request.type)
 	{
@@ -265,7 +265,7 @@ int client_request_needs_reply( struct client * client, struct nbd_request reque
 		return 0;
 		
 	default:
-		CLIENT_ERROR("Unknown request %08x", request.type);
+		fatal("Unknown request %08x", request.type);
 	}
 	return 1;
 }
@@ -279,7 +279,7 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 	client_write_reply( client, &request, 0);
 
 	offset = request.from;
-	CLIENT_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 			sendfileloop(
 				client->socket, 
 				client->fileno, 
@@ -298,7 +298,7 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		write_not_zeroes( client, request.from, request.len );
 	}
 	else {
-		CLIENT_ERROR_ON_FAILURE(
+		FATAL_IF_NEGATIVE(
 				readloop(
 					client->socket,
 					client->mapped + request.from,
@@ -315,7 +315,7 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		uint64_t from_rounded = request.from & (!0xfff);
 		uint64_t len_rounded = request.len + (request.from - from_rounded);
 		
-		CLIENT_ERROR_ON_FAILURE(
+		FATAL_IF_NEGATIVE(
 			msync(
 				client->mapped + from_rounded, 
 				len_rounded, 
@@ -371,12 +371,26 @@ void client_send_hello(struct client* client)
 	client_write_init( client, client->serve->size );
 }
 
+void client_cleanup(struct client* client, int fatal)
+{
+	info("client cleanup");
+	
+	if (client->socket)
+		close(client->socket);
+	if (client->mapped)
+		munmap(client->mapped, client->serve->size);
+	if (client->fileno)
+		close(client->fileno);
+}
+
 void* client_serve(void* client_uncast)
 {
 	struct client* client = (struct client*) client_uncast;
 	
+	error_set_handler((cleanup_handler*) client_cleanup, client);
+	
 	//client_open_file(client);
-	CLIENT_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		open_and_mmap(
 			client->serve->filename,
 			&client->fileno,
@@ -390,14 +404,13 @@ void* client_serve(void* client_uncast)
 	while (client_serve_request(client) == 0)
 		;
 		
-	CLIENT_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		close(client->socket),
 		"Couldn't close socket %d", 
 		client->socket
 	);
-
-	close(client->fileno);
-	munmap(client->mapped, client->serve->size);
+	
+	client_cleanup(client, 0);
 	
 	return NULL;
 }

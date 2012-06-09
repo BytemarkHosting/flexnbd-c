@@ -115,6 +115,13 @@ void* mirror_runner(void* serve_params_uncast)
 				written += run;
 			}
 			current += run;
+			
+			if (serve->mirror->signal_abandon) {
+				if (pass == last_pass)
+					server_unlock_io( serve );
+				close(serve->mirror->client);
+				goto abandon_mirror;
+			}
 		}
 		
 		/* if we've not written anything */
@@ -122,6 +129,7 @@ void* mirror_runner(void* serve_params_uncast)
 			pass = last_pass;
 	}
 	
+	/* a successful finish ends here */
 	switch (serve->mirror->action_at_finish)
 	{
 	case ACTION_PROXY:
@@ -131,18 +139,19 @@ void* mirror_runner(void* serve_params_uncast)
 		break;
 	case ACTION_EXIT:
 		debug("exit!");
+		close(serve->mirror->client);
 		serve_signal_close( serve );
 		/* fall through */
 	case ACTION_NOTHING:
 		debug("nothing!");
 		close(serve->mirror->client);
 	}
+	server_unlock_io( serve );
 	
+abandon_mirror:
 	free(serve->mirror->dirty_map);
 	free(serve->mirror);
 	serve->mirror = NULL; /* and we're gone */
-
-	server_unlock_io( serve );
 	
 	return NULL;
 }
@@ -226,7 +235,7 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	mirror->max_bytes_per_second = max_bytes_per_second;
 	mirror->action_at_finish = action_at_finish;
 	
-	CLIENT_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		open_and_mmap(
 			client->serve->filename, 
 			&map_fd,
@@ -242,7 +251,7 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	
 	client->serve->mirror = mirror;
 	
-	CLIENT_ERROR_ON_FAILURE( /* FIXME should free mirror on error */
+	FATAL_IF_NEGATIVE( /* FIXME should free mirror on error */
 		pthread_create(
 			&mirror->thread, 
 			NULL, 
@@ -287,6 +296,13 @@ int control_status(struct control_params* client, int linesc, char** lines)
 	return 0;
 }
 
+void control_cleanup(struct control_params* client, int fatal)
+{
+	if (client->socket)
+		close(client->socket);
+	free(client);
+}
+
 /** Master command parser for control socket connections, delegates quickly */
 void* control_serve(void* client_uncast)
 {
@@ -294,6 +310,8 @@ void* control_serve(void* client_uncast)
 	char **lines = NULL;
 	int finished=0;
 	
+	error_set_handler((cleanup_handler*) control_cleanup, client);
+		
 	while (!finished) {
 		int i, linesc;		
 		linesc = read_lines_until_blankline(client->socket, 256, &lines);
@@ -326,8 +344,8 @@ void* control_serve(void* client_uncast)
 		free(lines);
 	}
 	
-	close(client->socket);
-	free(client);
+	control_cleanup(client, 0);
+	
 	return NULL;
 }
 
@@ -340,7 +358,7 @@ void accept_control_connection(struct server* params, int client_fd, union mysoc
 	control_params->socket = client_fd;
 	control_params->serve = params;
 
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		pthread_create(
 			&control_thread, 
 			NULL, 
@@ -359,7 +377,7 @@ void serve_open_control_socket(struct server* params)
 		return;
 
 	params->control_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	SERVER_ERROR_ON_FAILURE(params->control_fd ,
+	FATAL_IF_NEGATIVE(params->control_fd ,
 	  "Couldn't create control socket");
 	
 	memset(&bind_address, 0, sizeof(bind_address));
@@ -368,13 +386,13 @@ void serve_open_control_socket(struct server* params)
 	
 	unlink(params->control_socket_name); /* ignore failure */
 	
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		bind(params->control_fd , &bind_address, sizeof(bind_address)),
 		"Couldn't bind control socket to %s",
 		params->control_socket_name
 	);
 	
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		listen(params->control_fd , 5),
 		"Couldn't listen on control socket"
 	);

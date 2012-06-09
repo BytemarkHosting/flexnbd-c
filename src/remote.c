@@ -17,12 +17,12 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 	
 	memset(&address, 0, sizeof(address));
 	
-	SERVER_ERROR_ON_FAILURE(remote, "Couldn't create client socket");
+	FATAL_IF_NEGATIVE(remote, "Couldn't create client socket");
 	
 	address.sun_family = AF_UNIX;
 	strncpy(address.sun_path, socket_name, sizeof(address.sun_path));
 	
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		connect(remote, (struct sockaddr*) &address, sizeof(address)),
 		"Couldn't connect to %s", socket_name
 	);
@@ -35,7 +35,7 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 	}
 	write(remote, &newline, 1);
 	
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		read_until_newline(remote, response, max_response),
 		"Couldn't read response from %s", socket_name
 	);

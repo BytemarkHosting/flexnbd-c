@@ -35,8 +35,7 @@ void self_pipe_server_error( int err, char *msg )
 
 	strerror_r( err, errbuf, 1024 );
 
-	debug(msg);
-	SERVER_ERROR( "%s\t%s", msg, errbuf );
+	fatal( "%s\t%s", msg, errbuf );
 }
 
 /**

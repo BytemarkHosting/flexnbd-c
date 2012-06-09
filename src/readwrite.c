@@ -10,15 +10,15 @@
 int socket_connect(struct sockaddr* to, struct sockaddr* from)
 {
 	int fd = socket(to->sa_family == AF_INET ? PF_INET : PF_INET6, SOCK_STREAM, 0);
-	SERVER_ERROR_ON_FAILURE(fd, "Couldn't create client socket");
+	FATAL_IF_NEGATIVE(fd, "Couldn't create client socket");
 
 	if (NULL != from)
-		SERVER_ERROR_ON_FAILURE(
+		FATAL_IF_NEGATIVE(
 			bind(fd, from, sizeof(struct sockaddr_in6)),
 			"bind() failed"
 		);
 
-	SERVER_ERROR_ON_FAILURE(
+	FATAL_IF_NEGATIVE(
 		connect(fd, to, sizeof(struct sockaddr_in6)),"connect failed"
 	);
 	return fd;
@@ -27,12 +27,12 @@ int socket_connect(struct sockaddr* to, struct sockaddr* from)
 off64_t socket_nbd_read_hello(int fd)
 {
 	struct nbd_init init;
-	SERVER_ERROR_ON_FAILURE(readloop(fd, &init, sizeof(init)),
+	FATAL_IF_NEGATIVE(readloop(fd, &init, sizeof(init)),
 	  "Couldn't read init");
 	if (strncmp(init.passwd, INIT_PASSWD, 8) != 0)
-		SERVER_ERROR("wrong passwd");
+		fatal("wrong passwd");
 	if (be64toh(init.magic) != INIT_MAGIC)
-		SERVER_ERROR("wrong magic (%x)", be64toh(init.magic));
+		fatal("wrong magic (%x)", be64toh(init.magic));
 	return be64toh(init.size);
 }
 
@@ -48,14 +48,14 @@ void fill_request(struct nbd_request *request, int type, int from, int len)
 
 void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 {
-	SERVER_ERROR_ON_FAILURE(readloop(fd, reply, sizeof(*reply)),
+	FATAL_IF_NEGATIVE(readloop(fd, reply, sizeof(*reply)),
 	  "Couldn't read reply");
 	if (be32toh(reply->magic) != REPLY_MAGIC)
-		SERVER_ERROR("Reply magic incorrect (%p)", be32toh(reply->magic));
+		fatal("Reply magic incorrect (%p)", be32toh(reply->magic));
 	if (be32toh(reply->error) != 0)
-		SERVER_ERROR("Server replied with error %d", be32toh(reply->error));
+		fatal("Server replied with error %d", be32toh(reply->error));
 	if (strncmp(request->handle, reply->handle, 8) != 0)
-		SERVER_ERROR("Did not reply with correct handle");
+		fatal("Did not reply with correct handle");
 }
 
 void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf)
@@ -64,16 +64,16 @@ void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf)
 	struct nbd_reply   reply;
 	
 	fill_request(&request, REQUEST_READ, from, len);
-	SERVER_ERROR_ON_FAILURE(writeloop(fd, &request, sizeof(request)),
+	FATAL_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
 	read_reply(fd, &request, &reply);
 	
 	if (out_buf) {
-		SERVER_ERROR_ON_FAILURE(readloop(fd, out_buf, len), 
+		FATAL_IF_NEGATIVE(readloop(fd, out_buf, len), 
 		  "Read failed");
 	}
 	else {
-		SERVER_ERROR_ON_FAILURE(
+		FATAL_IF_NEGATIVE(
 			splice_via_pipe_loop(fd, out_fd, len),
 			"Splice failed"
 		);
@@ -86,15 +86,15 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
 	struct nbd_reply   reply;
 	
 	fill_request(&request, REQUEST_WRITE, from, len);
-	SERVER_ERROR_ON_FAILURE(writeloop(fd, &request, sizeof(request)),
+	FATAL_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
 	
 	if (in_buf) {
-		SERVER_ERROR_ON_FAILURE(writeloop(fd, in_buf, len), 
+		FATAL_IF_NEGATIVE(writeloop(fd, in_buf, len), 
 		  "Write failed");
 	}
 	else {
-		SERVER_ERROR_ON_FAILURE(
+		FATAL_IF_NEGATIVE(
 			splice_via_pipe_loop(in_fd, fd, len),
 			"Splice failed"
 		);
@@ -106,7 +106,7 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
 #define CHECK_RANGE(error_type) { \
 	off64_t size = socket_nbd_read_hello(params->client); \
 	if (params->from < 0 || (params->from + params->len) > size) \
-		SERVER_ERROR(error_type \
+		fatal(error_type \
 		  " request %d+%d is out of range given size %d", \
 		  params->from, params->len, size\
 		); \
