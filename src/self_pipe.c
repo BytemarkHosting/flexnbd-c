@@ -62,7 +62,7 @@ struct self_pipe * self_pipe_create(void)
 		return NULL;
 	}
 
-	if ( fcntl( fds[0], F_SETFD, O_NONBLOCK ) || fcntl( fds[1], F_SETFD, O_NONBLOCK ) ) {
+	if ( fcntl( fds[0], F_SETFL, O_NONBLOCK ) || fcntl( fds[1], F_SETFL, O_NONBLOCK ) ) {
 		fcntl_err = errno;
 		while( close( fds[0] ) == -1 && errno == EINTR );
 		while( close( fds[1] ) == -1 && errno == EINTR );
@@ -98,7 +98,8 @@ int self_pipe_signal( struct self_pipe * sig )
 
 /** 
  * Clear a received signal from the pipe.  Every signal sent must be
- * cleared by one (and only one) recipient when they return from select().
+ * cleared by one (and only one) recipient when they return from select()
+ * if the signal is to be used more than once.
  * Returns the number of bytes read, which will be 1 on success and 0 if
  * there was no signal.
  */
@@ -106,7 +107,7 @@ int self_pipe_signal_clear( struct self_pipe *sig )
 {
 	char buf[1];
 
-	return read( sig->read_fd, buf, 1 );
+	return 1 == read( sig->read_fd, buf, 1 );
 }
 
 

@@ -60,7 +60,6 @@ void params_serve(
 	FATAL_IF_NULL(s_ip_address, "No IP address supplied");
 	FATAL_IF_NULL(s_port, "No port number supplied");
 	FATAL_IF_NULL(s_file, "No filename supplied");
-
 	FATAL_IF_ZERO(
 		parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address),
 		"Couldn't parse server address '%s' (use 0 if "
@@ -293,7 +292,7 @@ int mode_serve( int argc, char *argv[] )
 	int default_deny = 0; // not on by default
 	int err = 0;
 
-	struct server serve;
+	struct server * serve;
 
 	while (1) {
 		c = getopt_long(argc, argv, serve_short_options, serve_options, NULL);
@@ -313,9 +312,9 @@ int mode_serve( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( serve_help_text ); }
 
-	memset( &serve, 0, sizeof( serve ) );
-	params_serve( &serve, ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind );
-	do_serve( &serve );
+	serve = server_create( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind );
+	do_serve( serve );
+	server_destroy( serve );
 
 	return 0;
 }
