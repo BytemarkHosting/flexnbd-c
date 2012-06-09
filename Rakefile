@@ -1,3 +1,4 @@
+$: << '../rake_utils/lib'
 require 'rake_utils/debian'
 include RakeUtils::DSL
 
@@ -9,7 +10,7 @@ SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
 OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
 
 LIBS    = %w( pthread )
-CCFLAGS = %w( -Wall )
+CCFLAGS = %w( -Wall -Werror-implicit-function-declaration )
 LDFLAGS = []
 LIBCHECK = "/usr/lib/libcheck.a"
 
@@ -68,6 +69,10 @@ def gcc_link(target, objects)
     objects.join(" ")
 end
 
+def headers(c)
+  `gcc -MM #{c}`.gsub("\\\n", " ").split(" ")[2..-1]
+end
+
 rule 'build/flexnbd' => OBJECTS do |t|
   gcc_link(t.name, t.sources)
 end
@@ -110,7 +115,7 @@ end
 
 
 OBJECTS.zip( SOURCES ).each do |o,c|
-  file o => c do |t|
+  file o => [c]+headers(c) do |t|
     FileUtils.mkdir_p File.dirname( o )
     sh "gcc -Isrc -c #{CCFLAGS.join(' ')} -o #{o} #{c} "
   end
