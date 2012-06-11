@@ -41,8 +41,9 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 	);
 	
 	exit_status = atoi(response);
-	if (exit_status > 0)
+	if (exit_status > 0) {
 		fprintf(stderr, "%s\n", strchr(response, ':')+2);
+	}
 	
 	exit(atoi(response));
 	

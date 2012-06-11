@@ -33,8 +33,7 @@ void mylog(int line_level, const char* format, ...)
 {
 	va_list argptr;
 	
-	if (line_level < log_level)
-		return;
+	if (line_level < log_level) { return; }
 	
 	va_start(argptr, format);
 	vfprintf(stderr, format, argptr);

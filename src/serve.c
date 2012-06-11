@@ -27,10 +27,12 @@ static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
 	struct sockaddr_in*  in  = (struct sockaddr_in*) sockaddr;
 	struct sockaddr_in6* in6 = (struct sockaddr_in6*) sockaddr;
 	
-	if (sockaddr->sa_family == AF_INET)
+	if (sockaddr->sa_family == AF_INET) {
 		return &in->sin_addr;
-	if (sockaddr->sa_family == AF_INET6)
+	}
+	if (sockaddr->sa_family == AF_INET6) {
 		return &in6->sin6_addr;
+	}
 	return NULL;
 }
 
@@ -63,8 +65,9 @@ struct server * server_create (
 	out->control_socket_name = s_ctrl_sock;
 
 	out->acl = acl_create( acl_entries, s_acl_entries, default_deny );
-	if (out->acl && out->acl->len != acl_entries)
+	if (out->acl && out->acl->len != acl_entries) {
 		fatal("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
+	}
 
 	parse_port( s_port, &out->bind_to.v4 );
 
@@ -103,8 +106,9 @@ void server_dirty(struct server *serve, off64_t from, int len)
 {
 	NULLCHECK( serve );
 
-	if (serve->mirror)
+	if (serve->mirror) {
 		bitset_set_range(serve->mirror->dirty_map, from, len);
+	}
 }
 
 #define SERVER_LOCK( s, f, msg ) \
@@ -209,8 +213,9 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 				64 );
 
 		if (joinfunc(entry->thread, &status) != 0) {
-			if (errno != EBUSY)
+			if (errno != EBUSY) {
 				FATAL_IF_NEGATIVE(-1, "Problem with joining thread");
+			}
 		}
 		else {
 			debug("nbd thread %p exited (%s) with status %ld", 
@@ -476,8 +481,9 @@ int server_accept( struct server * params )
 	FD_SET(params->server_fd, &fds);
 	self_pipe_fd_set( params->close_signal, &fds );
 	self_pipe_fd_set( params->acl_updated_signal, &fds );
-	if (params->control_socket_name)
+	if (params->control_socket_name) {
 		FD_SET(params->control_fd, &fds);
+	}
 
 	FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds, 
 				NULL, NULL, NULL), "select() failed");

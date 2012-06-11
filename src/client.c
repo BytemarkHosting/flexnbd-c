@@ -88,11 +88,9 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 			for (i=0; i<client->serve->size; i+=map->resolution) {
 				int here = (from >= i && from < i+map->resolution);
 				
-				if (here)
-					fprintf(stderr, ">");
+				if (here) { fprintf(stderr, ">"); }
 				fprintf(stderr, bitset_is_set_at(map, i) ? "1" : "0");
-				if (here)
-					fprintf(stderr, "<");
+				if (here) { fprintf(stderr, "<"); }
 			}
 			fprintf(stderr, "\n");
 		}
@@ -239,8 +237,9 @@ int client_request_needs_reply( struct client * client, struct nbd_request reque
 {
 	debug("request type %d", request.type);
 	
-	if (request.magic != REQUEST_MAGIC)
+	if (request.magic != REQUEST_MAGIC) {
 		fatal("Bad magic %08x", request.magic);
+	}
 		
 	switch (request.type)
 	{
@@ -376,12 +375,11 @@ void client_cleanup(struct client* client,
 {
 	info("client cleanup");
 	
-	if (client->socket)
-		close(client->socket);
-	if (client->mapped)
+	if (client->socket) { close(client->socket); }
+	if (client->mapped) {
 		munmap(client->mapped, client->serve->size);
-	if (client->fileno)
-		close(client->fileno);
+	}
+	if (client->fileno) { close(client->fileno); }
 }
 
 void* client_serve(void* client_uncast)

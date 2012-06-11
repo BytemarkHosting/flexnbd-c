@@ -117,17 +117,18 @@ void* mirror_runner(void* serve_params_uncast)
 			current += run;
 			
 			if (serve->mirror->signal_abandon) {
-				if (pass == last_pass)
-					server_unlock_io( serve );
+				if (pass == last_pass) { server_unlock_io( serve ); }
 				close(serve->mirror->client);
 				goto abandon_mirror;
 			}
 		}
 		
 		/* if we've not written anything */
-		if (written < mirror_last_pass_after_bytes_written)
+		if (written < mirror_last_pass_after_bytes_written) {
 			pass = last_pass;
+		}
 	}
+
 	
 	/* a successful finish ends here */
 	switch (serve->mirror->action_at_finish)
@@ -204,12 +205,15 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	
 	action_at_finish = ACTION_PROXY;
 	if (linesc > 4) {
-		if (strcmp("proxy", lines[3]) == 0)
+		if (strcmp("proxy", lines[3]) == 0) {
 			action_at_finish = ACTION_PROXY;
-		else if (strcmp("exit", lines[3]) == 0)
+		}
+		else if (strcmp("exit", lines[3]) == 0) {
 			action_at_finish = ACTION_EXIT;
-		else if (strcmp("nothing", lines[3]) == 0)
+		}
+		else if (strcmp("nothing", lines[3]) == 0) {
 			action_at_finish = ACTION_NOTHING;
+		}
 		else {
 			write_socket("1: action must be one of 'proxy', 'exit' or 'nothing'");
 			return -1;
@@ -222,10 +226,12 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	}
 
 	/** I don't like use_connect_from but socket_connect doesn't take *mysockaddr :( */
-	if (use_connect_from)
+	if (use_connect_from) {
 		fd = socket_connect(&connect_to.generic, &connect_from.generic);
-	else
+	}
+	else {
 		fd = socket_connect(&connect_to.generic, NULL);
+	}
 	
 	
 	remote_size = socket_nbd_read_hello(fd);
@@ -303,8 +309,7 @@ int control_status(
 void control_cleanup(struct control_params* client, 
 		int fatal __attribute__ ((unused)) )
 {
-	if (client->socket)
-		close(client->socket);
+	if (client->socket) { close(client->socket); }
 	free(client);
 }
 
@@ -328,24 +333,28 @@ void* control_serve(void* client_uncast)
 			/* ignore failure */
 		}
 		else if (strcmp(lines[0], "acl") == 0) {
-			if (control_acl(client, linesc-1, lines+1) < 0)
+			if (control_acl(client, linesc-1, lines+1) < 0) {
 				finished = 1;
+			}
 		}
 		else if (strcmp(lines[0], "mirror") == 0) {
-			if (control_mirror(client, linesc-1, lines+1) < 0)
+			if (control_mirror(client, linesc-1, lines+1) < 0) {
 				finished = 1;
+			}
 		}
 		else if (strcmp(lines[0], "status") == 0) {
-			if (control_status(client, linesc-1, lines+1) < 0)
+			if (control_status(client, linesc-1, lines+1) < 0) {
 				finished = 1;
+			}
 		}
 		else {
 			write(client->socket, "10: unknown command\n", 23);
 			finished = 1;
 		}
 		
-		for (i=0; i<linesc; i++)
+		for (i=0; i<linesc; i++) {
 			free(lines[i]);
+		}
 		free(lines);
 	}
 	
@@ -379,8 +388,7 @@ void serve_open_control_socket(struct server* params)
 {
 	struct sockaddr_un bind_address;
 	
-	if (!params->control_socket_name)
-		return;
+	if (!params->control_socket_name) { return; }
 
 	params->control_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	FATAL_IF_NEGATIVE(params->control_fd ,

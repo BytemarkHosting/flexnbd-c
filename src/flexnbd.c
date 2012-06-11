@@ -81,8 +81,10 @@ void params_readwrite(
 		s_ip_address
 	);
 
-	if (s_bind_address != NULL && parse_ip_to_sockaddr(&out->connect_from.generic, s_bind_address) == 0)
+	if (s_bind_address != NULL && 
+			parse_ip_to_sockaddr(&out->connect_from.generic, s_bind_address) == 0) {
 		fatal("Couldn't parse bind address '%s'", s_bind_address);
+	}
 
 	parse_port( s_port, &out->connect_to.v4 );
 
@@ -252,8 +254,7 @@ int mode_serve( int argc, char *argv[] )
 
 	while (1) {
 		c = getopt_long(argc, argv, serve_short_options, serve_options, NULL);
-		if ( c == -1 )
-			break;
+		if ( c == -1 ) { break; }
 
 		read_serve_param( c, &ip_addr, &ip_port, &file, &sock, &default_deny );
 	}
@@ -290,8 +291,7 @@ int mode_read( int argc, char *argv[] )
 	while (1){
 		c = getopt_long(argc, argv, read_short_options, read_options, NULL);
 
-		if ( c == -1 )
-			break;
+		if ( c == -1 ) { break; }
 
 		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size );
 	}
@@ -326,8 +326,7 @@ int mode_write( int argc, char *argv[] )
 
 	while (1){
 		c = getopt_long(argc, argv, write_short_options, write_options, NULL);
-		if ( c == -1 )
-			break;
+		if ( c == -1 ) { break; }
 
 		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size );
 	}
@@ -355,7 +354,7 @@ int mode_acl( int argc, char *argv[] )
 
 	while (1) {
 		c = getopt_long( argc, argv, acl_short_options, acl_options, NULL );
-		if ( c == -1 ) break;
+		if ( c == -1 ) { break; }
 		read_acl_param( c, &sock );
 	}
 
@@ -382,7 +381,7 @@ int mode_mirror( int argc, char *argv[] )
 
 	while (1) {
 		c = getopt_long( argc, argv, mirror_short_options, mirror_options, NULL);
-		if ( -1 == c ) break;
+		if ( -1 == c ) { break; }
 		read_mirror_param( c, &sock, &remote_argv[0], &remote_argv[1], &remote_argv[2] );
 	}
 
@@ -396,10 +395,12 @@ int mode_mirror( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( mirror_help_text ); }
 	
-	if (argv[2] == NULL)
+	if (argv[2] == NULL) {
 		do_remote_command( "mirror", sock, 2, remote_argv );
-	else
+	}
+	else {
 		do_remote_command( "mirror", sock, 3, remote_argv );
+	}
 
 	return 0;
 }
@@ -412,7 +413,7 @@ int mode_status( int argc, char *argv[] )
 
 	while (1) {
 		c = getopt_long( argc, argv, status_short_options, status_options, NULL );
-		if ( -1 == c ) break;
+		if ( -1 == c ) { break; }
 		read_status_param( c, &sock );
 	}
 

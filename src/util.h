@@ -49,8 +49,7 @@ extern pthread_key_t cleanup_handler_key;
 	switch (setjmp(context->jmp)) \
 	{ \
 	case 0: /* setup time */ \
-		if (old) \
-			free(old); \
+		if (old) { free(old); }\
 		pthread_setspecific(cleanup_handler_key, context); \
 		break; \
 	case 1: /* fatal error, terminate thread */ \
@@ -95,12 +94,12 @@ void mylog(int line_level, const char* format, ...);
 	error_handler(1); \
 }
 
-#define ERROR_IF_NULL(value, msg, ...) if (NULL == value) error(msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno))
-#define ERROR_IF_NEGATIVE(value, msg, ...) if (value < 0) error(msg, ##__VA_ARGS__)
-#define ERROR_IF_ZERO(value, msg, ...) if (0 == value) error(msg, ##__VA_ARGS__)
-#define FATAL_IF_NULL(value, msg, ...) if (NULL == value) fatal(msg, ##__VA_ARGS__)
-#define FATAL_IF_NEGATIVE(value, msg, ...) if (value < 0) fatal(msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno))
-#define FATAL_IF_ZERO(value, msg, ...) if (0 == value) fatal(msg, ##__VA_ARGS__)
+#define ERROR_IF_NULL(value, msg, ...) if (NULL == value) { error(msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno)) }
+#define ERROR_IF_NEGATIVE(value, msg, ...) if (value < 0) { error(msg, ##__VA_ARGS__) }
+#define ERROR_IF_ZERO(value, msg, ...) if (0 == value) { error(msg, ##__VA_ARGS__) }
+#define FATAL_IF_NULL(value, msg, ...) if (NULL == value) { fatal(msg, ##__VA_ARGS__) }
+#define FATAL_IF_NEGATIVE(value, msg, ...) if (value < 0) { fatal(msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno)) }
+#define FATAL_IF_ZERO(value, msg, ...) if (0 == value) { fatal(msg, ##__VA_ARGS__) }
 
 #define NULLCHECK(value) FATAL_IF_NULL(value, "BUG: " #value " is null")
 

@@ -12,11 +12,12 @@ int socket_connect(struct sockaddr* to, struct sockaddr* from)
 	int fd = socket(to->sa_family == AF_INET ? PF_INET : PF_INET6, SOCK_STREAM, 0);
 	FATAL_IF_NEGATIVE(fd, "Couldn't create client socket");
 
-	if (NULL != from)
+	if (NULL != from) {
 		FATAL_IF_NEGATIVE(
 			bind(fd, from, sizeof(struct sockaddr_in6)),
 			"bind() failed"
 		);
+	}
 
 	FATAL_IF_NEGATIVE(
 		connect(fd, to, sizeof(struct sockaddr_in6)),"connect failed"
@@ -29,10 +30,12 @@ off64_t socket_nbd_read_hello(int fd)
 	struct nbd_init init;
 	FATAL_IF_NEGATIVE(readloop(fd, &init, sizeof(init)),
 	  "Couldn't read init");
-	if (strncmp(init.passwd, INIT_PASSWD, 8) != 0)
+	if (strncmp(init.passwd, INIT_PASSWD, 8) != 0) {
 		fatal("wrong passwd");
-	if (be64toh(init.magic) != INIT_MAGIC)
+	}
+	if (be64toh(init.magic) != INIT_MAGIC) {
 		fatal("wrong magic (%x)", be64toh(init.magic));
+	}
 	return be64toh(init.size);
 }
 
@@ -50,12 +53,15 @@ void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 {
 	FATAL_IF_NEGATIVE(readloop(fd, reply, sizeof(*reply)),
 	  "Couldn't read reply");
-	if (be32toh(reply->magic) != REPLY_MAGIC)
+	if (be32toh(reply->magic) != REPLY_MAGIC) {
 		fatal("Reply magic incorrect (%p)", be32toh(reply->magic));
-	if (be32toh(reply->error) != 0)
+	}
+	if (be32toh(reply->error) != 0) {
 		fatal("Server replied with error %d", be32toh(reply->error));
-	if (strncmp(request->handle, reply->handle, 8) != 0)
+	}
+	if (strncmp(request->handle, reply->handle, 8) != 0) {
 		fatal("Did not reply with correct handle");
+	}
 }
 
 void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf)
@@ -105,11 +111,11 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
 
 #define CHECK_RANGE(error_type) { \
 	off64_t size = socket_nbd_read_hello(params->client); \
-	if (params->from < 0 || (params->from + params->len) > size) \
+	if (params->from < 0 || (params->from + params->len) > size) {\
 		fatal(error_type \
 		  " request %d+%d is out of range given size %d", \
 		  params->from, params->len, size\
-		); \
+		); }\
 }
   
 void do_read(struct mode_readwrite_params* params)
