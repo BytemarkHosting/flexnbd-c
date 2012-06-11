@@ -83,16 +83,16 @@ void mylog(int line_level, const char* format, ...);
 #define warn(msg, ...) mylog(2, "%s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__)
 
 /* mylog a message and invoke the error handler to recover */
-#define error(msg, ...) { \
+#define error(msg, ...) do { \
 	mylog(3, "*** %s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__); \
 	error_handler(0); \
-}
+} while(0)
 
 /* mylog a message and invoke the error handler to kill the current thread */
-#define fatal(msg, ...) { \
+#define fatal(msg, ...) do { \
 	mylog(4, "*** %s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__); \
 	error_handler(1); \
-}
+} while(0)
 
 #define ERROR_IF( test, msg, ... ) do { if ((test)) { error(msg, ##__VA_ARGS__); } } while(0)
 #define FATAL_IF( test, msg, ... ) do { if ((test)) { fatal(msg, ##__VA_ARGS__); } } while(0)
