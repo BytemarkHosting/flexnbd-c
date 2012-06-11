@@ -156,12 +156,10 @@ END_TEST
 START_TEST( test_acl_update_leaves_good_client )
 {
 	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL );
-	/* There's an assumption here that the localhost *is* 127.0.0.1.
-	 * If it's not, this test will fail and we'll have to explicitly
-	 * pick a source address.
-	 */
-	char *lines[] = {"127.0.0.1"};
-	struct acl * new_acl = acl_create( 1, lines, 0);
+
+	// Client source address may be IPv4 or IPv6 localhost. Should be explicit
+	char *lines[] = {"127.0.0.1", "::1"};
+	struct acl * new_acl = acl_create( 2, lines, 1 );
 	struct client * c;
 	struct client_tbl_entry * entry;
 
@@ -169,6 +167,7 @@ START_TEST( test_acl_update_leaves_good_client )
 	int client_fd;
 	int server_fd;
 
+	myfail_if(new_acl->len != 2, "sanity: new_acl length is not 2");
 
 	serve_open_server_socket( s );
 	actual_port = server_port( s );
