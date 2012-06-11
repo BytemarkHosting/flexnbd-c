@@ -94,6 +94,7 @@ void mylog(int line_level, const char* format, ...);
 	error_handler(1); \
 } while(0)
 
+
 #define ERROR_IF( test, msg, ... ) do { if ((test)) { error(msg, ##__VA_ARGS__); } } while(0)
 #define FATAL_IF( test, msg, ... ) do { if ((test)) { fatal(msg, ##__VA_ARGS__); } } while(0)
 

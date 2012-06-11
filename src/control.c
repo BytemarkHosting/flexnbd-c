@@ -258,8 +258,8 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	
 	client->serve->mirror = mirror;
 	
-	FATAL_IF_NEGATIVE( /* FIXME should free mirror on error */
-		pthread_create(
+	FATAL_IF( /* FIXME should free mirror on error */
+		0 != pthread_create(
 			&mirror->thread, 
 			NULL, 
 			mirror_runner, 
@@ -373,8 +373,8 @@ void accept_control_connection(struct server* params, int client_fd,
 	control_params->socket = client_fd;
 	control_params->serve = params;
 
-	FATAL_IF_NEGATIVE(
-		pthread_create(
+	FATAL_IF(
+		0 != pthread_create(
 			&control_thread, 
 			NULL, 
 			control_serve, 

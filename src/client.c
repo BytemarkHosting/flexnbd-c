@@ -179,7 +179,7 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 			return 0; /* neat point to close the socket */
 		}
 		else {
-			FATAL_IF_NEGATIVE(-1, "Error reading request");
+			fatal("Error reading request");
 		}
 	}
 

@@ -112,11 +112,11 @@ void server_dirty(struct server *serve, off64_t from, int len)
 }
 
 #define SERVER_LOCK( s, f, msg ) \
-	{ NULLCHECK( s ); \
-	 FATAL_IF_NEGATIVE( pthread_mutex_lock( &s->f ), msg ); }
+	do { NULLCHECK( s ); \
+	 FATAL_IF( 0 != pthread_mutex_lock( &s->f ), msg ); } while (0)
 #define SERVER_UNLOCK( s, f, msg ) \
-	{ NULLCHECK( s ); \
-	 FATAL_IF_NEGATIVE( pthread_mutex_unlock( &s->f ), msg ); }
+	do { NULLCHECK( s ); \
+	 FATAL_IF( 0 != pthread_mutex_unlock( &s->f ), msg ); } while (0)
 
 void server_lock_io( struct server * serve)
 {
