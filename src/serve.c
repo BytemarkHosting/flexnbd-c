@@ -213,9 +213,7 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 				64 );
 
 		if (joinfunc(entry->thread, &status) != 0) {
-			if (errno != EBUSY) {
-				FATAL_IF_NEGATIVE(-1, "Problem with joining thread");
-			}
+			FATAL_UNLESS( errno == EBUSY,  "Problem with joining thread" );
 		}
 		else {
 			debug("nbd thread %p exited (%s) with status %ld", 
