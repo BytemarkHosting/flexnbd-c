@@ -94,8 +94,8 @@ void mylog(int line_level, const char* format, ...);
 	error_handler(1); \
 }
 
-#define ERROR_IF( test, msg, ... ) if ((test)) { error(msg, ##__VA_ARGS__); }
-#define FATAL_IF( test, msg, ... ) if ((test)) { fatal(msg, ##__VA_ARGS__); }
+#define ERROR_IF( test, msg, ... ) do { if ((test)) { error(msg, ##__VA_ARGS__); } } while(0)
+#define FATAL_IF( test, msg, ... ) do { if ((test)) { fatal(msg, ##__VA_ARGS__); } } while(0)
 
 #define ERROR_UNLESS( test, msg, ... ) ERROR_IF( !(test), msg, ##__VA_ARGS__ )
 #define FATAL_UNLESS( test, msg, ... ) FATAL_IF( !(test), msg, ##__VA_ARGS__ )
