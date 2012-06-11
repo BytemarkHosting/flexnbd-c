@@ -94,14 +94,40 @@ void mylog(int line_level, const char* format, ...);
 	error_handler(1); \
 }
 
-#define ERROR_IF_NULL(value, msg, ...) if (NULL == value) { error(msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno)) }
-#define ERROR_IF_NEGATIVE(value, msg, ...) if (value < 0) { error(msg, ##__VA_ARGS__) }
-#define ERROR_IF_ZERO(value, msg, ...) if (0 == value) { error(msg, ##__VA_ARGS__) }
-#define FATAL_IF_NULL(value, msg, ...) if (NULL == value) { fatal(msg, ##__VA_ARGS__) }
-#define FATAL_IF_NEGATIVE(value, msg, ...) if (value < 0) { fatal(msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno)) }
-#define FATAL_IF_ZERO(value, msg, ...) if (0 == value) { fatal(msg, ##__VA_ARGS__) }
+#define ERROR_IF( test, msg, ... ) if ((test)) { error(msg, ##__VA_ARGS__); }
+#define FATAL_IF( test, msg, ... ) if ((test)) { fatal(msg, ##__VA_ARGS__); }
+
+#define ERROR_UNLESS( test, msg, ... ) ERROR_IF( !(test), msg, ##__VA_ARGS__ )
+#define FATAL_UNLESS( test, msg, ... ) FATAL_IF( !(test), msg, ##__VA_ARGS__ )
+
+
+#define ERROR_IF_NULL(value, msg, ...) \
+	ERROR_IF( NULL == value, msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno) )
+#define FATAL_IF_NULL(value, msg, ...) \
+	FATAL_IF( NULL == value, msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno) )
+
+#define ERROR_IF_NEGATIVE( value, msg, ... ) ERROR_IF( value < 0, msg, ##__VA_ARGS__ )
+#define FATAL_IF_NEGATIVE( value, msg, ... ) FATAL_IF( value < 0, msg, ##__VA_ARGS__ )
+
+#define ERROR_IF_ZERO( value, msg, ... ) ERROR_IF( 0 == value, msg, ##__VA_ARGS__ )
+#define FATAL_IF_ZERO( value, msg, ... ) FATAL_IF( 0 == value, msg, ##__VA_ARGS__ )
+
+
+
+#define ERROR_UNLESS_NULL(value, msg, ...) \
+	ERROR_UNLESS( NULL == value, msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno) )
+#define FATAL_UNLESS_NULL(value, msg, ...) \
+	FATAL_UNLESS( NULL == value, msg " (errno=%d, %s)", ##__VA_ARGS__, errno, strerror(errno) )
+
+#define ERROR_UNLESS_NEGATIVE( value, msg, ... ) ERROR_UNLESS( value < 0, msg, ##__VA_ARGS__ )
+#define FATAL_UNLESS_NEGATIVE( value, msg, ... ) FATAL_UNLESS( value < 0, msg, ##__VA_ARGS__ )
+
+#define ERROR_UNLESS_ZERO( value, msg, ... ) ERROR_UNLESS( 0 == value, msg, ##__VA_ARGS__ )
+#define FATAL_UNLESS_ZERO( value, msg, ... ) FATAL_UNLESS( 0 == value, msg, ##__VA_ARGS__ )
+
 
 #define NULLCHECK(value) FATAL_IF_NULL(value, "BUG: " #value " is null")
+
 
 #endif
 
