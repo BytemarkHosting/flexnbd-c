@@ -58,7 +58,7 @@ START_TEST( test_includes_single_address )
 	char *lines[] = {"127.0.0.1"};
 	struct acl * acl = acl_create( 1, lines, 0 );
 	union mysockaddr x;
-	
+
 	parse_ip_to_sockaddr( &x.generic, "127.0.0.1" );
 
 	fail_unless( acl_includes( acl, &x ), "Included address wasn't covered" );
@@ -182,7 +182,8 @@ Suite* acl_suite()
 	TCase *tc_create = tcase_create("create");
 	TCase *tc_includes = tcase_create("includes");
 	TCase *tc_destroy = tcase_create("destroy");
-	
+
+
 	tcase_add_test(tc_create, test_null_acl);
 	tcase_add_test(tc_create, test_parses_single_line);
 	tcase_add_test(tc_includes, test_parses_multiple_lines);
@@ -206,7 +207,6 @@ Suite* acl_suite()
 	suite_add_tcase(s, tc_includes);
 	suite_add_tcase(s, tc_destroy);
 
-	
 	return s;
 }
 

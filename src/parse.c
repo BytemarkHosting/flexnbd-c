@@ -12,9 +12,9 @@ int atoi(const char *nptr);
 int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 {
 	char temp[64];
-	struct sockaddr_in *v4  = (struct sockaddr_in *) out;	
+	struct sockaddr_in *v4  = (struct sockaddr_in *) out;
 	struct sockaddr_in6 *v6 = (struct sockaddr_in6 *) out;
-	
+
 	/* allow user to start with [ and end with any other invalid char */
 	{
 		int i=0, j=0;
@@ -24,7 +24,7 @@ int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 			temp[j++] = src[i];
 		temp[j] = 0;
 	}
-	
+
 	if (temp[0] == '0' && temp[1] == '\0') {
 		v4->sin_family = AF_INET;
 		v4->sin_addr.s_addr = INADDR_ANY;
@@ -35,12 +35,12 @@ int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 		out->sa_family = AF_INET;
 		return 1;
 	}
-	
+
 	if (inet_pton(AF_INET6, temp, &v6->sin6_addr) == 1) {
 		out->sa_family = AF_INET6;
 		return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -48,7 +48,7 @@ int parse_acl(struct ip_and_mask (**out)[], int max, char **entries)
 {
 	struct ip_and_mask* list;
 	int i;
-	
+
 	if (max == 0) {
 		*out = NULL;
 		return 0;
@@ -82,11 +82,11 @@ int parse_acl(struct ip_and_mask (**out)[], int max, char **entries)
 #		undef MAX_MASK_BITS
 		debug("acl ptr[%d]: %p %d",i, outentry, outentry->mask);
 	}
-	
+
 	for (i=0; i < max; i++) {
 		debug("acl entry %d @ %p has mask %d", i, list[i], list[i].mask);
 	}
-	
+
 	return max;
 }
 
