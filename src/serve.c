@@ -492,21 +492,27 @@ int server_accept( struct server * params )
 	}
 
 	if ( self_pipe_fd_isset( params->acl_updated_signal, &fds ) ) {
+		self_pipe_signal_clear( params->acl_updated_signal );
 		server_audit_clients( params );
 	}
 
-	activity_fd = FD_ISSET(params->server_fd, &fds) ? params->server_fd: 
-		params->control_fd;
-	client_fd = accept(activity_fd, &client_address.generic, &socklen);
-
-	if (activity_fd == params->server_fd) {
+	if ( FD_ISSET( params->server_fd, &fds ) ){
+		
+		client_fd = accept( params->server_fd, &client_address.generic, &socklen );
+		
 		debug("Accepted nbd client socket");
+		
 		accept_nbd_client(params, client_fd, &client_address);
-	}
-	if (activity_fd == params->control_fd) {
+
+	} else if( FD_ISSET( params->control_fd, &fds ) ) {
+		
+		client_fd = accept( params->control_fd, &client_address.generic, &socklen );
+		
 		debug("Accepted control client socket"); 
+		
 		accept_control_connection(params, client_fd, &client_address);
 	}
+
 
 	return 1;
 }
