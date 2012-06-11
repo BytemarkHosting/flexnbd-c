@@ -226,7 +226,7 @@ Suite* serve_suite(void)
 
 int main(void)
 {
-	log_level = 0;
+	log_level = 2;
 	int number_failed;
 	Suite *s = serve_suite();
 	SRunner *sr = srunner_create(s);

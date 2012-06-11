@@ -11,7 +11,7 @@
 
 pthread_key_t cleanup_handler_key;
 
-int log_level = 1;
+int log_level = 2;
 
 void error_init(void)
 {
