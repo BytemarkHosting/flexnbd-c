@@ -14,9 +14,9 @@
 #include "util.h"
 #include "bitset.h"
 
-struct bitset_mapping* build_allocation_map(int fd, off64_t size, int resolution)
+struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolution)
 {
-	int i;
+	unsigned int i;
 	struct bitset_mapping* allocation_map = bitset_alloc(size, resolution);
 	struct fiemap *fiemap_count, *fiemap;
 
@@ -46,15 +46,15 @@ struct bitset_mapping* build_allocation_map(int fd, off64_t size, int resolution
 	fiemap->fm_extent_count = fiemap->fm_mapped_extents;
 	fiemap->fm_mapped_extents = 0;
 
-	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0)
-		return NULL;
-	
-	for (i=0;i<fiemap->fm_mapped_extents;i++)
+	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0) { return NULL; }
+
+	for (i=0;i<fiemap->fm_mapped_extents;i++) {
 		bitset_set_range(
 			allocation_map, 
 			fiemap->fm_extents[i].fe_logical, 
 			fiemap->fm_extents[i].fe_length
 		);
+	}
 	
 	for (i=0; i<16; i++) {
 		debug("map[%d] = %d%d%d%d%d%d%d%d",
@@ -105,9 +105,8 @@ int writeloop(int filedes, const void *buffer, size_t size)
 {
 	size_t written=0;
 	while (written < size) {
-		size_t result = write(filedes, buffer+written, size-written);
-		if (result == -1)
-			return -1;
+		ssize_t result = write(filedes, buffer+written, size-written);
+		if (result == -1) { return -1; }
 		written += result;
 	}
 	return 0;
@@ -117,9 +116,10 @@ int readloop(int filedes, void *buffer, size_t size)
 {
 	size_t readden=0;
 	while (readden < size) {
-		size_t result = read(filedes, buffer+readden, size-readden);
-		if (result == 0 /* EOF */ || result == -1 /* error */)
+		ssize_t result = read(filedes, buffer+readden, size-readden);
+		if (result == 0 /* EOF */ || result == -1 /* error */) {
 			return -1;
+		}
 		readden += result;
 	}
 	return 0;
@@ -129,11 +129,10 @@ int sendfileloop(int out_fd, int in_fd, off64_t *offset, size_t count)
 {
 	size_t sent=0;
 	while (sent < count) {
-		size_t result = sendfile64(out_fd, in_fd, offset, count-sent);
+		ssize_t result = sendfile64(out_fd, in_fd, offset, count-sent);
 		debug("sendfile64(out_fd=%d, in_fd=%d, offset=%p, count-sent=%ld) = %ld", out_fd, in_fd, offset, count-sent, result);
 
-		if (result == -1)
-			return -1;
+		if (result == -1) { return -1; }
 		sent += result;
 		debug("sent=%ld, count=%ld", sent, count);
 	}

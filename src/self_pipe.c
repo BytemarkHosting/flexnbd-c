@@ -87,7 +87,8 @@ struct self_pipe * self_pipe_create(void)
  */
 int self_pipe_signal( struct self_pipe * sig )
 {
-	if ( write( sig->write_fd, "1", 1 ) != 1 ) {
+	int written = write( sig->write_fd, "X", 1 );
+	if ( written != 1 ) {
 		self_pipe_server_error( errno, ERR_MSG_WRITE );
 		return 0;
 	}

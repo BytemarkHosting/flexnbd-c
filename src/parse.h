@@ -19,6 +19,7 @@ struct ip_and_mask {
 
 int parse_ip_to_sockaddr(struct sockaddr* out, char* src);
 int parse_acl(struct ip_and_mask (**out)[0], int max, char **entries);
+void parse_port( char *s_port, struct sockaddr_in *out );
 
 #endif
 

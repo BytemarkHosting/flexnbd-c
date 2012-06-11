@@ -45,46 +45,6 @@ void exit_err( char *msg )
 	exit( 1 );
 }
 
-void params_serve(
-	struct server* out,
-	char* s_ip_address,
-	char* s_port,
-	char* s_file,
-	char *s_ctrl_sock,
-	int default_deny,
-	int acl_entries,
-	char** s_acl_entries )
-{
-	out->tcp_backlog = 10; /* does this need to be settable? */
-
-	FATAL_IF_NULL(s_ip_address, "No IP address supplied");
-	FATAL_IF_NULL(s_port, "No port number supplied");
-	FATAL_IF_NULL(s_file, "No filename supplied");
-	FATAL_IF_ZERO(
-		parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address),
-		"Couldn't parse server address '%s' (use 0 if "
-		"you want to bind to all IPs)", 
-		s_ip_address
-	);
-
-	/* control_socket_name is optional. It just won't get created if
-	 * we pass NULL. */
-	out->control_socket_name = s_ctrl_sock;
-
-	out->acl = acl_create( acl_entries, s_acl_entries, default_deny );
-	if (out->acl && out->acl->len != acl_entries)
-		fatal("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
-
-	out->bind_to.v4.sin_port = atoi(s_port);
-	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
-		fatal("Port number must be >= 0 and <= 65535");
-	out->bind_to.v4.sin_port = htobe16(out->bind_to.v4.sin_port);
-
-	out->filename = s_file;
-	out->filename_incomplete = xmalloc(strlen(s_file)+11+1);
-	strcpy(out->filename_incomplete, s_file);
-	strcpy(out->filename_incomplete + strlen(s_file), ".INCOMPLETE");
-}
 
 /* TODO: Separate this function.
  * It should be:
@@ -124,11 +84,7 @@ void params_readwrite(
 	if (s_bind_address != NULL && parse_ip_to_sockaddr(&out->connect_from.generic, s_bind_address) == 0)
 		fatal("Couldn't parse bind address '%s'", s_bind_address);
 
-	/* FIXME: duplicated from above */
-	out->connect_to.v4.sin_port = atoi(s_port);
-	if (out->connect_to.v4.sin_port < 0 || out->connect_to.v4.sin_port > 65535)
-		fatal("Port number must be >= 0 and <= 65535");
-	out->connect_to.v4.sin_port = htobe16(out->connect_to.v4.sin_port);
+	parse_port( s_port, &out->connect_to.v4 );
 
 	out->from  = atol(s_from);
 

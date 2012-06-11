@@ -15,7 +15,7 @@ typedef void (cleanup_handler)(void* /* context */, int /* is fatal? */);
 extern int log_level;
 
 /* set up the error globals */
-void error_init();
+void error_init(void);
 
 /* error_set_handler must be a macro not a function due to setjmp stack rules */
 #include <setjmp.h>

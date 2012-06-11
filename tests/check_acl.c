@@ -176,7 +176,7 @@ START_TEST( test_default_accept_rejects )
 END_TEST
 
 
-Suite* acl_suite()
+Suite* acl_suite(void)
 {
 	Suite *s = suite_create("acl");
 	TCase *tc_create = tcase_create("create");

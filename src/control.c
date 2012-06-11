@@ -45,7 +45,7 @@ static const int mirror_longest_write = 8<<20;
 /** If, during a mirror pass, we have sent this number of bytes or fewer, we
  *  go to freeze the I/O and finish it off.  This is just a guess.
  */
-static const int mirror_last_pass_after_bytes_written = 100<<20;
+static const unsigned int mirror_last_pass_after_bytes_written = 100<<20;
 
 /** The largest number of full passes we'll do - the last one will always 
  *  cause the I/O to freeze, however many bytes are left to copy.
@@ -169,6 +169,7 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	int use_connect_from = 0;
 	uint64_t max_bytes_per_second;
 	int action_at_finish;
+	int raw_port;
 	
 	
 	if (linesc < 2) {
@@ -181,12 +182,12 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		return -1;
 	}
 	
-	connect_to.v4.sin_port = atoi(lines[1]);
-	if (connect_to.v4.sin_port < 0 || connect_to.v4.sin_port > 65535) {
+	raw_port = atoi(lines[1]);
+	if (raw_port < 0 || raw_port > 65535) {
 		write_socket("1: bad IP port number");
 		return -1;
 	}
-	connect_to.v4.sin_port = htobe16(connect_to.v4.sin_port);
+	connect_to.v4.sin_port = htobe16(raw_port);
 
 	if (linesc > 2) {
 		if (parse_ip_to_sockaddr(&connect_from.generic, lines[2]) == 0) {
@@ -290,12 +291,17 @@ int control_acl(struct control_params* client, int linesc, char** lines)
 }
 
 /** FIXME: add some useful statistics */
-int control_status(struct control_params* client, int linesc, char** lines)
+int control_status(
+		struct control_params* client __attribute__ ((unused)), 
+		int linesc __attribute__ ((unused)), 
+		char** lines __attribute__((unused))
+		)
 {
 	return 0;
 }
 
-void control_cleanup(struct control_params* client, int fatal)
+void control_cleanup(struct control_params* client, 
+		int fatal __attribute__ ((unused)) )
 {
 	if (client->socket)
 		close(client->socket);
@@ -348,7 +354,8 @@ void* control_serve(void* client_uncast)
 	return NULL;
 }
 
-void accept_control_connection(struct server* params, int client_fd, union mysockaddr* client_address)
+void accept_control_connection(struct server* params, int client_fd, 
+		union mysockaddr* client_address __attribute__ ((unused)) )
 {
 	pthread_t control_thread;
 	struct control_params* control_params;

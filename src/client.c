@@ -57,7 +57,7 @@ void client_destroy( struct client *client )
  * allocated, we can proceed as normal and make one call to writeloop.  
  * 
  */
-void write_not_zeroes(struct client* client, off64_t from, int len)
+void write_not_zeroes(struct client* client, uint64_t from, int len)
 {
 	NULLCHECK( client );
 
@@ -83,7 +83,7 @@ void write_not_zeroes(struct client* client, off64_t from, int len)
 		
 		if (0) /* useful but expensive */
 		{
-			int i;
+			uint64_t i;
 			fprintf(stderr, "full map resolution=%d: ", map->resolution);
 			for (i=0; i<client->serve->size; i+=map->resolution) {
 				int here = (from >= i && from < i+map->resolution);
@@ -248,8 +248,7 @@ int client_request_needs_reply( struct client * client, struct nbd_request reque
 		break;
 	case REQUEST_WRITE:
 		/* check it's not out of range */
-		if (request.from < 0 || 
-		    request.from+request.len > client->serve->size) {
+		if ( request.from+request.len > client->serve->size) {
 			debug("request read %ld+%d out of range", 
 			  request.from, 
 			  request.len
@@ -372,7 +371,8 @@ void client_send_hello(struct client* client)
 	client_write_init( client, client->serve->size );
 }
 
-void client_cleanup(struct client* client, int fatal)
+void client_cleanup(struct client* client, 
+		int fatal __attribute__ ((unused)) )
 {
 	info("client cleanup");
 	

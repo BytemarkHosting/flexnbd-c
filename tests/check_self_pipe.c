@@ -1,6 +1,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #include <check.h>
 #include <mcheck.h>
@@ -157,19 +159,8 @@ START_TEST( test_destroy_closes_write_pipe )
 END_TEST
 
 
-START_TEST( test_signal_after_destroy_fails )
-{
-	struct self_pipe* sig;
 
-	sig = self_pipe_create();
-	self_pipe_destroy( sig );
-
-	fail_unless( self_pipe_signal( sig ) == 0, "Signaling a closed self_pipe didn't return 0." );
-}
-END_TEST
-
-
-Suite *self_pipe_suite()
+Suite *self_pipe_suite(void)
 {
 	Suite *s = suite_create("self_pipe");
 

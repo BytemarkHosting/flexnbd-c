@@ -16,7 +16,7 @@
 
 char * dummy_file;
 
-char *make_tmpfile()
+char *make_tmpfile(void)
 {
 	FILE *fp;
 	char *fn_buf;
@@ -84,11 +84,13 @@ int connect_client( char *addr, int actual_port )
 {
 	int client_fd;
 
-	struct addrinfo hint = {0};
+	struct addrinfo hint;
 	struct addrinfo *ailist, *aip;
+
+	memset( &hint, '\0', sizeof( struct addrinfo ) );
 	hint.ai_socktype = SOCK_STREAM;
 
-	myfail_if( getaddrinfo( "127.0.0.7", NULL, &hint, &ailist ) != 0, "getaddrinfo failed." );
+	myfail_if( getaddrinfo( addr, NULL, &hint, &ailist ) != 0, "getaddrinfo failed." );
 
 	int connected = 0;
 	for( aip = ailist; aip; aip = aip->ai_next ) {
@@ -106,6 +108,13 @@ int connect_client( char *addr, int actual_port )
 	return client_fd;
 }
 
+/* These are "internal" functions we need for the following test.  We
+ * shouldn't need them but there's no other way at the moment. */
+void serve_open_server_socket( struct server * );
+int server_port( struct server * );
+void server_accept( struct server * );
+int fd_is_closed( int );
+void server_close_clients( struct server * );
 
 START_TEST( test_acl_update_closes_bad_client )
 {
@@ -197,7 +206,7 @@ START_TEST( test_acl_update_leaves_good_client )
 END_TEST
 
 
-Suite* serve_suite()
+Suite* serve_suite(void)
 {
 	Suite *s = suite_create("serve");
 	TCase *tc_acl_update = tcase_create("acl_update");

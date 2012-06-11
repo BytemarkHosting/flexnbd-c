@@ -62,7 +62,7 @@ START_TEST(test_bit_ranges)
 	for (i=0; i<64; i++) {
 		bit_set_range(buffer, i*64, i);
 		fail_unless(
-			longs[i] == (1L<<i)-1,
+			longs[i] == (1UL<<i)-1,
 			"longs[%ld] = %lx SHOULD BE %lx",
 			i, longs[i], (1L<<i)-1
 		);
@@ -140,7 +140,7 @@ START_TEST(test_bitset)
 }
 END_TEST
 
-Suite* bitset_suite()
+Suite* bitset_suite(void)
 {
 	Suite *s = suite_create("bitset");
 	TCase *tc_core = tcase_create("bitset");

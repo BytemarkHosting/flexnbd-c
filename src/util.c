@@ -13,12 +13,12 @@ pthread_key_t cleanup_handler_key;
 
 int log_level = 1;
 
-void error_init()
+void error_init(void)
 {
 	pthread_key_create(&cleanup_handler_key, free);
 }
 
-void error_handler(int fatal)
+void error_handler(int fatal __attribute__ ((unused)) )
 {
 	DECLARE_ERROR_CONTEXT(context);
 	

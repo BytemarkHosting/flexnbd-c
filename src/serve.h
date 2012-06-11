@@ -58,7 +58,7 @@ struct server {
 	/** (static) file name of UNIX control socket (or NULL if none) */
 	char*                control_socket_name;
 	/** size of file */
-	off64_t              size;
+	uint64_t 	     size;
 
 	/** Claims around any I/O to this file */
 	pthread_mutex_t      l_io;

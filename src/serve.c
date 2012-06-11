@@ -48,16 +48,15 @@ struct server * server_create (
 
 	out->tcp_backlog = 10; /* does this need to be settable? */
 
-	if (s_ip_address == NULL)
-		fatal("No IP address supplied");
-	if (s_port == NULL)
-		fatal("No port number supplied");
-	if (s_file == NULL)
-		fatal("No filename supplied");
-
-	if (parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address) == 0)
-		fatal("Couldn't parse server address '%s' (use 0 if "
-		  "you want to bind to all IPs)", s_ip_address);
+	FATAL_IF_NULL(s_ip_address, "No IP address supplied");
+	FATAL_IF_NULL(s_port, "No port number supplied");
+	FATAL_IF_NULL(s_file, "No filename supplied");
+	FATAL_IF_ZERO(
+		parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address),
+		"Couldn't parse server address '%s' (use 0 if "
+		"you want to bind to all IPs)", 
+		s_ip_address
+	);
 
 	/* control_socket_name is optional. It just won't get created if
 	 * we pass NULL. */
@@ -67,10 +66,7 @@ struct server * server_create (
 	if (out->acl && out->acl->len != acl_entries)
 		fatal("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
 
-	out->bind_to.v4.sin_port = atoi(s_port);
-	if (out->bind_to.v4.sin_port < 0 || out->bind_to.v4.sin_port > 65535)
-		fatal("Port number must be >= 0 and <= 65535");
-	out->bind_to.v4.sin_port = htobe16(out->bind_to.v4.sin_port);
+	parse_port( s_port, &out->bind_to.v4 );
 
 	out->filename = s_file;
 	out->filename_incomplete = xmalloc(strlen(s_file)+11+1);
@@ -471,7 +467,7 @@ int server_accept( struct server * params )
 {
 	NULLCHECK( params );
 	info("accept loop starting");
-	int              activity_fd, client_fd;
+	int              client_fd;
 	union mysockaddr client_address;
 	fd_set           fds;
 	socklen_t        socklen=sizeof(client_address);
@@ -554,7 +550,8 @@ void serve_signal_close( struct server * serve )
 
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
-void serve_cleanup(struct server* params, int fatal)
+void serve_cleanup(struct server* params, 
+		int fatal __attribute__ ((unused)) )
 {
 	NULLCHECK( params );
 	
@@ -562,20 +559,17 @@ void serve_cleanup(struct server* params, int fatal)
 
 	int i;
 	
-	if (params->server_fd)
-		close(params->server_fd);
-	if (params->control_fd)
-		close(params->control_fd);
-	if (params->control_socket_name){ 
-		;
-	}
-	if (params->proxy_fd);
-		close(params->proxy_fd);
+	if (params->server_fd){ close(params->server_fd); }
+	if (params->control_fd){ close(params->control_fd); }
+	if (params->control_socket_name){ ; }
+	if (params->proxy_fd){ close(params->proxy_fd); }
 
-	if (params->close_signal)
+	if (params->close_signal) {
 		self_pipe_destroy( params->close_signal );
-	if (params->allocation_map)
+	}
+	if (params->allocation_map) {
 		free(params->allocation_map);
+	}
 	
 	if (params->mirror) {
 		pthread_t mirror_t = params->mirror->thread;

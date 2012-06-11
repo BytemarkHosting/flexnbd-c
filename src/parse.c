@@ -90,3 +90,17 @@ int parse_acl(struct ip_and_mask (**out)[], int max, char **entries)
 	return max;
 }
 
+
+void parse_port( char *s_port, struct sockaddr_in *out )
+{
+	NULLCHECK( s_port );
+
+	int raw_port;
+
+	raw_port = atoi( s_port );
+	if ( raw_port < 0 || raw_port > 65535 ) {
+		fatal( "Port number must be >= 0 and <= 65535" );
+	}
+	out->sin_port = htobe16( raw_port );
+}
+

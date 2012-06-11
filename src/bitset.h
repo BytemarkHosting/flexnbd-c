@@ -1,5 +1,7 @@
-#ifndef __BITSET_H
-#define __BITSET_H
+#ifndef BITSET_H
+#define BITSET_H
+
+#include "util.h"
 
 #include <inttypes.h>
 #include <string.h>

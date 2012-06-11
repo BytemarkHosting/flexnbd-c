@@ -5,6 +5,8 @@
 
 #include "client.h"
 
+#include <unistd.h>
+
 #define FAKE_SERVER ((struct server *)23)
 #define FAKE_SOCKET (42)
 
@@ -46,6 +48,8 @@ START_TEST( test_opens_stop_signal )
 END_TEST
 
 
+int fd_is_closed(int);
+
 START_TEST( test_closes_stop_signal )
 {
 	struct client *c = client_create( FAKE_SERVER, FAKE_SOCKET );
@@ -78,7 +82,7 @@ START_TEST( test_read_request_quits_on_stop_signal )
 END_TEST
 
 
-Suite *client_suite()
+Suite *client_suite(void)
 {
 	Suite *s = suite_create("client");
 

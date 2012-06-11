@@ -8,9 +8,16 @@ DEBUG  = ENV.has_key?('DEBUG') &&
 ALL_SOURCES =FileList['src/*']
 SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
 OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
+TEST_SOURCES = FileList['tests/*.c']
+TEST_OBJECTS = TEST_SOURCES.pathmap( "%{^tests,build/tests}X.o" )
 
 LIBS    = %w( pthread )
-CCFLAGS = %w( -Wall -Werror-implicit-function-declaration )
+CCFLAGS = %w( -Wall 
+             -Wextra 
+             -Werror-implicit-function-declaration 
+             -Wstrict-prototypes
+             -Wno-missing-field-initializers
+            ) # Added -Wno-missing-field-initializers to shut GCC up over {0} struct initialisers
 LDFLAGS = []
 LIBCHECK = "/usr/lib/libcheck.a"
 
@@ -59,18 +66,24 @@ namespace "test" do
 end
 
 
+
+def gcc_compile( target, source )
+  FileUtils.mkdir_p File.dirname( target )
+  sh "gcc -Isrc -c #{CCFLAGS.join(' ')} -o #{target} #{source} "
+end
+
 def gcc_link(target, objects)
   FileUtils.mkdir_p File.dirname( target )
 
   sh "gcc #{LDFLAGS.join(' ')} "+
     LIBS.map { |l| "-l#{l}" }.join(" ")+
-    " -I src" +
+    " -Isrc " +
     " -o #{target} "+
     objects.join(" ")
 end
 
 def headers(c)
-  `gcc -MM #{c}`.gsub("\\\n", " ").split(" ")[2..-1]
+  `gcc -Isrc -MM #{c}`.gsub("\\\n", " ").split(" ")[2..-1]
 end
 
 rule 'build/flexnbd' => OBJECTS do |t|
@@ -79,7 +92,7 @@ end
 
 
 file check("client") => 
-%w{tests/check_client.c
+%w{build/tests/check_client.o
   build/self_pipe.o
   build/nbdtypes.o
   build/control.o
@@ -94,7 +107,7 @@ file check("client") =>
 end
 
 file check("acl") =>
-%w{tests/check_acl.c
+%w{build/tests/check_acl.o
   build/parse.o
   build/acl.o
   build/util.o} do |t| 
@@ -102,7 +115,7 @@ file check("acl") =>
 end
 
 file check("serve") =>
-%w{tests/check_serve.c
+%w{build/tests/check_serve.o
   build/self_pipe.o
   build/nbdtypes.o
   build/control.o
@@ -118,22 +131,24 @@ end
 
 
 (TEST_MODULES- %w{acl client serve}).each do |m|
-  deps = ["tests/check_#{m}.c", "build/ioutil.o", "build/util.o"]
+  tgt = "build/tests/check_#{m}.o"
+  deps = ["build/ioutil.o", "build/util.o"]
   maybe_obj_name = "build/#{m}.o"
 
   deps << maybe_obj_name if OBJECTS.include?( maybe_obj_name )
 
-  file check( m ) => deps do |t|
-    gcc_link(t.name, deps + [LIBCHECK])
+  file check( m ) => deps + [tgt] do |t|
+    gcc_link(t.name, deps + [tgt, LIBCHECK])
   end
 end
 
 
 OBJECTS.zip( SOURCES ).each do |o,c|
-  file o => [c]+headers(c) do |t|
-    FileUtils.mkdir_p File.dirname( o )
-    sh "gcc -Isrc -c #{CCFLAGS.join(' ')} -o #{o} #{c} "
-  end
+  file o => [c]+headers(c) do |t| gcc_compile( o, c ) end
+end
+
+TEST_OBJECTS.zip( TEST_SOURCES ).each do |o,c|
+  file o => [c] + headers(c) do |t| gcc_compile( o, c ) end
 end
 
 desc "Remove all build targets, binaries and temporary files"

@@ -182,7 +182,7 @@ START_TEST(test_reply_handle)
 END_TEST
 
 
-Suite *nbdtypes_suite() 
+Suite *nbdtypes_suite(void) 
 {
 	Suite *s = suite_create( "nbdtypes" );
 	TCase *tc_init = tcase_create( "nbd_init" );
