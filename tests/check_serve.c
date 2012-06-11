@@ -1,9 +1,6 @@
-#define _GNU_SOURCE
-#define _LARGEFILE64_SOURCE
-
+#include "serve.h"
 #include "util.h"
 
-#include "serve.h"
 #include "self_pipe.h"
 #include "client.h"
 
