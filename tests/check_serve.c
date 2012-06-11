@@ -80,12 +80,15 @@ START_TEST( test_signals_acl_updated )
 END_TEST
 
 
-int connect_client( char *addr, int actual_port )
+int connect_client( char *addr, int actual_port, char *source_addr )
 {
 	int client_fd;
 
 	struct addrinfo hint;
 	struct addrinfo *ailist, *aip;
+
+
+
 
 	memset( &hint, '\0', sizeof( struct addrinfo ) );
 	hint.ai_socktype = SOCK_STREAM;
@@ -96,6 +99,16 @@ int connect_client( char *addr, int actual_port )
 	for( aip = ailist; aip; aip = aip->ai_next ) {
 		((struct sockaddr_in *)aip->ai_addr)->sin_port = htons( actual_port );
 		client_fd = socket( aip->ai_family, aip->ai_socktype, aip->ai_protocol );
+
+		if (source_addr) {
+			struct sockaddr src;
+			if( !parse_ip_to_sockaddr(&src, source_addr)) {
+			  close(client_fd);
+			  continue;
+			}
+			bind(client_fd, &src,  sizeof(struct sockaddr_in6));
+		}
+
 		if( client_fd == -1) { continue; }
 		if( connect( client_fd, aip->ai_addr, aip->ai_addrlen) == 0 ) {
 			connected = 1;
@@ -135,7 +148,7 @@ START_TEST( test_acl_update_closes_bad_client )
 	serve_open_server_socket( s );
 	actual_port = server_port( s );
 
-	client_fd = connect_client( "127.0.0.7", actual_port );
+	client_fd = connect_client( "127.0.0.7", actual_port, "127.0.0.1" );
 	server_accept( s );
 	entry = &s->nbd_client[0];
 	c = entry->client;
@@ -166,9 +179,8 @@ START_TEST( test_acl_update_leaves_good_client )
 {
 	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL );
 
-	// Client source address may be IPv4 or IPv6 localhost. Should be explicit
-	char *lines[] = {"127.0.0.1", "::1"};
-	struct acl * new_acl = acl_create( 2, lines, 1 );
+	char *lines[] = {"127.0.0.1"};
+	struct acl * new_acl = acl_create( 1, lines, 1 );
 	struct client * c;
 	struct client_tbl_entry * entry;
 
@@ -176,12 +188,10 @@ START_TEST( test_acl_update_leaves_good_client )
 	int client_fd;
 	int server_fd;
 
-	myfail_if(new_acl->len != 2, "sanity: new_acl length is not 2");
-
 	serve_open_server_socket( s );
 	actual_port = server_port( s );
 
-	client_fd = connect_client( "127.0.0.7", actual_port );
+	client_fd = connect_client( "127.0.0.7", actual_port, "127.0.0.1" );
 	server_accept( s );
 	entry = &s->nbd_client[0];
 	c = entry->client;
