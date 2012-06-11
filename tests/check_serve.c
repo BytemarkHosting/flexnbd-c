@@ -1,3 +1,8 @@
+#define _GNU_SOURCE
+#define _LARGEFILE64_SOURCE
+
+#include "util.h"
+
 #include "serve.h"
 #include "self_pipe.h"
 #include "client.h"
@@ -71,7 +76,7 @@ START_TEST( test_signals_acl_updated )
 
 	server_replace_acl( s, new_acl );
 
-	myfail_unless( 1 == self_pipe_signal_clear( s->acl_updated_signal ), 
+	myfail_unless( 1 == self_pipe_signal_clear( s->acl_updated_signal ),
 			"No signal sent." );
 	server_destroy( s );
 }
@@ -87,7 +92,7 @@ int connect_client( char *addr, int actual_port )
 	hint.ai_socktype = SOCK_STREAM;
 
 	myfail_if( getaddrinfo( "127.0.0.7", NULL, &hint, &ailist ) != 0, "getaddrinfo failed." );
-	
+
 	int connected = 0;
 	for( aip = ailist; aip; aip = aip->ai_next ) {
 		((struct sockaddr_in *)aip->ai_addr)->sin_port = htons( actual_port );
@@ -116,7 +121,7 @@ START_TEST( test_acl_update_closes_bad_client )
 	struct client * c;
 	struct client_tbl_entry * entry;
 
-	int actual_port; 
+	int actual_port;
 	int client_fd;
 	int server_fd;
 
@@ -133,16 +138,16 @@ START_TEST( test_acl_update_closes_bad_client )
 	 */
 	myfail_if( entry->thread == 0, "No client thread was started." );
 	server_fd = c->socket;
-	myfail_if( fd_is_closed(server_fd), 
+	myfail_if( fd_is_closed(server_fd),
 			"Sanity check failed - client socket wasn't open." );
 
 	server_replace_acl( s, new_acl );
 
 	server_accept( s );
 
-	pthread_join( entry->thread );
+	pthread_join( entry->thread, NULL );
 
-	myfail_unless( fd_is_closed(server_fd),  
+	myfail_unless( fd_is_closed(server_fd),
 			"Client socket wasn't closed." );
 	close( client_fd );
 	server_close_clients( s );
@@ -163,7 +168,7 @@ START_TEST( test_acl_update_leaves_good_client )
 	struct client * c;
 	struct client_tbl_entry * entry;
 
-	int actual_port; 
+	int actual_port;
 	int client_fd;
 	int server_fd;
 
@@ -180,13 +185,13 @@ START_TEST( test_acl_update_leaves_good_client )
 	 */
 	myfail_if( entry->thread == 0, "No client thread was started." );
 	server_fd = c->socket;
-	myfail_if( fd_is_closed(server_fd), 
+	myfail_if( fd_is_closed(server_fd),
 			"Sanity check failed - client socket wasn't open." );
 
 	server_replace_acl( s, new_acl );
 	server_accept( s );
 
-	myfail_if( self_pipe_signal_clear( c->stop_signal ), 
+	myfail_if( self_pipe_signal_clear( c->stop_signal ),
 			"Client was told to stop." );
 
 	close( client_fd );
@@ -200,7 +205,7 @@ Suite* serve_suite()
 {
 	Suite *s = suite_create("serve");
 	TCase *tc_acl_update = tcase_create("acl_update");
-	
+
 	tcase_add_checked_fixture( tc_acl_update, setup, teardown );
 	tcase_add_test(tc_acl_update, test_replaces_acl);
 	tcase_add_test(tc_acl_update, test_signals_acl_updated);
@@ -216,7 +221,7 @@ Suite* serve_suite()
 
 int main(void)
 {
-	set_debug(1);
+	log_level = 0;
 	int number_failed;
 	Suite *s = serve_suite();
 	SRunner *sr = srunner_create(s);
