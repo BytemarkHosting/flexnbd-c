@@ -53,8 +53,9 @@ extern pthread_key_t cleanup_handler_key;
 		pthread_setspecific(cleanup_handler_key, context); \
 		break; \
 	case 1: /* fatal error, terminate thread */ \
+		debug( "Fatal error in thread %p", pthread_self() ); \
 		context->handler(context->data, 1); \
-		pthread_exit((void*) 1); \
+		/*pthread_exit((void*) 1);*/ \
 		abort(); \
 	case 2: /* non-fatal error, return to context of error handler setup */ \
 		context->handler(context->data, 0); \

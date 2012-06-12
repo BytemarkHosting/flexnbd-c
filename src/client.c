@@ -19,6 +19,7 @@ struct client *client_create( struct server *serve, int socket )
 	struct client *c;
 
 	c = xmalloc( sizeof( struct server ) );
+	c->stopped = 0;
 	c->socket = socket;
 	c->serve = serve;
 
@@ -170,6 +171,7 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	  "select() failed");
 	
 	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
+		debug("Client received stop signal.");
 		return 0;
 	}
 
@@ -388,7 +390,6 @@ void* client_serve(void* client_uncast)
 	
 	error_set_handler((cleanup_handler*) client_cleanup, client);
 	
-	//client_open_file(client);
 	FATAL_IF_NEGATIVE(
 		open_and_mmap(
 			client->serve->filename,
@@ -402,6 +403,7 @@ void* client_serve(void* client_uncast)
 	
 	while (client_serve_request(client) == 0)
 		;
+	client->stopped = 1;
 		
 	FATAL_IF_NEGATIVE(
 		close(client->socket),
@@ -409,6 +411,7 @@ void* client_serve(void* client_uncast)
 		client->socket
 	);
 	
+	debug("Cleaning up normally in thread %p", pthread_self());
 	client_cleanup(client, 0);
 	
 	return NULL;

@@ -133,11 +133,6 @@ void* mirror_runner(void* serve_params_uncast)
 	/* a successful finish ends here */
 	switch (serve->mirror->action_at_finish)
 	{
-	case ACTION_PROXY:
-		debug("proxy!");
-		serve->proxy_fd = serve->mirror->client;
-		/* don't close our file descriptor, we still need it! */
-		break;
 	case ACTION_EXIT:
 		debug("exit!");
 		close(serve->mirror->client);
@@ -203,19 +198,16 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		max_bytes_per_second = atoi(lines[2]);
 	}
 	
-	action_at_finish = ACTION_PROXY;
+	action_at_finish = ACTION_EXIT;
 	if (linesc > 4) {
-		if (strcmp("proxy", lines[3]) == 0) {
-			action_at_finish = ACTION_PROXY;
-		}
-		else if (strcmp("exit", lines[3]) == 0) {
+		if (strcmp("exit", lines[3]) == 0) {
 			action_at_finish = ACTION_EXIT;
 		}
 		else if (strcmp("nothing", lines[3]) == 0) {
 			action_at_finish = ACTION_NOTHING;
 		}
 		else {
-			write_socket("1: action must be one of 'proxy', 'exit' or 'nothing'");
+			write_socket("1: action must be 'exit' or 'nothing'");
 			return -1;
 		}
 	}

@@ -13,6 +13,19 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#ifdef DEBUG
+# define LOG_LEVEL 0
+#else
+# define LOG_LEVEL 2
+#endif
+
+
+/* Need these because libcheck is braindead and doesn't
+ * run teardown after a failing test
+ */
+#define myfail( msg ) do { teardown(); fail(msg); } while (0)
+#define myfail_if( tst, msg ) do { if( tst ) { myfail( msg ); } } while (0)
+#define myfail_unless( tst, msg ) myfail_if( !(tst), msg )
 
 char * dummy_file;
 
@@ -44,13 +57,6 @@ void teardown( void )
 	free( dummy_file );
 	dummy_file = NULL;
 }
-
-/* Need these because libcheck is braindead and doesn't
- * run teardown after a failing test
- */
-#define myfail( msg ) do { teardown(); fail(msg); } while (0)
-#define myfail_if( tst, msg ) do { if( tst ) { myfail( msg ); } } while (0)
-#define myfail_unless( tst, msg ) myfail_if( !(tst), msg )
 
 
 START_TEST( test_replaces_acl )
@@ -221,22 +227,22 @@ Suite* serve_suite(void)
 	Suite *s = suite_create("serve");
 	TCase *tc_acl_update = tcase_create("acl_update");
 
-	tcase_add_checked_fixture( tc_acl_update, setup, teardown );
+	tcase_add_checked_fixture( tc_acl_update, setup, NULL );
+
 	tcase_add_test(tc_acl_update, test_replaces_acl);
 	tcase_add_test(tc_acl_update, test_signals_acl_updated);
-	tcase_add_test(tc_acl_update, test_acl_update_closes_bad_client);
 
-	tcase_add_test(tc_acl_update, test_acl_update_leaves_good_client);
+	tcase_add_exit_test(tc_acl_update, test_acl_update_closes_bad_client, 0);  
+	tcase_add_exit_test(tc_acl_update, test_acl_update_leaves_good_client, 0);
 
 	suite_add_tcase(s, tc_acl_update);
 
 	return s;
 }
 
-
 int main(void)
 {
-	log_level = 2;
+	log_level = LOG_LEVEL;
 	int number_failed;
 	Suite *s = serve_suite();
 	SRunner *sr = srunner_create(s);

@@ -15,7 +15,6 @@
 static const int block_allocation_resolution = 4096;//128<<10;
 
 enum mirror_finish_action {
-	ACTION_PROXY,
 	ACTION_EXIT,
 	ACTION_NOTHING
 };
@@ -62,9 +61,6 @@ struct server {
 
 	/** Claims around any I/O to this file */
 	pthread_mutex_t      l_io;
-	
-	/** set to non-zero to cause r/w requests to go via this fd */
-	int                  proxy_fd;
 	
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
 	struct self_pipe *   close_signal;
