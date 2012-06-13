@@ -86,6 +86,7 @@ void server_dirty(struct server *serve, off64_t from, int len);
 void server_lock_io( struct server * serve);
 void server_unlock_io( struct server* serve );
 void serve_signal_close( struct server *serve );
+void serve_wait_for_close( struct server * serve );
 void server_replace_acl( struct server *serve, struct acl * acl);
 
 

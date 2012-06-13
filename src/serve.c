@@ -559,6 +559,15 @@ void serve_signal_close( struct server * serve )
 	self_pipe_signal( serve->close_signal );
 }
 
+/* Block until the server closes the server_fd.
+ */
+void serve_wait_for_close( struct server * serve )
+{
+	while( !fd_is_closed( serve->server_fd ) ){
+		usleep(10000);
+	}
+}
+
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server* params, 

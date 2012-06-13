@@ -58,6 +58,9 @@ void* mirror_runner(void* serve_params_uncast)
 	const int last_pass = mirror_maximum_passes-1;
 	int pass;
 	struct server *serve = (struct server*) serve_params_uncast;
+	NULLCHECK( serve );
+	debug("Starting mirror" );
+
 	struct bitset_mapping *map = serve->mirror->dirty_map;
 	
 	for (pass=0; pass < mirror_maximum_passes; pass++) {
@@ -135,8 +138,18 @@ void* mirror_runner(void* serve_params_uncast)
 	{
 	case ACTION_EXIT:
 		debug("exit!");
-		close(serve->mirror->client);
 		serve_signal_close( serve );
+		/* We have to wait until the server is closed before
+		 * unlocking IO.  This is because the client threads
+		 * check to see if the server is still open before
+		 * reading or writing inside their own locks. If we
+		 * don't wait for the close, there's no way to guarantee
+		 * the server thread will win the race and we risk the
+		 * clients seeing a "successful" write to a dead disc
+		 * image.
+		 */
+		serve_wait_for_close( serve );
+		info("Server closed, quitting after successful migration");
 		/* fall through */
 	case ACTION_NOTHING:
 		debug("nothing!");

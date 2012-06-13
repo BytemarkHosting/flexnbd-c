@@ -30,7 +30,9 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 	write(remote, command, strlen(command));
 	write(remote, &newline, 1);
 	for (i=0; i<argc; i++) {
-		write(remote, argv[i], strlen(argv[i]));
+		if ( NULL != argv[i] ) {
+			write(remote, argv[i], strlen(argv[i]));
+		}
 		write(remote, &newline, 1);
 	}
 	write(remote, &newline, 1);

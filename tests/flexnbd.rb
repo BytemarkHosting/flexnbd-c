@@ -21,7 +21,7 @@ class FlexNBD
   end
 
   def debug?
-    !@debug.empty?
+    !@debug.empty? || ENV['DEBUG']
   end
 
   def debug( msg )
@@ -60,6 +60,14 @@ class FlexNBD
   end
 
 
+  def mirror_cmd(dest_ip, dest_port)
+    "#{@bin} mirror "\
+      "--addr #{dest_ip} "\
+      "--port #{dest_port} "\
+      "--sock #{ctrl} "\
+      "#{@debug} "
+  end
+
   def serve(file, *acl)
     File.unlink(ctrl) if File.exists?(ctrl)
     cmd =serve_cmd( file, acl )
@@ -79,7 +87,10 @@ class FlexNBD
   def start_wait_thread( pid )
     Thread.start do
       Process.waitpid2( pid )
-      unless @kill
+      if @kill
+        fail "flexnbd quit with a bad status #{$?.exitstatus}" unless 
+          $?.exitstatus == @kill
+      else
         $stderr.puts "flexnbd quit"
         fail "flexnbd quit early"
       end
@@ -87,9 +98,18 @@ class FlexNBD
   end
 
 
+  def can_die(status=0)
+    @kill = status
+  end
+
   def kill
-    @kill = true
-    Process.kill("INT", @pid)
+    can_die()
+    begin
+      Process.kill("INT", @pid)
+    rescue Errno::ESRCH => e
+      # already dead.  Presumably this means it went away after a
+      # can_die() call.
+    end
   end
 
   def read(offset, length)
@@ -114,8 +134,12 @@ class FlexNBD
     nil
   end
 
-  def mirror(bandwidth=nil, action=nil)
-    control_command("mirror", ip, port, ip, bandwidth, action)
+  def mirror(dest_ip, dest_port, bandwidth=nil, action=nil)
+    cmd = mirror_cmd( dest_ip, dest_port)
+    debug( cmd )
+    system cmd
+    raise IOError.new( "Migrate command failed") unless $?.success?
+    nil
   end
 
   def acl(*acl)

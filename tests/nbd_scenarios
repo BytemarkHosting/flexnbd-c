@@ -14,6 +14,7 @@ class NBDScenarios < Test::Unit::TestCase
     @port1 = @available_ports.shift
     @port2 = @available_ports.shift
     @nbd1 = FlexNBD.new("../build/flexnbd", @ip, @port1)
+    @nbd2 = FlexNBD.new("../build/flexnbd", @ip, @port2)
   end
 
   def teardown
@@ -70,14 +71,42 @@ class NBDScenarios < Test::Unit::TestCase
     end
   end
 
+
+  def test_mirror
+    writefile1( "f"*4 )
+    serve1
+
+    writefile2( "0"*4 )
+    serve2
+
+    @nbd1.can_die
+    mirror12
+    assert_equal(@file1.read_original( 0, @blocksize ),
+                 @file2.read( 0, @blocksize ) )
+  end
+
   protected
   def serve1(*acl)
     @nbd1.serve(@filename1, *acl)
   end
 
+  def serve2(*acl)
+    @nbd2.serve(@filename2, *acl)
+  end
+
+  def mirror12
+    @nbd1.mirror( @nbd2.ip, @nbd2.port )
+  end
+
   def writefile1(data)
     @file1 = TestFileWriter.new(@filename1, @blocksize).write(data)
   end
+
+  def writefile2(data)
+    @file2 = TestFileWriter.new(@filename2, @blocksize).write(data)
+  end
+
+
 
   def listening_ports
     `netstat -ltn`.
