@@ -395,7 +395,7 @@ int mode_mirror( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( mirror_help_text ); }
 	
-	if (argv[2] == NULL) {
+	if (remote_argv[2] == NULL) {
 		do_remote_command( "mirror", sock, 2, remote_argv );
 	}
 	else {
