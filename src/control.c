@@ -39,6 +39,51 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+struct mirror_status * mirror_status_create(
+		struct server * serve, 
+		int fd,
+		int max_Bps,
+		int action_at_finish)
+{
+	/* FIXME: shouldn't map_fd get closed? */
+	int map_fd;
+	off64_t size;
+	struct mirror_status * mirror;
+
+	NULLCHECK( serve );
+
+	mirror = xmalloc(sizeof(struct mirror_status));
+	mirror->client = fd;
+	mirror->max_bytes_per_second = max_Bps;
+	mirror->action_at_finish = action_at_finish;
+	
+	FATAL_IF_NEGATIVE(
+		open_and_mmap(
+			serve->filename, 
+			&map_fd,
+			&size, 
+			(void**) &mirror->mapped
+		),
+		"Failed to open and mmap %s",
+		serve->filename
+	);
+	
+	mirror->dirty_map = bitset_alloc(size, 4096);
+	bitset_set_range(mirror->dirty_map, 0, size);
+
+	return mirror;
+}
+
+
+void mirror_status_destroy( struct mirror_status *mirror )
+{
+	NULLCHECK( mirror );
+	close(mirror->client);
+	free(mirror->dirty_map);
+	free(mirror);
+}
+
+
 /** The mirror code will split NBD writes, making them this long as a maximum */
 static const int mirror_longest_write = 8<<20;
 
@@ -166,50 +211,6 @@ abandon_mirror:
 	return NULL;
 }
 
-struct mirror_status * mirror_status_create(
-		struct server * serve, 
-		int fd,
-		int max_Bps,
-		int action_at_finish)
-{
-	/* FIXME: shouldn't map_fd get closed? */
-	int map_fd;
-	off64_t size;
-	struct mirror_status * mirror;
-
-	NULLCHECK( serve );
-
-	mirror = xmalloc(sizeof(struct mirror_status));
-	mirror->client = fd;
-	mirror->max_bytes_per_second = max_Bps;
-	mirror->action_at_finish = action_at_finish;
-	
-	FATAL_IF_NEGATIVE(
-		open_and_mmap(
-			serve->filename, 
-			&map_fd,
-			&size, 
-			(void**) &mirror->mapped
-		),
-		"Failed to open and mmap %s",
-		serve->filename
-	);
-	
-	mirror->dirty_map = bitset_alloc(size, 4096);
-	bitset_set_range(mirror->dirty_map, 0, size);
-
-	return mirror;
-}
-
-
-void mirror_status_destroy( struct mirror_status *mirror )
-{
-	NULLCHECK( mirror );
-	close(mirror->client);
-	free(mirror->dirty_map);
-	free(mirror);
-}
-
 
 #define write_socket(msg) write(client->socket, (msg "\n"), strlen((msg))+1)
 
@@ -284,6 +285,12 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	fd = socket_connect(&connect_to.generic, afrom);
 	
 	remote_size = socket_nbd_read_hello(fd);
+	if( remote_size != (off64_t)serve->size ){
+		warn("Remote size (%d) doesn't match local (%d)", remote_size, serve->size );
+		write_socket( "1: remote size (%d) doesn't match local (%d)");
+		close(fd);
+		return -1;
+	}
 	
 	mirror = mirror_status_create( serve,
 			fd, 
