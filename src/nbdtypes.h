@@ -10,10 +10,7 @@
 #define REQUEST_READ 0 
 #define REQUEST_WRITE 1 
 #define REQUEST_DISCONNECT 2 
-
-#ifndef _LARGEFILE64_SOURCE
-# define _LARGEFILE64_SOURCE
-#endif
+#define REQUEST_ENTRUST (1<<16)
 
 #include <linux/types.h>
 #include <inttypes.h>

@@ -1,10 +1,6 @@
 #ifndef SERVE_H
 #define SERVE_H
 
-#define _GNU_SOURCE
-
-#define _LARGEFILE64_SOURCE
-
 #include <sys/types.h>
 #include <unistd.h>
 

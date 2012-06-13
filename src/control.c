@@ -227,7 +227,6 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 	
 	
 	remote_size = socket_nbd_read_hello(fd);
-	remote_size = remote_size; // shush compiler
 	
 	mirror = xmalloc(sizeof(struct mirror_status));
 	mirror->client = fd;

@@ -1,6 +1,3 @@
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
-
 #include <sys/mman.h>
 #include <sys/sendfile.h>
 #include <sys/ioctl.h>

@@ -12,7 +12,9 @@ TEST_SOURCES = FileList['tests/*.c']
 TEST_OBJECTS = TEST_SOURCES.pathmap( "%{^tests,build/tests}X.o" )
 
 LIBS    = %w( pthread )
-CCFLAGS = %w( -Wall 
+CCFLAGS = %w(
+             -D_GNU_SOURCE=1
+             -Wall 
              -Wextra 
              -Werror-implicit-function-declaration 
              -Wstrict-prototypes
@@ -129,8 +131,23 @@ file check("serve") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
+file check("readwrite") =>
+%w{build/tests/check_readwrite.o
+  build/readwrite.o
+  build/client.o
+  build/self_pipe.o
+  build/serve.o
+  build/parse.o
+  build/acl.o
+  build/control.o
+  build/nbdtypes.o
+  build/ioutil.o
+  build/util.o} do |t|
+  gcc_link t.name, t.prerequisites + [LIBCHECK]
+end
 
-(TEST_MODULES- %w{acl client serve}).each do |m|
+
+(TEST_MODULES- %w{acl client serve readwrite}).each do |m|
   tgt = "build/tests/check_#{m}.o"
   deps = ["build/ioutil.o", "build/util.o"]
   maybe_obj_name = "build/#{m}.o"
