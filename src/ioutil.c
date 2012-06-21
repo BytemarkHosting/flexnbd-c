@@ -40,6 +40,7 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 	
 	/* realloc makes valgrind complain a lot */
 	memcpy(fiemap, fiemap_count, sizeof(struct fiemap));
+	free( fiemap_count );
 
 	fiemap->fm_extent_count = fiemap->fm_mapped_extents;
 	fiemap->fm_mapped_extents = 0;
