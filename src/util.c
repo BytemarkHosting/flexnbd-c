@@ -9,7 +9,7 @@
 
 #include "util.h"
 
-pthread_key_t cleanup_handler_key;
+pthread_key_t cleanup_handler_key; 
 
 int log_level = 2;
 
@@ -29,7 +29,7 @@ void error_handler(int fatal __attribute__ ((unused)) )
 		pthread_exit((void*) 1);
 	}
 		
-	longjmp(context->jmp, 1);
+	longjmp(context->jmp, fatal ? 1 : 2 );
 }
 
 

@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 void* xrealloc(void* ptr, size_t size);
 void* xmalloc(size_t size);
@@ -28,7 +29,7 @@ struct error_handler_context {
 
 #define DECLARE_ERROR_CONTEXT(name) \
   struct error_handler_context *name = (struct error_handler_context*) \
-  pthread_getspecific(cleanup_handler_key)
+  pthread_getspecific(cleanup_handler_key);
 
 /* clean up with the given function & data when error_handler() is invoked,
  * non-fatal errors will also return here (if that's dangerous, use fatal()
@@ -49,19 +50,25 @@ extern pthread_key_t cleanup_handler_key;
 	switch (setjmp(context->jmp)) \
 	{ \
 	case 0: /* setup time */ \
-		if (old) { free(old); }\
-		pthread_setspecific(cleanup_handler_key, context); \
+ 		if (old) { free(old); }\
+		if( EINVAL == pthread_setspecific(cleanup_handler_key, context) ) { \
+			fprintf(stderr, "Tried to set an error handler" \
+					" without calling error_init().\n");\
+			abort();\
+		}\
 		break; \
-	case 1: /* fatal error, terminate thread */ \
+	case 1: /* fatal error, terminate process */ \
 		debug( "Fatal error in thread %p", pthread_self() ); \
-		context->handler(context->data, 1); \
-		/*pthread_exit((void*) 1);*/ \
 		abort(); \
-	case 2: /* non-fatal error, return to context of error handler setup */ \
+		/* abort() can't return, so we can't fall through */ \
+	case 2: /* non-fatal error, call cleanup and terminate thread */ \
+		debug( "Error in thread %p", pthread_self() ); \
 		context->handler(context->data, 0); \
-		pthread_exit((void *)1);\
+		pthread_exit((void*) 1);\
+		/* pthread_exit() can't return, so we can't fall through
+		 * */\
 	default: \
-		abort(); \
+		 abort(); \
 	} \
 }
 

@@ -116,6 +116,13 @@ file check("acl") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
+file check( "util" ) =>
+%w{build/tests/check_util.o
+  build/util.o
+  build/self_pipe.o} do |t|
+  gcc_link t.name, t.prerequisites + [LIBCHECK]
+end
+
 file check("serve") =>
 %w{build/tests/check_serve.o
   build/self_pipe.o
@@ -155,19 +162,21 @@ file check("listen") =>
   build/readwrite.o
   build/parse.o
   build/client.o
-  build/serve.o 
+  build/serve.o
   build/acl.o
-  build/ioutil.o 
+  build/ioutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
 
-(TEST_MODULES- %w{acl client serve readwrite listen}).each do |m|
+(TEST_MODULES- %w{acl client serve readwrite listen util}).each do |m|
   tgt = "build/tests/check_#{m}.o"
   maybe_obj_name = "build/#{m}.o"
+  # Take it out in case we're testing util.o or ioutil.o
   deps = ["build/ioutil.o", "build/util.o"] - [maybe_obj_name]
 
+  # Add it back in if it's something we need to compile
   deps << maybe_obj_name if OBJECTS.include?( maybe_obj_name )
 
   file check( m ) => deps + [tgt] do |t|
