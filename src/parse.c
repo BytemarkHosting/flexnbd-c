@@ -11,6 +11,9 @@ int atoi(const char *nptr);
 /* FIXME: should change this to return negative on error like everything else */
 int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 {
+	NULLCHECK( out );
+	NULLCHECK( src );
+
 	char temp[64];
 	struct sockaddr_in *v4  = (struct sockaddr_in *) out;
 	struct sockaddr_in6 *v6 = (struct sockaddr_in6 *) out;

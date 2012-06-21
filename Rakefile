@@ -146,8 +146,24 @@ file check("readwrite") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
+file check("listen") =>
+%w{build/tests/check_listen.o
+  build/listen.o
+  build/self_pipe.o
+  build/nbdtypes.o
+  build/control.o
+  build/readwrite.o
+  build/parse.o
+  build/client.o
+  build/serve.o 
+  build/acl.o
+  build/ioutil.o 
+  build/util.o} do |t|
+  gcc_link t.name, t.prerequisites + [LIBCHECK]
+end
 
-(TEST_MODULES- %w{acl client serve readwrite}).each do |m|
+
+(TEST_MODULES- %w{acl client serve readwrite listen}).each do |m|
   tgt = "build/tests/check_#{m}.o"
   maybe_obj_name = "build/#{m}.o"
   deps = ["build/ioutil.o", "build/util.o"] - [maybe_obj_name]

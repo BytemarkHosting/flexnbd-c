@@ -25,6 +25,8 @@ struct client *client_create( struct server *serve, int socket )
 
 	c->stop_signal = self_pipe_create();
 
+	c->entrusted = 0;
+
 	return c;
 }
 
@@ -241,12 +243,18 @@ void client_write_init( struct client * client, uint64_t size )
 	);
 }
 
+
+
 /* Check to see if the client's request needs a reply constructing.
  * Returns 1 if we do, 0 otherwise.
  * request_err is set to 0 if the client sent a bad request, in which
- * case we send an error reply.
+ * case we drop the connection.
+ * FIXME: after an ENTRUST, there's no way to distinguish between a
+ * DISCONNECT and any bad request.
  */
-int client_request_needs_reply( struct client * client, struct nbd_request request, int *request_err )
+int client_request_needs_reply( struct client * client, 
+		struct nbd_request request,
+		int *should_disconnect )
 {
 	debug("request type %d", request.type);
 	
@@ -257,8 +265,12 @@ int client_request_needs_reply( struct client * client, struct nbd_request reque
 	switch (request.type)
 	{
 	case REQUEST_READ:
+		FATAL_IF( client->entrusted,
+				"Received a read request after an entrust message.");
 		break;
 	case REQUEST_WRITE:
+		FATAL_IF( client->entrusted,
+				"Received a write request after an entrust message.");
 		/* check it's not out of range */
 		if ( request.from+request.len > client->serve->size) {
 			debug("request read %ld+%d out of range", 
@@ -266,20 +278,38 @@ int client_request_needs_reply( struct client * client, struct nbd_request reque
 			  request.len
 			);
 			client_write_reply( client, &request, 1 );
-			*request_err = 0;
+			*should_disconnect = 0;
 			return 0;
 		}
 		break;
 		
+	case REQUEST_ENTRUST:
+		/* Yes, we need to reply to an entrust, but we take no
+		 * further action */
+		debug("request entrust");
+		break;
 	case REQUEST_DISCONNECT:
 		debug("request disconnect");
-		*request_err  = 1;
+		*should_disconnect = 1;
 		return 0;
 		
 	default:
 		fatal("Unknown request %08x", request.type);
 	}
 	return 1;
+}
+
+
+void client_reply_to_entrust( struct client * client, struct nbd_request request )
+{
+	/* An entrust needs a response, but has no data. */
+	debug( "request entrust" );
+
+	client_write_reply( client, &request, 0 );
+	/* We set this after trying to send the reply, so we know the
+	 * reply got away safely.
+	 */
+	client->entrusted = 1;
 }
 
 
@@ -345,15 +375,17 @@ void client_reply( struct client* client, struct nbd_request request )
 	case REQUEST_READ:
 		client_reply_to_read( client, request );
 		break;
-
 	case REQUEST_WRITE:
 		client_reply_to_write( client, request );
+		break;
+	case REQUEST_ENTRUST:
+		client_reply_to_entrust( client, request );
 		break;
 	}
 }
 
 
-/* Returns 0 if a request was successfully served. */
+/* Returns 0 if we should continue trying to serve requests */
 int client_serve_request(struct client* client)
 {
 	struct nbd_request    request;
@@ -416,6 +448,10 @@ void* client_serve(void* client_uncast)
 		;
 	client->stopped = 1;
 		
+	if ( client->entrusted ){
+		server_control_arrived( client->serve );
+	}
+
 	FATAL_IF_NEGATIVE(
 		close(client->socket),
 		"Couldn't close socket %d", 

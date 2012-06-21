@@ -21,6 +21,7 @@
 
 
 #include "serve.h"
+#include "listen.h"
 #include "util.h"
 
 #include <stdio.h>
@@ -115,7 +116,7 @@ void params_readwrite(
 	}
 }
 
-void do_serve(struct server* params);
+int do_serve(struct server* params);
 void do_read(struct mode_readwrite_params* params);
 void do_write(struct mode_readwrite_params* params);
 void do_remote_command(char* command, char* mode, int argc, char** argv);
@@ -152,6 +153,50 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 	}
 }
 
+
+void read_listen_param( int c, 
+		char **ip_addr, 
+		char **rebind_ip_addr, 
+		char **ip_port, 
+		char **rebind_ip_port, 
+		char **file, 
+		char **sock, 
+		int *default_deny )
+{
+	switch(c){
+		case 'h':
+			fprintf(stdout, listen_help_text );
+			exit(0);
+			break;
+		case 'l':
+			*ip_addr = optarg;
+			break;
+		case 'L':
+			*rebind_ip_addr = optarg;
+			break;
+		case 'p':
+			*ip_port = optarg;
+			break;
+		case 'P':
+			*rebind_ip_port = optarg;
+			break;
+		case 'f':
+			*file = optarg;
+			break;
+		case 's':
+			*sock = optarg;
+			break;
+		case 'd':
+			*default_deny = 1;
+			break;
+		case 'v':
+			log_level = 0;
+			break;
+		default:
+			exit_err( listen_help_text );
+			break;
+	}
+}
 
 void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_addr, char **from, char **size)
 {
@@ -269,12 +314,59 @@ int mode_serve( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( serve_help_text ); }
 
-	serve = server_create( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
-	do_serve( serve );
+	serve = server_create( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS, 1 );
+	if ( 0 == do_serve( serve ) ) {
+		info( "Control transfered.");
+	}
 	server_destroy( serve );
 
 	return 0;
 }
+
+
+int mode_listen( int argc, char *argv[] )
+{
+	int c;
+	char *ip_addr = NULL;
+	char *rebind_ip_addr = NULL;
+	char *ip_port = NULL;
+	char *rebind_ip_port = NULL;
+	char *file    = NULL;
+	char *sock    = NULL;
+	int default_deny = 0; // not on by default
+	int err = 0;
+
+	struct listen * listen;
+
+	while (1) {
+		c = getopt_long(argc, argv, listen_short_options, listen_options, NULL);
+		if ( c == -1 ) { break; }
+
+		read_listen_param( c, &ip_addr, &rebind_ip_addr, &ip_port, &rebind_ip_port, 
+				&file, &sock, &default_deny );
+	}
+
+	if ( NULL == ip_addr || NULL == ip_port ) {
+		err = 1;
+		fprintf( stderr, "both --addr and --port are required.\n" );
+	}
+	if ( NULL == file ) {
+		err = 1;
+		fprintf( stderr, "--file is required\n" );
+	}
+	if ( err ) { exit_err( listen_help_text ); }
+
+	listen = listen_create( ip_addr, rebind_ip_addr, 
+			ip_port, rebind_ip_port, 
+			file, sock, default_deny, 
+			argc - optind, argv + optind, MAX_NBD_CLIENTS );
+	do_listen( listen );
+	listen_destroy( listen );
+
+	return 0;
+
+}
+
 
 int mode_read( int argc, char *argv[] )
 {
@@ -439,6 +531,8 @@ int mode_help( int argc, char *argv[] )
 		cmd = argv[0];
 		if (IS_CMD( CMD_SERVE, cmd ) ) {
 			help_text = serve_help_text;
+		} else if ( IS_CMD( CMD_LISTEN, cmd ) ) {
+			help_text = listen_help_text;
 		} else if ( IS_CMD( CMD_READ, cmd ) ) {
 			help_text = read_help_text;
 		} else if ( IS_CMD( CMD_WRITE, cmd ) ) {
@@ -461,6 +555,9 @@ void mode(char* mode, int argc, char **argv)
 {
 	if ( IS_CMD( CMD_SERVE, mode ) ) {
 		mode_serve( argc, argv );
+	}
+	else if ( IS_CMD( CMD_LISTEN, mode ) ) {
+		mode_listen( argc, argv );
 	}
 	else if ( IS_CMD( CMD_READ, mode ) ) {
 		mode_read( argc, argv );

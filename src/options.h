@@ -5,8 +5,10 @@
 
 #define OPT_HELP "help"
 #define OPT_ADDR "addr"
+#define OPT_REBIND_ADDR "rebind-addr"
 #define OPT_BIND "bind"
 #define OPT_PORT "port"
+#define OPT_REBIND_PORT "rebind-port"
 #define OPT_FILE "file"
 #define OPT_SOCK "sock"
 #define OPT_FROM "from"
@@ -14,6 +16,7 @@
 #define OPT_DENY "default-deny"
 
 #define CMD_SERVE  "serve"
+#define CMD_LISTEN "listen"
 #define CMD_READ   "read"
 #define CMD_WRITE  "write"
 #define CMD_ACL    "acl"
@@ -32,7 +35,9 @@
 #define GETOPT_DENY GETOPT_FLAG( OPT_DENY, 'd' )
 
 #define GETOPT_ADDR GETOPT_ARG( OPT_ADDR, 'l' )
+#define GETOPT_REBIND_ADDR GETOPT_ARG( OPT_REBIND_ADDR, 'L')
 #define GETOPT_PORT GETOPT_ARG( OPT_PORT, 'p' )
+#define GETOPT_REBIND_PORT GETOPT_ARG( OPT_REBIND_PORT, 'P')
 #define GETOPT_FILE GETOPT_ARG( OPT_FILE, 'f' )
 #define GETOPT_SOCK GETOPT_ARG( OPT_SOCK, 's' )
 #define GETOPT_FROM GETOPT_ARG( OPT_FROM, 'F' )
@@ -80,6 +85,36 @@ static char serve_help_text[] =
 	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
 	SOCK_LINE
 	VERBOSE_LINE;
+
+
+static struct option listen_options[] = {
+	GETOPT_HELP,
+	GETOPT_ADDR,
+	GETOPT_REBIND_ADDR,
+	GETOPT_PORT,
+	GETOPT_REBIND_ADDR,
+	GETOPT_FILE,
+	GETOPT_SOCK,
+	GETOPT_DENY,
+	GETOPT_VERBOSE,
+	{0}
+};
+static char listen_short_options[] = "hl:L:p:P:f:s:d" SOPT_VERBOSE;
+static char listen_help_text[] =
+	"Usage: flexnbd " CMD_LISTEN " <options> [<acl_address>*]\n\n"
+	"Listen for an incoming migration on ADDR:PORT, "
+	"then switch to REBIND_ADDR:REBIND_PORT on completion "
+	"to serve FILE.\n\n"
+	HELP_LINE
+	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to listen on.\n"
+	"\t--" OPT_REBIND_ADDR ",-L <REBIND_ADDR>\tThe address to switch to, if given.\n"
+	"\t--" OPT_PORT ",-p <PORT>\tThe port to listen on.\n"
+	"\t--" OPT_REBIND_PORT ",-P <REBIND_PORT>\tThe port to switch to, if given..\n"
+	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
+	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
+	SOCK_LINE
+	VERBOSE_LINE;
+
 
 static struct option read_options[] = {
 	GETOPT_HELP,

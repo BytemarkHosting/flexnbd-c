@@ -82,6 +82,13 @@ struct server {
 	
 	int                  max_nbd_clients;
 	struct client_tbl_entry *nbd_client;
+
+
+	/* Marker for whether or not this server has control over the
+	 * data in the file, or if we're waiting to receive it from an
+	 * inbound migration which hasn't yet finished.
+	 */
+	int has_control;
 };
 
 struct server * server_create( 
@@ -92,7 +99,8 @@ struct server * server_create(
 		int default_deny,
 		int acl_entries, 
 		char** s_acl_entries,
-		int max_nbd_clients );
+		int max_nbd_clients,
+		int has_control );
 void server_destroy( struct server * );
 int server_is_closed(struct server* serve);
 void server_dirty(struct server *serve, off64_t from, int len);
@@ -101,7 +109,9 @@ void server_unlock_io( struct server* serve );
 void serve_signal_close( struct server *serve );
 void serve_wait_for_close( struct server * serve );
 void server_replace_acl( struct server *serve, struct acl * acl);
+void server_control_arrived( struct server *serve );
 
+int do_serve( struct server * );
 
 struct mode_readwrite_params {
 	union mysockaddr     connect_to;

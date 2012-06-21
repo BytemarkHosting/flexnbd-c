@@ -44,10 +44,12 @@ struct server * server_create (
 	int default_deny,
 	int acl_entries,
 	char** s_acl_entries,
-	int max_nbd_clients)
+	int max_nbd_clients,
+	int has_control)
 {
 	struct server * out;
 	out = xmalloc( sizeof( struct server ) );
+	out->has_control = has_control;
 	out->max_nbd_clients = max_nbd_clients;
 	out->nbd_client = xmalloc( max_nbd_clients * sizeof( struct client_tbl_entry ) );
 
@@ -56,6 +58,7 @@ struct server * server_create (
 	FATAL_IF_NULL(s_ip_address, "No IP address supplied");
 	FATAL_IF_NULL(s_port, "No port number supplied");
 	FATAL_IF_NULL(s_file, "No filename supplied");
+	NULLCHECK( s_ip_address );
 	FATAL_IF_ZERO(
 		parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address),
 		"Couldn't parse server address '%s' (use 0 if "
@@ -271,7 +274,7 @@ int cleanup_client_thread( struct client_tbl_entry * entry )
 
 void cleanup_client_threads( struct client_tbl_entry * entries, size_t entries_len )
 {
-	int i;
+	size_t i;
 	for( i = 0; i < entries_len; i++ ) {
 		cleanup_client_thread( &entries[i] );
 	}
@@ -575,19 +578,13 @@ int server_accept( struct server * params )
 	}
 
 	if ( FD_ISSET( params->server_fd, &fds ) ){
-		
 		client_fd = accept( params->server_fd, &client_address.generic, &socklen );
-		
 		debug("Accepted nbd client socket");
-		
 		accept_nbd_client(params, client_fd, &client_address);
-
-	} else if( FD_ISSET( params->control_fd, &fds ) ) {
-		
+	} 
+	else if( FD_ISSET( params->control_fd, &fds ) ) {
 		client_fd = accept( params->control_fd, &client_address.generic, &socklen );
-		
 		debug("Accepted control client socket"); 
-		
 		accept_control_connection(params, client_fd, &client_address);
 	}
 
@@ -639,6 +636,17 @@ void serve_wait_for_close( struct server * serve )
 	}
 }
 
+/* We've just had an ENTRUST/DISCONNECT pair, so we need to shut down
+ * and signal our listener that we can safely take over.
+ */
+void server_control_arrived( struct server *serve )
+{
+	NULLCHECK( serve );
+
+	serve->has_control = 1;
+	serve_signal_close( serve );
+}
+
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server* params, 
@@ -676,15 +684,20 @@ void serve_cleanup(struct server* params,
 }
 
 /** Full lifecycle of the server */
-void do_serve(struct server* params)
+int do_serve(struct server* params)
 {
 	NULLCHECK( params );
+
+	int has_control;
 	
 	error_set_handler((cleanup_handler*) serve_cleanup, params);
 	serve_open_server_socket(params);
 	serve_open_control_socket(params);
 	serve_init_allocation_map(params);
 	serve_accept_loop(params);
+	has_control = params->has_control;
 	serve_cleanup(params, 0);
+
+	return has_control;
 }
 

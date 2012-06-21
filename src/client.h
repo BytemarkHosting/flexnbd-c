@@ -19,6 +19,9 @@ struct client {
 	struct self_pipe * stop_signal;
 	
 	struct server* serve; /* FIXME: remove above duplication */
+
+	/* Have we seen a REQUEST_ENTRUST message? */
+	int     entrusted;
 };
 
 
