@@ -140,6 +140,9 @@ static inline int bitset_run_count(
 	uint64_t from, 
 	uint64_t len)
 {
+	/* now fix in case len goes past the end of the memory we have
+	 * control of */
+	len = len+from>set->size ? set->size-from : len;
 	INT_FIRST_AND_LAST;
 	return (bit_run_count(set->bits, first, bitlen) * set->resolution) -
 	  (from % set->resolution);
