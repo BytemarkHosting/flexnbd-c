@@ -214,8 +214,8 @@ int client_write_reply( struct client * client, struct nbd_request *request, int
 
 void client_write_init( struct client * client, uint64_t size )
 {
-	struct nbd_init init;
-	struct nbd_init_raw init_raw;
+	struct nbd_init init = {{0}};
+	struct nbd_init_raw init_raw = {{0}};
 
 	memcpy( init.passwd, INIT_PASSWD, sizeof( INIT_PASSWD ) );
 	init.magic = INIT_MAGIC;
