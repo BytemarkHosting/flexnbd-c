@@ -27,10 +27,12 @@ static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
 	struct sockaddr_in*  in  = (struct sockaddr_in*) sockaddr;
 	struct sockaddr_in6* in6 = (struct sockaddr_in6*) sockaddr;
 	
-	if (sockaddr->sa_family == AF_INET)
+	if (sockaddr->sa_family == AF_INET) {
 		return &in->sin_addr;
-	if (sockaddr->sa_family == AF_INET6)
+	}
+	if (sockaddr->sa_family == AF_INET6) {
 		return &in6->sin6_addr;
+	}
 	return NULL;
 }
 
@@ -63,8 +65,9 @@ struct server * server_create (
 	out->control_socket_name = s_ctrl_sock;
 
 	out->acl = acl_create( acl_entries, s_acl_entries, default_deny );
-	if (out->acl && out->acl->len != acl_entries)
+	if (out->acl && out->acl->len != acl_entries) {
 		fatal("Bad ACL entry '%s'", s_acl_entries[out->acl->len]);
+	}
 
 	parse_port( s_port, &out->bind_to.v4 );
 
@@ -103,16 +106,17 @@ void server_dirty(struct server *serve, off64_t from, int len)
 {
 	NULLCHECK( serve );
 
-	if (serve->mirror)
+	if (serve->mirror) {
 		bitset_set_range(serve->mirror->dirty_map, from, len);
+	}
 }
 
 #define SERVER_LOCK( s, f, msg ) \
-	{ NULLCHECK( s ); \
-	 FATAL_IF_NEGATIVE( pthread_mutex_lock( &s->f ), msg ); }
+	do { NULLCHECK( s ); \
+	 FATAL_IF( 0 != pthread_mutex_lock( &s->f ), msg ); } while (0)
 #define SERVER_UNLOCK( s, f, msg ) \
-	{ NULLCHECK( s ); \
-	 FATAL_IF_NEGATIVE( pthread_mutex_unlock( &s->f ), msg ); }
+	do { NULLCHECK( s ); \
+	 FATAL_IF( 0 != pthread_mutex_unlock( &s->f ), msg ); } while (0)
 
 void server_lock_io( struct server * serve)
 {
@@ -197,6 +201,7 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 
 	int was_closed = 0;
 	void * status;
+	int join_errno;
 
 	if (entry->thread != 0) {
 		char s_client_address[64];
@@ -208,9 +213,14 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 				s_client_address, 
 				64 );
 
-		if (joinfunc(entry->thread, &status) != 0) {
-			if (errno != EBUSY)
-				FATAL_IF_NEGATIVE(-1, "Problem with joining thread");
+		join_errno = joinfunc(entry->thread, &status);
+		/* join_errno can legitimately be ESRCH if the thread is
+		 * already dead, but the cluent still needs tidying up. */
+		if (join_errno != 0 && !entry->client->stopped ) {
+			FATAL_UNLESS( join_errno == EBUSY,  
+					"Problem with joining thread %p: %s", 
+					entry->thread,
+					strerror(join_errno) );
 		}
 		else {
 			debug("nbd thread %p exited (%s) with status %ld", 
@@ -381,7 +391,7 @@ void accept_nbd_client(
 		return;
 	}
 	
-	debug("nbd thread %d started (%s)", (int) params->nbd_client[slot].thread, s_client_address);
+	debug("nbd thread %p started (%s)", params->nbd_client[slot].thread, s_client_address);
 }
 
 
@@ -433,7 +443,7 @@ void server_close_clients( struct server *params )
 		}
 	}
 	for( j = 0; j < MAX_NBD_CLIENTS; j++ ) {
-		join_client_thread( &params->nbd_client[i] );
+		join_client_thread( &params->nbd_client[j] );
 	}
 }
 
@@ -476,8 +486,9 @@ int server_accept( struct server * params )
 	FD_SET(params->server_fd, &fds);
 	self_pipe_fd_set( params->close_signal, &fds );
 	self_pipe_fd_set( params->acl_updated_signal, &fds );
-	if (params->control_socket_name)
+	if (params->control_socket_name) {
 		FD_SET(params->control_fd, &fds);
+	}
 
 	FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds, 
 				NULL, NULL, NULL), "select() failed");
@@ -548,6 +559,15 @@ void serve_signal_close( struct server * serve )
 	self_pipe_signal( serve->close_signal );
 }
 
+/* Block until the server closes the server_fd.
+ */
+void serve_wait_for_close( struct server * serve )
+{
+	while( !fd_is_closed( serve->server_fd ) ){
+		usleep(10000);
+	}
+}
+
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server* params, 
@@ -562,7 +582,6 @@ void serve_cleanup(struct server* params,
 	if (params->server_fd){ close(params->server_fd); }
 	if (params->control_fd){ close(params->control_fd); }
 	if (params->control_socket_name){ ; }
-	if (params->proxy_fd){ close(params->proxy_fd); }
 
 	if (params->close_signal) {
 		self_pipe_destroy( params->close_signal );
@@ -579,10 +598,11 @@ void serve_cleanup(struct server* params,
 	
 	for (i=0; i < MAX_NBD_CLIENTS; i++) {
 		void* status;
+		pthread_t thread_id = params->nbd_client[i].thread;
 		
-		if (params->nbd_client[i].thread != 0) {
-			debug("joining thread %d", i);
-			pthread_join(params->nbd_client[i].thread, &status);
+		if (thread_id != 0) {
+			debug("joining thread %p", thread_id);
+			pthread_join(thread_id, &status);
 		}
 	}
 }

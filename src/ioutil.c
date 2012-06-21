@@ -1,6 +1,3 @@
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
-
 #include <sys/mman.h>
 #include <sys/sendfile.h>
 #include <sys/ioctl.h>
@@ -29,8 +26,9 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 	fiemap_count->fm_mapped_extents = 0;
 
 	/* Find out how many extents there are */
-	if (ioctl(fd, FS_IOC_FIEMAP, fiemap_count) < 0)
+	if (ioctl(fd, FS_IOC_FIEMAP, fiemap_count) < 0) {
 		return NULL;
+	}
 
 	/* Resize fiemap to allow us to read in the extents */
 	fiemap = (struct fiemap*)xmalloc(
@@ -80,20 +78,24 @@ int open_and_mmap(char* filename, int* out_fd, off64_t *out_size, void **out_map
 	off64_t size;
 	
 	*out_fd = open(filename, O_RDWR|O_DIRECT|O_SYNC);
-	if (*out_fd < 1)
+	if (*out_fd < 1) {
 		return *out_fd;
+	}
 	
 	size = lseek64(*out_fd, 0, SEEK_END);
-	if (size < 0)
+	if (size < 0) {
 		return size;
-	if (out_size)
+	}
+	if (out_size) {
 		*out_size = size;
+	}
 	
 	if (out_map) {
 		*out_map = mmap64(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, 
 		  *out_fd, 0);
-		if (((long) *out_map) == -1)
+		if (((long) *out_map) == -1) {
 			return -1;
+		}
 	}
 	debug("opened %s size %ld on fd %d @ %p", filename, size, *out_fd, *out_map);
 	
@@ -173,20 +175,19 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 	int pipefd[2]; /* read end, write end */
 	size_t spliced=0;
 	
-	if (pipe(pipefd) == -1)
+	if (pipe(pipefd) == -1) {
 		return -1;
+	}
 	
 	while (spliced < len) {
 		ssize_t run = len-spliced;
 		ssize_t s2, s1 = spliceloop(fd_in, NULL, pipefd[1], NULL, run, SPLICE_F_NONBLOCK);
 		/*if (run > 65535)
 			run = 65535;*/
-		if (s1 < 0)
-			break;
+		if (s1 < 0) { break; }
 		
 		s2 = spliceloop(pipefd[0], NULL, fd_out, NULL, s1, 0);
-		if (s2 < 0)
-			break;
+		if (s2 < 0) { break; }
 		spliced += s2;
 	}
 	close(pipefd[0]);
@@ -202,10 +203,8 @@ int read_until_newline(int fd, char* buf, int bufsize)
 	
 	for (cur=0; cur < bufsize; cur++) {
 		int result = read(fd, buf+cur, 1);
-		if (result < 0)
-			return -1;
-		if (buf[cur] == 10)
-			break;
+		if (result < 0) { return -1; }
+		if (buf[cur] == 10) { break; }
 	}
 	buf[cur++] = 0;
 	
@@ -221,12 +220,14 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
 	memset(line, 0, max_line_length+1);
 	
 	while (1) {
-		if (read_until_newline(fd, line, max_line_length) < 0)
+		if (read_until_newline(fd, line, max_line_length) < 0) {
 			return lines_count;
+		}
 		*lines = xrealloc(*lines, (lines_count+1) * sizeof(char*));
 		(*lines)[lines_count] = strdup(line);
-		if ((*lines)[lines_count][0] == 0)
+		if ((*lines)[lines_count][0] == 0) {
 			return lines_count;
+		}
 		lines_count++;
 	}
 }

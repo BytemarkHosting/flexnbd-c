@@ -1,6 +1,6 @@
-#ifndef __READWRITE_H
+#ifndef READWRITE_H
 
-#define __READWRITE_H
+#define READWRITE_H
 
 int socket_connect(struct sockaddr* to, struct sockaddr* from);
 off64_t socket_nbd_read_hello(int fd);

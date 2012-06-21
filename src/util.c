@@ -11,7 +11,7 @@
 
 pthread_key_t cleanup_handler_key;
 
-int log_level = 1;
+int log_level = 2;
 
 void error_init(void)
 {
@@ -33,8 +33,7 @@ void mylog(int line_level, const char* format, ...)
 {
 	va_list argptr;
 	
-	if (line_level < log_level)
-		return;
+	if (line_level < log_level) { return; }
 	
 	va_start(argptr, format);
 	vfprintf(stderr, format, argptr);

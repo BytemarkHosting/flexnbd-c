@@ -55,13 +55,13 @@ static int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], uni
 		for (testbits = entry->mask; testbits > 0; testbits -= 8) {
 			debug("testbits=%d, c1=%02x, c2=%02x", testbits, raw_address1[0], raw_address2[0]);
 			if (testbits >= 8) {
-				if (raw_address1[0] != raw_address2[0])
-					goto no_match;
+				if (raw_address1[0] != raw_address2[0]) { goto no_match; }
 			}
 			else {
 				if ((raw_address1[0] & testmasks[testbits%8]) !=
-				    (raw_address2[0] & testmasks[testbits%8]) )
+				    (raw_address2[0] & testmasks[testbits%8]) ) {
 				    	goto no_match;
+				}
 			}
 
 			raw_address1++;

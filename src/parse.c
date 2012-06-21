@@ -18,10 +18,10 @@ int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 	/* allow user to start with [ and end with any other invalid char */
 	{
 		int i=0, j=0;
-		if (src[i] == '[')
-			i++;
-		for (; i<64 && IS_IP_VALID_CHAR(src[i]); i++)
+		if (src[i] == '[') { i++; }
+		for (; i<64 && IS_IP_VALID_CHAR(src[i]); i++) {
 			temp[j++] = src[i];
+		}
 		temp[j] = 0;
 	}
 
@@ -73,8 +73,9 @@ int parse_acl(struct ip_and_mask (**out)[], int max, char **entries)
 
 		if (entries[i][j] == '/') {
 			outentry->mask = atoi(entries[i]+j+1);
-			if (outentry->mask < 1 || outentry->mask > MAX_MASK_BITS)
+			if (outentry->mask < 1 || outentry->mask > MAX_MASK_BITS) {
 				return i;
+			}
 		}
 		else {
 			outentry->mask = MAX_MASK_BITS;

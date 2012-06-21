@@ -1,10 +1,6 @@
 #ifndef SERVE_H
 #define SERVE_H
 
-#define _GNU_SOURCE
-
-#define _LARGEFILE64_SOURCE
-
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -15,7 +11,6 @@
 static const int block_allocation_resolution = 4096;//128<<10;
 
 enum mirror_finish_action {
-	ACTION_PROXY,
 	ACTION_EXIT,
 	ACTION_NOTHING
 };
@@ -63,9 +58,6 @@ struct server {
 	/** Claims around any I/O to this file */
 	pthread_mutex_t      l_io;
 	
-	/** set to non-zero to cause r/w requests to go via this fd */
-	int                  proxy_fd;
-	
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
 	struct self_pipe *   close_signal;
 
@@ -94,6 +86,7 @@ void server_dirty(struct server *serve, off64_t from, int len);
 void server_lock_io( struct server * serve);
 void server_unlock_io( struct server* serve );
 void serve_signal_close( struct server *serve );
+void serve_wait_for_close( struct server * serve );
 void server_replace_acl( struct server *serve, struct acl * acl);
 
 

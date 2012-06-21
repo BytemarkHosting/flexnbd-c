@@ -20,10 +20,8 @@ static inline int bit_is_clear(char* b, int idx) {
 }
 /** Tests whether the bit at ''idx'' in array ''b'' has value ''value'' */
 static inline int bit_has_value(char* b, int idx, int value) {
-	if (value)
-		return bit_is_set(b, idx);
-	else
-		return bit_is_clear(b, idx);
+	if (value) { return bit_is_set(b, idx); }
+	else { return bit_is_clear(b, idx); }
 }
 /** Sets the bit ''idx'' in array ''b'' */
 static inline void bit_set(char* b, int idx) {
@@ -37,21 +35,15 @@ static inline void bit_clear(char* b, int idx) {
 }
 /** Sets ''len'' bits in array ''b'' starting at offset ''from'' */
 static inline void bit_set_range(char* b, int from, int len) {
-	for (; from%8 != 0 && len > 0; len--)
-		bit_set(b, from++);
-	if (len >= 8)
-		memset(b+(from/8), 255, len/8);
-	for (; len > 0; len--)
-		bit_set(b, from++);
+	for (; from%8 != 0 && len > 0; len--) { bit_set(b, from++); }
+	if (len >= 8) { memset(b+(from/8), 255, len/8); }
+	for (; len > 0; len--) { bit_set(b, from++); }
 }
 /** Clears ''len'' bits in array ''b'' starting at offset ''from'' */
 static inline void bit_clear_range(char* b, int from, int len) {
-	for (; from%8 != 0 && len > 0; len--)
-		bit_clear(b, from++);
-	if (len >= 8)
-		memset(b+(from/8), 0, len/8);
-	for (; len > 0; len--)
-		bit_clear(b, from++);
+	for (; from%8 != 0 && len > 0; len--) {	bit_clear(b, from++); }
+	if (len >= 8) { memset(b+(from/8), 0, len/8); }
+	for (; len > 0; len--) { bit_clear(b, from++); }
 }
 
 /** Counts the number of contiguous bits in array ''b'', starting at ''from'' 
