@@ -54,7 +54,7 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 		);
 	}
 	
-	for (i=0; i<16; i++) {
+	for (i=0; i<(size/resolution); i++) {
 		debug("map[%d] = %d%d%d%d%d%d%d%d",
 		  i,
 		  (allocation_map->bits[i] & 1) == 1,
@@ -67,6 +67,7 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 		  (allocation_map->bits[i] & 128) == 128
 		);
 	}
+	
 	
 	free(fiemap);
 	
