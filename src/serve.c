@@ -103,6 +103,8 @@ void server_destroy( struct server * serve )
 		serve->acl = NULL;
 	}
 
+	free( serve->filename_incomplete );
+
 	free( serve );
 }
 
