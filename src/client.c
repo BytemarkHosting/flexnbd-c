@@ -154,6 +154,11 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 }
 
 
+int fd_read_request( int fd, struct nbd_request_raw *out_request)
+{
+	return readloop(fd, out_request, sizeof(struct nbd_request_raw));
+}
+
 /* Returns 1 if *request was filled with a valid request which we should
  * try to honour. 0 otherwise. */
 int client_read_request( struct client * client , struct nbd_request *out_request )
@@ -175,7 +180,7 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 		return 0;
 	}
 
-	if (readloop(client->socket, &request_raw, sizeof(request_raw)) == -1) {
+	if (fd_read_request(client->socket, &request_raw) == -1) {
 		if (errno == 0) {
 			debug("EOF reading request");
 			return 0; /* neat point to close the socket */
@@ -190,6 +195,22 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	return 1;
 }
 
+int fd_write_reply( int fd, char *handle, int error )
+{
+	struct nbd_reply     reply;
+	struct nbd_reply_raw reply_raw;
+
+	reply.magic = REPLY_MAGIC;
+	reply.error = error;
+	memcpy( reply.handle, handle, 8 );
+
+	nbd_h2r_reply( &reply, &reply_raw );
+
+	write( fd, &reply_raw, sizeof( reply_raw ) );
+
+	return 1;
+}
+
 
 /* Writes a reply to request *request, with error, to the client's
  * socket.
@@ -198,19 +219,9 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
  */
 int client_write_reply( struct client * client, struct nbd_request *request, int error )
 {
-	struct nbd_reply     reply;
-	struct nbd_reply_raw reply_raw;
-
-	reply.magic = REPLY_MAGIC;
-	reply.error = error;
-	memcpy( reply.handle, &request->handle, 8 );
-
-	nbd_h2r_reply( &reply, &reply_raw );
-
-	write( client->socket, &reply_raw, sizeof( reply_raw ) );
-
-	return 1;
+	return fd_write_reply( client->socket, request->handle, error);
 }
+
 
 void client_write_init( struct client * client, uint64_t size )
 {

@@ -109,6 +109,33 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
 	read_reply(fd, &request, &reply);
 }
 
+
+void socket_nbd_entrust( int fd )
+{
+	struct nbd_request request;
+	struct nbd_reply   reply;
+
+	fill_request( &request, REQUEST_ENTRUST, 0, 0 );
+	FATAL_IF_NEGATIVE( writeloop( fd, &request, sizeof( request ) ),
+			"Couldn't write request");
+	read_reply( fd, &request, &reply );
+}
+
+
+int socket_nbd_disconnect( int fd )
+{
+	int success = 1;
+	struct nbd_request request;
+
+	fill_request( &request, REQUEST_DISCONNECT, 0, 0 );
+	/* FIXME: This shouldn't be a FATAL error.  We should just drop
+	 * the mirror without affecting the main server.
+	 */
+	FATAL_IF_NEGATIVE( writeloop( fd, &request, sizeof( request ) ),
+			"Failed to write the disconnect request." );
+	return success;
+}
+
 #define CHECK_RANGE(error_type) { \
 	off64_t size = socket_nbd_read_hello(params->client); \
 	if (params->from < 0 || (params->from + params->len) > size) {\

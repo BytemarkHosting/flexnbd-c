@@ -155,9 +155,58 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 }
 
 
+void mirror_transfer_control( struct mirror_status * mirror )
+{
+	/* TODO: set up an error handler to clean up properly on ERROR.
+	 */
+
+	/* A transfer of control is expressed as a 3-way handshake.
+	 * First, We send a REQUEST_ENTRUST. If this fails to be
+	 * received, this thread will simply block until the server is
+	 * restarted. If the remote end doesn't understand it, it'll
+	 * disconnect us, and an ERROR *should* bomb this thread.
+	 * FIXME: make the ERROR work.
+	 * If we get an explicit error back from the remote end, then
+	 * again, this thread will bomb out.
+	 * On receiving a valid response, we send a REQUEST_DISCONNECT,
+	 * and we quit without checking for a response.  This is the
+	 * remote server's signal to assume control of the file.  The
+	 * reason we don't check for a response is the state we end up
+	 * in if the final message goes astray: if we lose the
+	 * REQUEST_DISCONNECT, the sender has quit and the receiver
+	 * hasn't had a signal to take over yet, so the data is safe.
+	 * If we were to wait for a response to the REQUEST_DISCONNECT,
+	 * the sender and receiver would *both* be servicing write
+	 * requests while the response was in flight, and if the
+	 * response went astray we'd have two servers claiming
+	 * responsibility for the same data.
+	 */
+	socket_nbd_entrust( mirror->client );
+	socket_nbd_disconnect( mirror->client );
+}
+
+
+/* THIS FUNCTION MUST ONLY BE CALLED WITH THE SERVER'S IO LOCKED. */
 void mirror_on_exit( struct server * serve )
 {
+	/* Send an explicit entrust and disconnect. After this
+	 * point we cannot allow any reads or writes to the local file.
+	 * We do this *before* trying to shut down the server so that if
+	 * the transfer of control fails, we haven't stopped the server
+	 * and already-connected clients don't get needlessly
+	 * disconnected.
+	 */
+	mirror_transfer_control( serve->mirror );
+
+	/* If we're still here, the transfer of control went ok, and the
+	 * remote is listening (or will be shortly).  We can shut the
+	 * server down.
+	 *
+	 * It doesn't matter if we get new client connections before
+	 * now, the IO lock will stop them from doing anything.
+	 */
 	serve_signal_close( serve );
+
 	/* We have to wait until the server is closed before unlocking
 	 * IO.  This is because the client threads check to see if the
 	 * server is still open before reading or writing inside their
@@ -167,6 +216,7 @@ void mirror_on_exit( struct server * serve )
 	 */
 	serve_wait_for_close( serve );
 }
+
 
 /** Thread launched to drive mirror process */
 void* mirror_runner(void* serve_params_uncast)

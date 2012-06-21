@@ -23,6 +23,9 @@ void error_handler(int fatal __attribute__ ((unused)) )
 	DECLARE_ERROR_CONTEXT(context);
 	
 	if (!context) {
+		/* FIXME: This can't be right - by default we exit()
+		 * with a status of 0 in this case.
+		 */
 		pthread_exit((void*) 1);
 	}
 		
