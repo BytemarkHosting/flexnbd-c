@@ -19,12 +19,13 @@ class ValgrindExecutor
   attr_reader :pid
 
   class Error
-    attr_accessor :what, :kind
+    attr_accessor :what, :kind, :pid
     attr_reader :backtrace
     def initialize
       @backtrace=[]
       @what = ""
       @kind = ""
+      @pid = ""
     end
 
     def add_frame
@@ -44,7 +45,7 @@ class ValgrindExecutor
     end
 
     def to_s
-      ([@what + " (#{@kind})"] + @backtrace.map{|h| "#{h[:file]}:#{h[:line]} #{h[:fn]}" }).join("\n")
+      ([@what + " (#{@kind}) in #{@pid}"] + @backtrace.map{|h| "#{h[:file]}:#{h[:line]} #{h[:fn]}" }).join("\n")
     end
 
   end # class Error
@@ -54,6 +55,8 @@ class ValgrindExecutor
     include REXML::StreamListener
     def initialize( killer )
       @killer = killer
+      @error = Error.new
+      @found = false
     end
 
     def text( text )
@@ -63,7 +66,7 @@ class ValgrindExecutor
     def tag_start(tag, attrs)
       case tag.to_s
       when "error"
-        @error = Error.new
+        @found = true
       when "frame"
         @error.add_frame
       end
@@ -72,21 +75,41 @@ class ValgrindExecutor
     def tag_end(tag)
       case tag.to_s
       when "what"
-        @error.what = @text if @error
+        @error.what = @text if @found
         @text = ""
       when "kind"
-        @error.kind = @text if @error
+        @error.kind = @text if @found
       when "file"
-        @error.add_file( @text ) if @error
+        @error.add_file( @text ) if @found
       when "fn"
-        @error.add_fn( @text ) if @error
+        @error.add_fn( @text ) if @found
       when "line"
-        @error.add_line( @text ) if @error
-      when "error"
+        @error.add_line( @text ) if @found
+      when "error", "stack"
         @killer.call( @error )
+      when "pid"
+        @error.pid=@text
       end
     end
   end # class ErrorListener
+
+
+  class DebugErrorListener < ErrorListener
+    def text( txt )
+      print txt
+      super( txt )
+    end
+
+    def tag_start( tag, attrs )
+      print "<#{tag}>"
+      super( tag, attrs )
+    end
+
+    def tag_end( tag )
+      print "</#{tag}>"
+      super( tag )
+    end
+  end
 
 
   def initialize
@@ -107,6 +130,7 @@ class ValgrindExecutor
     $stderr.puts "* Valgrind error spotted:"
     $stderr.puts err.to_s.split("\n").map{|s| "  #{s}"}
     $stderr.puts "*"*72
+    exit(1)
   end
 
 
@@ -214,7 +238,7 @@ class FlexNBD
     Thread.start do
       Process.waitpid2( pid )
       if @kill
-        fail "flexnbd quit with a bad status #{$?.exitstatus}" unless 
+        fail "flexnbd quit with a bad status #{$?.exitstatus}" unless
           $?.exitstatus == @kill
       else
         $stderr.puts "flexnbd quit"

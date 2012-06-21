@@ -69,6 +69,11 @@ struct server {
 	struct self_pipe *   acl_updated_signal;
 	pthread_mutex_t      l_acl;
 
+	/** vacuum_signal will be sent when client threads terminate.
+	 * This is mainly to keep valgrind happy
+	 */
+	struct self_pipe *   vacuum_signal;
+
 	struct mirror_status* mirror;
 	int                  server_fd;
 	int                  control_fd;

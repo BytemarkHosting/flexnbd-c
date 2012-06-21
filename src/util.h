@@ -59,6 +59,7 @@ extern pthread_key_t cleanup_handler_key;
 		abort(); \
 	case 2: /* non-fatal error, return to context of error handler setup */ \
 		context->handler(context->data, 0); \
+		pthread_exit((void *)1);\
 	default: \
 		abort(); \
 	} \

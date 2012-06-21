@@ -29,6 +29,7 @@ void error_handler(int fatal __attribute__ ((unused)) )
 	longjmp(context->jmp, 1);
 }
 
+
 void mylog(int line_level, const char* format, ...)
 {
 	va_list argptr;

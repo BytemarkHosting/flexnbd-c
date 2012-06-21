@@ -422,6 +422,12 @@ void accept_control_connection(struct server* params, int client_fd,
 		),
 		"Failed to create client thread"
 	);
+
+	/* FIXME: This thread *really* shouldn't detach
+	 * Since it can see the server object, if listen switches mode
+	 * while this is live, Bad Things Could Happen.
+	 */
+	pthread_detach( control_thread );
 }
 
 void serve_open_control_socket(struct server* params)

@@ -81,6 +81,7 @@ struct server * server_create (
 
 	out->close_signal = self_pipe_create();
 	out->acl_updated_signal = self_pipe_create();
+	out->vacuum_signal = self_pipe_create();
 
 	NULLCHECK( out->close_signal );
 	NULLCHECK( out->acl_updated_signal );
@@ -94,6 +95,8 @@ void server_destroy( struct server * serve )
 	serve->acl_updated_signal = NULL;
 	self_pipe_destroy( serve->close_signal );
 	serve->close_signal = NULL;
+	self_pipe_destroy( serve->vacuum_signal );
+	serve->vacuum_signal = NULL;
 
 	pthread_mutex_destroy( &serve->l_acl );
 	pthread_mutex_destroy( &serve->l_io );
@@ -207,7 +210,7 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 	NULLCHECK( joinfunc );
 
 	int was_closed = 0;
-	void * status;
+	void * status=NULL;
 	int join_errno;
 
 	if (entry->thread != 0) {
@@ -222,7 +225,7 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 
 		join_errno = joinfunc(entry->thread, &status);
 		/* join_errno can legitimately be ESRCH if the thread is
-		 * already dead, but the cluent still needs tidying up. */
+		 * already dead, but the client still needs tidying up. */
 		if (join_errno != 0 && !entry->client->stopped ) {
 			FATAL_UNLESS( join_errno == EBUSY,  
 					"Problem with joining thread %p: %s", 
@@ -262,6 +265,14 @@ int cleanup_client_thread( struct client_tbl_entry * entry )
 	return tryjoin_client_thread( entry, pthread_tryjoin_np );
 }
 
+void cleanup_client_threads( struct client_tbl_entry * entries )
+{
+	int i;
+	for( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+		cleanup_client_thread( &entries[i] );
+	}
+}
+
 
 /**
  * Join a client thread after having sent a stop signal to it.
@@ -281,15 +292,13 @@ int cleanup_and_find_client_slot(struct server* params)
 {
 	NULLCHECK( params );
 
-	int slot=-1, i,j;
+	int slot=-1, i;
+
+	cleanup_client_threads( params->nbd_client );
 
 	for ( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
-		cleanup_client_thread( &params->nbd_client[i] );
-	}
-
-	for ( j = 0; j < MAX_NBD_CLIENTS; j++ ) {
-		if( params->nbd_client[j].thread == 0 && slot == -1 ){
-			slot = j;
+		if( params->nbd_client[i].thread == 0 && slot == -1 ){
+			slot = i;
 			break;
 		}
 	}
@@ -353,6 +362,48 @@ int server_should_accept_client(
 }
 
 
+struct client_cleanup {
+	pthread_t client_thread;
+	struct self_pipe * vacuum_signal;
+};
+
+
+void *client_vacuum( void * cleanup_uncast )
+{
+	pthread_detach( pthread_self() );
+	NULLCHECK( cleanup_uncast );
+	struct client_cleanup *cleanup = (struct client_cleanup *)cleanup_uncast;
+
+	pthread_join( cleanup->client_thread, NULL );
+	self_pipe_signal( cleanup->vacuum_signal );
+	free( cleanup );
+	return NULL;
+}
+
+
+/* Why do we need this rather odd arrangement?  Because if we don't have
+ * it, dead threads don't get tidied up until the next incoming
+ * connection happens.
+ */
+int spawn_client_thread( 
+	struct client * client_params, 
+	struct self_pipe * vacuum_signal, 
+	pthread_t *out_thread)
+{
+	struct client_cleanup * cleanup = xmalloc( sizeof( struct client_cleanup ) );
+	cleanup->vacuum_signal = vacuum_signal;
+	int result = pthread_create(&cleanup->client_thread, NULL, client_serve, client_params);
+
+	if ( 0 == result ){
+		pthread_t watcher;
+		pthread_create( &watcher, NULL, client_vacuum, cleanup );
+
+		*out_thread = cleanup->client_thread;
+	}
+	return result;
+}
+
+
 /** Dispatch function for accepting an NBD connection and starting a thread
   * to handle it.  Rejects the connection if there is an ACL, and the far end's
   * address doesn't match, or if there are too many clients already connected.
@@ -390,7 +441,9 @@ void accept_nbd_client(
 	memcpy(&params->nbd_client[slot].address, client_address, 
 	  sizeof(union mysockaddr));
 	
-	if (pthread_create(&params->nbd_client[slot].thread, NULL, client_serve, client_params) != 0) {
+	pthread_t * thread = &params->nbd_client[slot].thread;
+
+	if (spawn_client_thread( client_params, params->vacuum_signal, thread ) != 0) {
 		debug( "Thread creation problem." );
 		write(client_fd, "Thread creation problem", 23);
 		client_destroy( client_params );
@@ -479,6 +532,7 @@ void server_replace_acl( struct server *serve, struct acl * new_acl )
 }
 
 
+
 /** Accept either an NBD or control socket connection, dispatch appropriately */
 int server_accept( struct server * params )
 {
@@ -493,6 +547,7 @@ int server_accept( struct server * params )
 	FD_SET(params->server_fd, &fds);
 	self_pipe_fd_set( params->close_signal, &fds );
 	self_pipe_fd_set( params->acl_updated_signal, &fds );
+	self_pipe_fd_set( params->vacuum_signal, &fds );
 	if (params->control_socket_name) {
 		FD_SET(params->control_fd, &fds);
 	}
@@ -503,6 +558,11 @@ int server_accept( struct server * params )
 	if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
 		server_close_clients( params );
 		return 0;
+	}
+
+	if ( self_pipe_fd_isset( params->vacuum_signal, &fds ) ) {
+		cleanup_client_threads( params->nbd_client );
+		self_pipe_signal_clear( params->vacuum_signal );
 	}
 
 	if ( self_pipe_fd_isset( params->acl_updated_signal, &fds ) ) {
