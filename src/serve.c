@@ -91,12 +91,17 @@ struct server * server_create (
 void server_destroy( struct server * serve )
 {
 	self_pipe_destroy( serve->acl_updated_signal );
+	serve->acl_updated_signal = NULL;
 	self_pipe_destroy( serve->close_signal );
+	serve->close_signal = NULL;
 
 	pthread_mutex_destroy( &serve->l_acl );
 	pthread_mutex_destroy( &serve->l_io );
 
-	if ( serve->acl ) { acl_destroy( serve->acl ); }
+	if ( serve->acl ) { 
+		acl_destroy( serve->acl );
+		serve->acl = NULL;
+	}
 
 	free( serve );
 }
@@ -583,9 +588,6 @@ void serve_cleanup(struct server* params,
 	if (params->control_fd){ close(params->control_fd); }
 	if (params->control_socket_name){ ; }
 
-	if (params->close_signal) {
-		self_pipe_destroy( params->close_signal );
-	}
 	if (params->allocation_map) {
 		free(params->allocation_map);
 	}
