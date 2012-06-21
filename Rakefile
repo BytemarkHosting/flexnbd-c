@@ -14,9 +14,9 @@ TEST_OBJECTS = TEST_SOURCES.pathmap( "%{^tests,build/tests}X.o" )
 LIBS    = %w( pthread )
 CCFLAGS = %w(
              -D_GNU_SOURCE=1
-             -Wall 
-             -Wextra 
-             -Werror-implicit-function-declaration 
+             -Wall
+             -Wextra
+             -Werror-implicit-function-declaration
              -Wstrict-prototypes
              -Wno-missing-field-initializers
             ) # Added -Wno-missing-field-initializers to shut GCC up over {0} struct initialisers
@@ -93,7 +93,7 @@ rule 'build/flexnbd' => OBJECTS do |t|
 end
 
 
-file check("client") => 
+file check("client") =>
 %w{build/tests/check_client.o
   build/self_pipe.o
   build/nbdtypes.o
@@ -101,9 +101,9 @@ file check("client") =>
   build/readwrite.o
   build/parse.o
   build/client.o
-  build/serve.o 
+  build/serve.o
   build/acl.o
-  build/ioutil.o 
+  build/ioutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
@@ -112,7 +112,7 @@ file check("acl") =>
 %w{build/tests/check_acl.o
   build/parse.o
   build/acl.o
-  build/util.o} do |t| 
+  build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
@@ -124,9 +124,9 @@ file check("serve") =>
   build/readwrite.o
   build/parse.o
   build/client.o
-  build/serve.o 
+  build/serve.o
   build/acl.o
-  build/ioutil.o 
+  build/ioutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
@@ -149,8 +149,8 @@ end
 
 (TEST_MODULES- %w{acl client serve readwrite}).each do |m|
   tgt = "build/tests/check_#{m}.o"
-  deps = ["build/ioutil.o", "build/util.o"]
   maybe_obj_name = "build/#{m}.o"
+  deps = ["build/ioutil.o", "build/util.o"] - [maybe_obj_name]
 
   deps << maybe_obj_name if OBJECTS.include?( maybe_obj_name )
 

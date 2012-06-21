@@ -197,19 +197,27 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 	return spliced < len ? -1 : 0;
 }
 
+/* Reads single bytes from fd until either an EOF or a newline appears.
+ * If an EOF occurs before a newline, returns -1.  The line is lost.
+ * Inserts the read bytes (without the newline) into buf, followed by a
+ * trailing NULL.
+ * Returns the number of read bytes: the length of the line without the
+ * newline, plus the trailing null.
+ */
 int read_until_newline(int fd, char* buf, int bufsize)
 {
 	int cur;
-	bufsize -=1;
 	
 	for (cur=0; cur < bufsize; cur++) {
 		int result = read(fd, buf+cur, 1);
-		if (result < 0) { return -1; }
-		if (buf[cur] == 10) { break; }
+		if (result <= 0) { return -1; }
+		if (buf[cur] == 10) { 
+			buf[cur] = '\0';
+			break; 
+		}
 	}
-	buf[cur++] = 0;
 	
-	return cur;
+	return cur+1;
 }
 
 int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
@@ -221,9 +229,14 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
 	memset(line, 0, max_line_length+1);
 	
 	while (1) {
-		if (read_until_newline(fd, line, max_line_length) < 0) {
-			return lines_count;
-		}
+		int readden = read_until_newline(fd, line, max_line_length);
+		/* readden will be:
+		 * 1 for an empty line
+		 * -1 for an eof
+		 * -1 for a read error
+		 */
+		if (readden <= 1) { return lines_count; }
+		fprintf(stderr, "Mallocing for %s\n", line );
 		*lines = xrealloc(*lines, (lines_count+1) * sizeof(char*));
 		(*lines)[lines_count] = strdup(line);
 		if ((*lines)[lines_count][0] == 0) {
