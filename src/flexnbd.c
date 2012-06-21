@@ -269,7 +269,7 @@ int mode_serve( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( serve_help_text ); }
 
-	serve = server_create( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind );
+	serve = server_create( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
 	do_serve( serve );
 	server_destroy( serve );
 

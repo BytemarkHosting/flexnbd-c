@@ -61,7 +61,7 @@ void teardown( void )
 
 START_TEST( test_replaces_acl )
 {
-	struct server * s = server_create( "127.0.0.1", "0", dummy_file, NULL, 0, 0, NULL );
+	struct server * s = server_create( "127.0.0.1", "0", dummy_file, NULL, 0, 0, NULL, 1);
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
 	server_replace_acl( s, new_acl );
@@ -74,7 +74,7 @@ END_TEST
 
 START_TEST( test_signals_acl_updated )
 {
-	struct server * s = server_create( "127.0.0.1", "0", dummy_file, NULL, 0, 0, NULL );
+	struct server * s = server_create( "127.0.0.1", "0", dummy_file, NULL, 0, 0, NULL, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
 	server_replace_acl( s, new_acl );
@@ -141,7 +141,7 @@ START_TEST( test_acl_update_closes_bad_client )
 	 * and socket out of the server structure, we should be testing
 	 * a client socket.
 	 */
-	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL );
+	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 1 );
 	struct client * c;
 	struct client_tbl_entry * entry;
@@ -183,7 +183,7 @@ END_TEST
 
 START_TEST( test_acl_update_leaves_good_client )
 {
-	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL );
+	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL, 1 );
 
 	char *lines[] = {"127.0.0.1"};
 	struct acl * new_acl = acl_create( 1, lines, 1 );

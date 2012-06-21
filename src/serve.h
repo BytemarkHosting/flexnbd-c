@@ -80,11 +80,19 @@ struct server {
 	
 	struct bitset_mapping* allocation_map;
 	
-	struct client_tbl_entry nbd_client[MAX_NBD_CLIENTS];
+	int                  max_nbd_clients;
+	struct client_tbl_entry *nbd_client;
 };
 
-struct server * server_create( char* s_ip_address, char* s_port, char* s_file,
-	char *s_ctrl_sock, int default_deny, int acl_entries, char** s_acl_entries );
+struct server * server_create( 
+		char* s_ip_address, 
+		char* s_port, 
+		char* s_file,
+		char *s_ctrl_sock, 
+		int default_deny,
+		int acl_entries, 
+		char** s_acl_entries,
+		int max_nbd_clients );
 void server_destroy( struct server * );
 int server_is_closed(struct server* serve);
 void server_dirty(struct server *serve, off64_t from, int len);

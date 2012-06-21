@@ -43,10 +43,13 @@ struct server * server_create (
 	char *s_ctrl_sock,
 	int default_deny,
 	int acl_entries,
-	char** s_acl_entries )
+	char** s_acl_entries,
+	int max_nbd_clients)
 {
 	struct server * out;
 	out = xmalloc( sizeof( struct server ) );
+	out->max_nbd_clients = max_nbd_clients;
+	out->nbd_client = xmalloc( max_nbd_clients * sizeof( struct client_tbl_entry ) );
 
 	out->tcp_backlog = 10; /* does this need to be settable? */
 
@@ -108,6 +111,7 @@ void server_destroy( struct server * serve )
 
 	free( serve->filename_incomplete );
 
+	free( serve->nbd_client );
 	free( serve );
 }
 
@@ -265,10 +269,10 @@ int cleanup_client_thread( struct client_tbl_entry * entry )
 	return tryjoin_client_thread( entry, pthread_tryjoin_np );
 }
 
-void cleanup_client_threads( struct client_tbl_entry * entries )
+void cleanup_client_threads( struct client_tbl_entry * entries, size_t entries_len )
 {
 	int i;
-	for( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+	for( i = 0; i < entries_len; i++ ) {
 		cleanup_client_thread( &entries[i] );
 	}
 }
@@ -294,9 +298,9 @@ int cleanup_and_find_client_slot(struct server* params)
 
 	int slot=-1, i;
 
-	cleanup_client_threads( params->nbd_client );
+	cleanup_client_threads( params->nbd_client, params->max_nbd_clients );
 
-	for ( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+	for ( i = 0; i < params->max_nbd_clients; i++ ) {
 		if( params->nbd_client[i].thread == 0 && slot == -1 ){
 			slot = i;
 			break;
@@ -470,7 +474,7 @@ void server_audit_clients( struct server * serve)
 	 * server_accept loop will see a second acl_updated signal as
 	 * soon as it hits select, and a second audit will be run.
 	 */
-	for( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+	for( i = 0; i < serve->max_nbd_clients; i++ ) {
 		entry = &serve->nbd_client[i];
 		if ( 0 == entry->thread ) { continue; }
 		if ( server_acl_accepts( serve, &entry->address ) ) { continue; }
@@ -495,14 +499,14 @@ void server_close_clients( struct server *params )
 	int i, j;
 	struct client_tbl_entry *entry;
 
-	for( i = 0; i < MAX_NBD_CLIENTS; i++ ) {
+	for( i = 0; i < params->max_nbd_clients; i++ ) {
 		entry = &params->nbd_client[i];
 
 		if ( entry->thread != 0 ) {
 			client_signal_stop( entry->client );	
 		}
 	}
-	for( j = 0; j < MAX_NBD_CLIENTS; j++ ) {
+	for( j = 0; j < params->max_nbd_clients; j++ ) {
 		join_client_thread( &params->nbd_client[j] );
 	}
 }
@@ -561,7 +565,7 @@ int server_accept( struct server * params )
 	}
 
 	if ( self_pipe_fd_isset( params->vacuum_signal, &fds ) ) {
-		cleanup_client_threads( params->nbd_client );
+		cleanup_client_threads( params->nbd_client, params->max_nbd_clients );
 		self_pipe_signal_clear( params->vacuum_signal );
 	}
 
@@ -660,7 +664,7 @@ void serve_cleanup(struct server* params,
 		pthread_join(mirror_t, NULL);
 	}
 	
-	for (i=0; i < MAX_NBD_CLIENTS; i++) {
+	for (i=0; i < params->max_nbd_clients; i++) {
 		void* status;
 		pthread_t thread_id = params->nbd_client[i].thread;
 		
