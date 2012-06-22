@@ -25,6 +25,7 @@
  *  client code to be found in remote.c
  */
 
+#include "control.h"
 #include "serve.h"
 #include "util.h"
 #include "ioutil.h"
@@ -33,43 +34,116 @@
 #include "bitset.h"
 #include "self_pipe.h"
 #include "acl.h"
+#include "status.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <sys/un.h>
 #include <unistd.h>
 
-struct mirror_status * mirror_status_create(
-		struct server * serve, 
-		int fd,
+struct mirror_status * mirror_status_alloc(
+		union mysockaddr * connect_to,
+		union mysockaddr * connect_from,
 		int max_Bps,
-		int action_at_finish)
+		int action_at_finish,
+		struct self_pipe * commit_signal,
+		enum mirror_state * out_commit_state)
 {
-	/* FIXME: shouldn't map_fd get closed? */
-	int map_fd;
-	off64_t size;
 	struct mirror_status * mirror;
 
-	NULLCHECK( serve );
-
 	mirror = xmalloc(sizeof(struct mirror_status));
-	mirror->client = fd;
+	mirror->connect_to = connect_to;
+	mirror->connect_from = connect_from;
 	mirror->max_bytes_per_second = max_Bps;
 	mirror->action_at_finish = action_at_finish;
-	
+	mirror->commit_signal = commit_signal;
+	mirror->commit_state = out_commit_state;
+
+	return mirror;
+}
+
+void mirror_set_state_f( struct mirror_status * mirror, enum mirror_state state )
+{
+	NULLCHECK( mirror );
+	if ( mirror->commit_state ){
+		*mirror->commit_state = state;
+	}
+}
+
+#define mirror_set_state( mirror, state ) do{\
+	debug( "Mirror state => " #state );\
+	mirror_set_state_f( mirror, state );\
+} while(0)
+
+enum mirror_state mirror_get_state( struct mirror_status * mirror )
+{
+	NULLCHECK( mirror );
+	if ( mirror->commit_state ){
+		return *mirror->commit_state;
+	} else {
+		return MS_UNKNOWN;
+	}
+}
+
+
+void mirror_status_init( struct mirror_status * mirror, char * filename )
+{
+	int map_fd;
+	off64_t size;
+
+	NULLCHECK( mirror );
+	NULLCHECK( filename );
+
 	FATAL_IF_NEGATIVE(
 		open_and_mmap(
-			serve->filename, 
+			filename, 
 			&map_fd,
 			&size, 
 			(void**) &mirror->mapped
 		),
 		"Failed to open and mmap %s",
-		serve->filename
+		filename
 	);
 	
 	mirror->dirty_map = bitset_alloc(size, 4096);
-	bitset_set_range(mirror->dirty_map, 0, size);
+
+}
+
+
+/* Call this before a mirror attempt. */
+void mirror_status_reset( struct mirror_status * mirror )
+{
+	NULLCHECK( mirror );
+	NULLCHECK( mirror->dirty_map );
+	mirror_set_state( mirror, MS_INIT );
+	bitset_set(mirror->dirty_map);
+}
+
+
+struct mirror_status * mirror_status_create(
+		struct server * serve,
+		union mysockaddr * connect_to,
+		union mysockaddr * connect_from,
+		int max_Bps,
+		int action_at_finish,
+		struct self_pipe * commit_signal,
+		enum mirror_state * out_commit_state)
+{
+	/* FIXME: shouldn't map_fd get closed? */
+	struct mirror_status * mirror;
+
+	NULLCHECK( serve );
+
+	mirror = mirror_status_alloc( connect_to,
+			connect_from,
+			max_Bps,
+			action_at_finish,
+			commit_signal,
+			out_commit_state );
+	
+	mirror_status_init( mirror, serve->filename );
+	mirror_status_reset( mirror );
+
 
 	return mirror;
 }
@@ -78,7 +152,8 @@ struct mirror_status * mirror_status_create(
 void mirror_status_destroy( struct mirror_status *mirror )
 {
 	NULLCHECK( mirror );
-	close(mirror->client);
+	free(mirror->connect_to);
+	free(mirror->connect_from);
 	free(mirror->dirty_map);
 	free(mirror);
 }
@@ -155,7 +230,7 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 }
 
 
-void mirror_transfer_control( struct mirror_status * mirror )
+void mirror_give_control( struct mirror_status * mirror )
 {
 	/* TODO: set up an error handler to clean up properly on ERROR.
 	 */
@@ -196,7 +271,8 @@ void mirror_on_exit( struct server * serve )
 	 * and already-connected clients don't get needlessly
 	 * disconnected.
 	 */
-	mirror_transfer_control( serve->mirror );
+	debug( "mirror_give_control");
+	mirror_give_control( serve->mirror );
 
 	/* If we're still here, the transfer of control went ok, and the
 	 * remote is listening (or will be shortly).  We can shut the
@@ -205,6 +281,7 @@ void mirror_on_exit( struct server * serve )
 	 * It doesn't matter if we get new client connections before
 	 * now, the IO lock will stop them from doing anything.
 	 */
+	debug("serve_signal_close");
 	serve_signal_close( serve );
 
 	/* We have to wait until the server is closed before unlocking
@@ -214,34 +291,96 @@ void mirror_on_exit( struct server * serve )
 	 * guarantee the server thread will win the race and we risk the
 	 * clients seeing a "successful" write to a dead disc image.
 	 */
+	debug("serve_wait_for_close");
 	serve_wait_for_close( serve );
+	info("Mirror sent.");
 }
 
 
-/** Thread launched to drive mirror process */
-void* mirror_runner(void* serve_params_uncast)
+void mirror_cleanup( struct mirror_status * mirror,
+		int fatal __attribute__((unused)))
 {
-	int pass;
-	struct server *serve = (struct server*) serve_params_uncast;
-	uint64_t written;
+	NULLCHECK( mirror );
+	info( "Cleaning up mirror thread");
 
+	if( mirror->client && mirror->client > 0 ){
+		close( mirror->client );
+	}
+	mirror->client = -1;
+}
+
+
+
+int mirror_status_connect( struct mirror_status * mirror, off64_t local_size )
+{
+	struct sockaddr * connect_from = NULL;
+	if ( mirror->connect_from ) {
+		connect_from = &mirror->connect_from->generic;
+	}
+
+	NULLCHECK( mirror->connect_to );
+
+	mirror->client = socket_connect(&mirror->connect_to->generic, connect_from);
+	if ( 0 < mirror->client ) {
+		fd_set fds;
+		struct timeval tv = { MS_HELLO_TIME_SECS, 0};
+		FD_ZERO( &fds );
+		FD_SET( mirror->client, &fds );
+
+		FATAL_UNLESS( 0 <= select( FD_SETSIZE, &fds, NULL, NULL, &tv ),
+				"Select failed." );
+
+		if( FD_ISSET( mirror->client, &fds ) ){
+			off64_t remote_size;
+			if ( socket_nbd_read_hello( mirror->client, &remote_size ) ) {
+				if( remote_size == local_size ){
+					mirror_set_state( mirror, MS_GO );
+				}
+				else {
+					warn("Remote size (%d) doesn't match local (%d)", 
+							remote_size, local_size );
+					mirror_set_state( mirror, MS_FAIL_SIZE_MISMATCH );
+				}
+			}
+			else {
+				warn( "Mirror attempt rejected." );
+				mirror_set_state( mirror, MS_FAIL_REJECTED );
+			}
+		}
+		else {
+			warn( "No NBD Hello received." );
+			mirror_set_state( mirror, MS_FAIL_NO_HELLO );
+		}
+	}
+	else {
+		warn( "Mirror failed to connect.");
+		mirror_set_state( mirror, MS_FAIL_CONNECT );
+	}
+
+	return mirror_get_state(mirror) == MS_GO;
+}
+
+
+
+void server_run_mirror( struct server *serve )
+{
 	NULLCHECK( serve );
 	NULLCHECK( serve->mirror );
-	NULLCHECK( serve->mirror->dirty_map );
 
-	debug("Starting mirror" );
-	
+	int pass;
+	uint64_t written;
+
+	info("Starting mirror" );
 	for (pass=0; pass < mirror_maximum_passes-1; pass++) {
+
 		debug("mirror start pass=%d", pass);
-		
-		if ( !mirror_pass( serve, 1, &written ) ){
-			goto abandon_mirror;
-		}
+		if ( !mirror_pass( serve, 1, &written ) ){ return; }
 		
 		/* if we've not written anything */
 		if (written < mirror_last_pass_after_bytes_written) { break; }
 	}
 
+	mirror_set_state( serve->mirror, MS_FINALISE );
 	server_lock_io( serve );
 	{
 		if ( mirror_pass( serve, 0, &written ) &&
@@ -253,30 +392,256 @@ void* mirror_runner(void* serve_params_uncast)
 		} 
 	}
 	server_unlock_io( serve );
+}
 
-abandon_mirror:
-	mirror_status_destroy( serve->mirror );
-	serve->mirror = NULL; /* and we're gone */
+
+void mirror_signal_commit( struct mirror_status * mirror )
+{
+	NULLCHECK( mirror );
+
+	self_pipe_signal( mirror->commit_signal );
+}
+
+/** Thread launched to drive mirror process */
+void* mirror_runner(void* serve_params_uncast)
+{
+	/* The supervisor thread relies on there not being any ERROR
+	 * calls until after the mirror_signal_commit() call in this
+	 * function.
+	 * However, *after* that, we should call ERROR_* instead of
+	 * FATAL_* wherever possible.
+	 */
+	struct server *serve = (struct server*) serve_params_uncast;
+
+	NULLCHECK( serve );
+	NULLCHECK( serve->mirror );
+	struct mirror_status * mirror = serve->mirror;
+	NULLCHECK( mirror->dirty_map );
+
+	error_set_handler( (cleanup_handler *) mirror_cleanup, mirror );
+
+	info( "Connecting to mirror" );
 	
+	time_t start_time = time(NULL);
+	int connected = mirror_status_connect( mirror, serve->size );
+	mirror_signal_commit( mirror );
+	if ( !connected ) { goto abandon_mirror; }
+
+	/* After this point, if we see a failure we need to disconnect
+	 * and retry everything from mirror_set_state(_, MS_INIT), but
+	 * *without* signaling the commit or abandoning the mirror.
+	 * */
+	
+	if ( (time(NULL) - start_time) > MS_CONNECT_TIME_SECS ){ 
+		/* If we get here, then we managed to connect but the
+		 * control thread feeding status back to the user will
+		 * have gone away, leaving the user without meaningful
+		 * feedback. In this instance, they have to assume a
+		 * failure, so we can't afford to let the mirror happen.
+		 * We have to set the state to avoid a race.
+		 */
+		mirror_set_state( mirror, MS_FAIL_CONNECT );
+		warn( "Mirror connected, but too slowly" );
+		goto abandon_mirror;
+	}
+
+	server_run_mirror( serve );
+
+	mirror_set_state( mirror, MS_DONE );
+abandon_mirror:
+	return NULL;
+}
+
+
+struct mirror_super * mirror_super_create(
+		struct server * serve,
+		union mysockaddr * connect_to,
+		union mysockaddr * connect_from,
+		int max_Bps,
+		int action_at_finish,
+		enum mirror_state * out_commit_state)
+{
+	struct mirror_super * super = xmalloc( sizeof( struct mirror_super) );
+	super->mirror = mirror_status_create( serve, 
+			connect_to, 
+			connect_from, 
+			max_Bps, 
+			action_at_finish, 
+			self_pipe_create(), 
+			out_commit_state );
+	super->commit_signal = self_pipe_create();
+
+	return super;
+}
+
+void mirror_super_signal_committed( struct mirror_super * super )
+{
+	NULLCHECK( super );
+	self_pipe_signal( super->commit_signal );
+}
+
+
+void mirror_super_destroy( struct mirror_super * super )
+{
+	NULLCHECK( super );
+
+	mirror_status_destroy( super->mirror );
+	self_pipe_destroy( super->commit_signal );
+}
+
+
+/* The mirror supervisor thread.  Responsible for kicking off retries if
+ * the mirror thread fails.
+ * The mirror_status and mirror_super objects are never freed, and the
+ * mirror_super_runner thread is never joined.
+ */
+void * mirror_super_runner( void * serve_uncast )
+{
+	struct server * serve = (struct server *) serve_uncast;
+	NULLCHECK( serve );
+	NULLCHECK( serve->mirror );
+	NULLCHECK( serve->mirror_super );
+
+	int should_retry = 0;
+	int success = 0;
+	fd_set fds;
+	int fd_count;
+
+	struct mirror_status * mirror = serve->mirror;
+	struct mirror_super *  super  = serve->mirror_super;
+
+	do {
+		if ( should_retry ) { 
+			/* We don't want to hammer the destination too
+			 * hard, so if this is a retry, insert a delay. */
+			sleep( MS_RETRY_DELAY_SECS );
+
+			/* We also have to reset the bitmap to be sure
+			 * we transfer everything */
+			mirror_status_reset( mirror );
+		}
+
+		FATAL_IF( 0 != pthread_create(
+					&mirror->thread, 
+					NULL, 
+					mirror_runner, 
+					serve),
+				"Failed to create mirror thread");
+
+		debug("Supervisor waiting for commit signal");
+		FD_ZERO( &fds );
+		self_pipe_fd_set( mirror->commit_signal, &fds );
+		/* There's no timeout on this select. This means that
+		 * the mirror thread *must* signal then abort itself if
+		 * it passes the timeout, and it *must* always signal,
+		 * no matter what.
+		 */
+		fd_count = select( FD_SETSIZE, &fds, NULL, NULL, NULL );
+		if ( 1 == fd_count ) {
+			debug( "Supervisor got commit signal" );
+			if ( 0 == should_retry ) {
+				should_retry = 1;
+				/* Only send this signal the first time */
+				mirror_super_signal_committed(super);
+				debug("Mirror supervisor committed");
+			}
+		}
+		else { fatal( "Select failed." ); }
+
+		debug("Supervisor waiting for mirror thread" );
+		pthread_join( mirror->thread, NULL );
+		debug( "Clearing the commit signal. If this blocks,"
+				" it's fatal but we can't check in advance." );
+		self_pipe_signal_clear( mirror->commit_signal );
+		debug( "Commit signal cleared." );
+
+		success = MS_DONE == mirror_get_state( mirror );
+
+		if( success ){ info( "Mirror supervisor success, exiting" ); }
+		else if (should_retry){
+			warn( "Mirror failed, retrying" );
+		}
+		else { warn( "Mirror failed before commit, giving up" ); }
+	} 
+	while ( should_retry && !success );
+
+	serve->mirror = NULL;
+	serve->mirror_super = NULL;
+
+	mirror_super_destroy( super );
+	debug( "Mirror supervisor done." );
+
 	return NULL;
 }
 
 
 #define write_socket(msg) write(client->socket, (msg "\n"), strlen((msg))+1)
 
+/* We have to pass the mirror_state pointer and the commit_signal
+ * separately from the mirror itself because the mirror might have been
+ * freed by the time we get to check it */
+void mirror_watch_startup( struct control_params * client,
+		struct self_pipe * commit_signal,
+		enum mirror_state *mirror_state )
+{
+	NULLCHECK( client );
+	struct server * serve = client->serve;
+	NULLCHECK( serve );
+	struct mirror_status * mirror = serve->mirror;
+	NULLCHECK( mirror );
+
+	fd_set fds;
+	/* This gives a 61 second timeout for the mirror thread to
+	 * either fail or succeed to connect.
+	 */
+	struct timeval tv = {MS_CONNECT_TIME_SECS+1,0};
+	FD_ZERO( &fds );
+	self_pipe_fd_set( commit_signal, &fds );
+	ERROR_IF_NEGATIVE( select( FD_SETSIZE, &fds, NULL, NULL, &tv ), "Select failed.");
+
+	if ( self_pipe_fd_isset( commit_signal, &fds ) ){
+		switch (*mirror_state) {
+			case MS_INIT:
+			case MS_UNKNOWN:
+				write_socket( "1: Mirror failed to initialise" );
+				fatal( "Impossible mirror state: %d", *mirror_state );
+			case MS_FAIL_CONNECT:
+				write_socket( "1: Mirror failed to connect");
+				break;
+			case MS_FAIL_REJECTED:
+				write_socket( "1: Mirror was rejected" );
+				break;
+			case MS_FAIL_NO_HELLO:
+				write_socket( "1: Remote server failed to respond");
+				break;
+			case MS_FAIL_SIZE_MISMATCH:
+				write_socket( "1: Remote size does not match local size" );
+				break;
+			case MS_GO:
+			case MS_FINALISE:
+			case MS_DONE: /* Yes, I know we know better, but it's simpler this way */
+				write_socket( "0: Mirror started" );
+				break;
+			default:
+				fatal( "Unhandled mirror state: %d", *mirror_state );
+		}
+	} 
+	else {
+		/* Timeout.  Badness.  This "should never happen". */
+		write_socket( "1: Mirror timed out connecting to remote host" );
+	}
+}
+
 /** Command parser to start mirror process from socket input */
 int control_mirror(struct control_params* client, int linesc, char** lines)
 {
 	NULLCHECK( client );
 
-	off64_t remote_size;
 	struct server * serve = client->serve;
-	int fd;
-	struct mirror_status *mirror;
-	union mysockaddr connect_to;
-	union mysockaddr connect_from;
+	union mysockaddr *connect_to = xmalloc( sizeof( union mysockaddr ) );
+	union mysockaddr *connect_from = NULL;
 	int use_connect_from = 0;
-	uint64_t max_Bps;
+	uint64_t max_Bps = 0;
 	int action_at_finish;
 	int raw_port;
 	
@@ -286,7 +651,7 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		return -1;
 	}
 
-	if (parse_ip_to_sockaddr(&connect_to.generic, lines[0]) == 0) {
+	if (parse_ip_to_sockaddr(&connect_to->generic, lines[0]) == 0) {
 		write_socket("1: bad IP address");
 		return -1;
 	}
@@ -296,20 +661,18 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		write_socket("1: bad IP port number");
 		return -1;
 	}
-	connect_to.v4.sin_port = htobe16(raw_port);
+	connect_to->v4.sin_port = htobe16(raw_port);
 
 	if (linesc > 2) {
-		if (parse_ip_to_sockaddr(&connect_from.generic, lines[2]) == 0) {
+		connect_from = xmalloc( sizeof( union mysockaddr ) );
+		if (parse_ip_to_sockaddr(&connect_from->generic, lines[2]) == 0) {
 			write_socket("1: bad bind address");
 			return -1;
 		}
 		use_connect_from = 1;
 	}
 
-	max_Bps = 0;
-	if (linesc > 3) {
-		max_Bps = atoi(lines[2]);
-	}
+	if (linesc > 3) { max_Bps = atoi(lines[2]); }
 	
 	action_at_finish = ACTION_EXIT;
 	if (linesc > 4) {
@@ -330,35 +693,27 @@ int control_mirror(struct control_params* client, int linesc, char** lines)
 		return -1;
 	}
 
-	/** I don't like use_connect_from but socket_connect doesn't take *mysockaddr :( */
-	struct sockaddr *afrom = use_connect_from ? &connect_from.generic : NULL;
-	fd = socket_connect(&connect_to.generic, afrom);
-	
-	remote_size = socket_nbd_read_hello(fd);
-	if( remote_size != (off64_t)serve->size ){
-		warn("Remote size (%d) doesn't match local (%d)", remote_size, serve->size );
-		write_socket( "1: remote size (%d) doesn't match local (%d)");
-		close(fd);
-		return -1;
-	}
-	
-	mirror = mirror_status_create( serve,
-			fd, 
+	enum mirror_state mirror_state;
+	serve->mirror_super = mirror_super_create( serve,
+			connect_to,
+			connect_from,
 			max_Bps ,
-			action_at_finish );
-	serve->mirror = mirror;
+			action_at_finish,
+			&mirror_state );
+	serve->mirror = serve->mirror_super->mirror;
 	
 	FATAL_IF( /* FIXME should free mirror on error */
 		0 != pthread_create(
-			&mirror->thread, 
+			&serve->mirror_super->thread, 
 			NULL, 
-			mirror_runner, 
+			mirror_super_runner, 
 			serve
 		),
 		"Failed to create mirror thread"
 	);
 	
-	write_socket("0: mirror started");
+	mirror_watch_startup( client, serve->mirror_super->commit_signal, &mirror_state );
+	debug( "Control thread going away." );
 	
 	return 0;
 }
@@ -388,11 +743,19 @@ int control_acl(struct control_params* client, int linesc, char** lines)
 
 /** FIXME: add some useful statistics */
 int control_status(
-		struct control_params* client __attribute__ ((unused)), 
+		struct control_params* client, 
 		int linesc __attribute__ ((unused)), 
 		char** lines __attribute__((unused))
 		)
 {
+	NULLCHECK( client );
+	NULLCHECK( client->serve );
+	struct status * status = status_create( client->serve );
+
+	write( client->socket, "0: ", 3 );
+	status_write( status, client->socket );
+	status_destroy( status );
+
 	return 0;
 }
 
@@ -423,16 +786,19 @@ void* control_serve(void* client_uncast)
 			/* ignore failure */
 		}
 		else if (strcmp(lines[0], "acl") == 0) {
+			info("acl command received" );
 			if (control_acl(client, linesc-1, lines+1) < 0) {
 				finished = 1;
 			}
 		}
 		else if (strcmp(lines[0], "mirror") == 0) {
+			info("mirror command received" );
 			if (control_mirror(client, linesc-1, lines+1) < 0) {
 				finished = 1;
 			}
 		}
 		else if (strcmp(lines[0], "status") == 0) {
+			info("status command received" );
 			if (control_status(client, linesc-1, lines+1) < 0) {
 				finished = 1;
 			}
@@ -449,6 +815,7 @@ void* control_serve(void* client_uncast)
 	}
 	
 	control_cleanup(client, 0);
+	debug("control command handled" );
 	
 	return NULL;
 }

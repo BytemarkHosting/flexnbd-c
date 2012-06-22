@@ -10,33 +10,50 @@
 int socket_connect(struct sockaddr* to, struct sockaddr* from)
 {
 	int fd = socket(to->sa_family == AF_INET ? PF_INET : PF_INET6, SOCK_STREAM, 0);
-	FATAL_IF_NEGATIVE(fd, "Couldn't create client socket");
-
-	if (NULL != from) {
-		FATAL_IF_NEGATIVE(
-			bind(fd, from, sizeof(struct sockaddr_in6)),
-			"bind() failed"
-		);
+	if( fd < 0 ){
+		warn( "Couldn't create client socket");
+		return -1;
 	}
 
-	FATAL_IF_NEGATIVE(
-		connect(fd, to, sizeof(struct sockaddr_in6)),"connect failed"
-	);
+	if (NULL != from) {
+		if ( 0 > bind(fd, from, sizeof(struct sockaddr_in6)) ){
+			warn( "bind() failed");
+			close( fd );
+			return -1;
+		}
+	}
+
+	if ( 0 > connect(fd, to, sizeof(struct sockaddr_in6)) ) {
+		warn( "connect failed" );
+		close( fd );
+		return -1;
+	}
+
 	return fd;
 }
 
-off64_t socket_nbd_read_hello(int fd)
+int socket_nbd_read_hello(int fd, off64_t * out_size)
 {
 	struct nbd_init init;
-	FATAL_IF_NEGATIVE(readloop(fd, &init, sizeof(init)),
-	  "Couldn't read init");
+	if ( 0 > readloop(fd, &init, sizeof(init)) ) {
+		warn( "Couldn't read init" );
+		goto fail;
+	}
 	if (strncmp(init.passwd, INIT_PASSWD, 8) != 0) {
-		fatal("wrong passwd");
+		warn("wrong passwd");
+		goto fail;
 	}
 	if (be64toh(init.magic) != INIT_MAGIC) {
-		fatal("wrong magic (%x)", be64toh(init.magic));
+		warn("wrong magic (%x)", be64toh(init.magic));
+		goto fail;
 	}
-	return be64toh(init.size);
+	if ( NULL != out_size ) {
+		*out_size = be64toh(init.size);
+	}
+
+	return 1;
+fail:
+	return 0;
 }
 
 void fill_request(struct nbd_request *request, int type, int from, int len)
@@ -92,15 +109,15 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
 	struct nbd_reply   reply;
 	
 	fill_request(&request, REQUEST_WRITE, from, len);
-	FATAL_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
+	ERROR_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
 	
 	if (in_buf) {
-		FATAL_IF_NEGATIVE(writeloop(fd, in_buf, len), 
+		ERROR_IF_NEGATIVE(writeloop(fd, in_buf, len), 
 		  "Write failed");
 	}
 	else {
-		FATAL_IF_NEGATIVE(
+		ERROR_IF_NEGATIVE(
 			splice_via_pipe_loop(in_fd, fd, len),
 			"Splice failed"
 		);
@@ -137,17 +154,25 @@ int socket_nbd_disconnect( int fd )
 }
 
 #define CHECK_RANGE(error_type) { \
-	off64_t size = socket_nbd_read_hello(params->client); \
-	if (params->from < 0 || (params->from + params->len) > size) {\
-		fatal(error_type \
-		  " request %d+%d is out of range given size %d", \
-		  params->from, params->len, size\
-		); }\
+	off64_t size;\
+	int success = socket_nbd_read_hello(params->client, &size); \
+	if ( success ) {\
+		if (params->from < 0 || (params->from + params->len) > size) {\
+			fatal(error_type \
+			  " request %d+%d is out of range given size %d", \
+			  params->from, params->len, size\
+			);\
+		}\
+	}\
+	else {\
+		fatal( error_type " connection failed." );\
+	}\
 }
   
 void do_read(struct mode_readwrite_params* params)
 {
 	params->client = socket_connect(&params->connect_to.generic, &params->connect_from.generic);
+	FATAL_IF_NEGATIVE( params->client, "Couldn't connect." );
 	CHECK_RANGE("read");
 	socket_nbd_read(params->client, params->from, params->len, 
 	  params->data_fd, NULL);
@@ -157,6 +182,7 @@ void do_read(struct mode_readwrite_params* params)
 void do_write(struct mode_readwrite_params* params)
 {
 	params->client = socket_connect(&params->connect_to.generic, &params->connect_from.generic);
+	FATAL_IF_NEGATIVE( params->client, "Couldn't connect." );
 	CHECK_RANGE("write");
 	socket_nbd_write(params->client, params->from, params->len, 
 	  params->data_fd, NULL);

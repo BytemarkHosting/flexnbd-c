@@ -1,6 +1,14 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+/** CLIENT_MAX_WAIT_SECS
+ * This is the length of time an inbound migration will wait for a fresh
+ * write before assuming the source has Gone Away.  Note: it is *not*
+ * the time from one write to the next, it is the gap between the end of
+ * one write and the start of the next.
+ */
+#define CLIENT_MAX_WAIT_SECS 5
+
 
 struct client {
 	/* When we call pthread_join, if the thread is already dead

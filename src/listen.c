@@ -18,8 +18,9 @@ struct listen * listen_create(
 {
 	struct listen * listen;
 
-	listen = (struct listen *)xmalloc( sizeof( listen ) );
-	listen->init_serve = server_create( s_ip_address, 
+	listen = (struct listen *)xmalloc( sizeof( struct listen ) );
+	listen->init_serve = server_create( 
+			s_ip_address, 
 			s_port, 
 			s_file,
 			s_ctrl_sock, 
@@ -29,7 +30,7 @@ struct listen * listen_create(
 			1, 0);
 	listen->main_serve = server_create( 
 			s_rebind_ip_address ? s_rebind_ip_address : s_ip_address, 
-			s_rebind_port ? s_rebind_port : s_port, 
+			s_rebind_port ? s_rebind_port : s_port,
 			s_file,
 			s_ctrl_sock, 
 			default_deny, 

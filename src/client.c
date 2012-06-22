@@ -170,12 +170,25 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 
 	struct nbd_request_raw request_raw;
 	fd_set                 fds;
+	struct timeval         tv = {CLIENT_MAX_WAIT_SECS, 0};
+	struct timeval *       ptv;
+	int                    fd_count;
+
+	/* We want a timeout if this is an inbound migration, but not
+	 * otherwise
+	 */
+	ptv = server_is_in_control( client->serve ) ? NULL : &tv;
 	
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);
 	self_pipe_fd_set( client->stop_signal, &fds );
-	FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds, NULL, NULL, NULL), 
-	  "select() failed");
+	fd_count = select(FD_SETSIZE, &fds, NULL, NULL, ptv);
+	if ( fd_count == 0 ) {
+		/* This "can't ever happen" */
+		if ( NULL == ptv ) { fatal( "No FDs selected, and no timeout!" ); } 
+		else { error("Timed out waiting for I/O"); }
+	}
+	else if ( fd_count < 0 ) { fatal( "Select failed" ); }
 	
 	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
 		debug("Client received stop signal.");
@@ -187,8 +200,14 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 			debug("EOF reading request");
 			return 0; /* neat point to close the socket */
 		}
-		else {
-			fatal("Error reading request");
+		else { 
+			/* FIXME: I've seen this happen, but I couldn't
+			 * reproduce it so I'm leaving it here with a
+			 * better debug output in the hope it'll
+			 * spontaneously happen again.  It should
+			 * *probably* be an error() call, but I want to
+			 * be sure. */
+			fatal("Error reading request: %s", strerror( errno )); 
 		}
 	}
 

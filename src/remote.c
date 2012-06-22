@@ -6,11 +6,27 @@
 
 static const int max_response=1024;
 
+void print_response( const char * response )
+{
+	char * response_text;
+	FILE * out;
+	int exit_status;
+
+	NULLCHECK( response );
+
+	exit_status = atoi(response);
+	response_text = strchr( response, ':' ) + 2;
+
+	NULLCHECK( response_text );
+
+	out = exit_status > 0 ? stderr : stdout;
+	fprintf(out, "%s\n", response_text );
+}
+
 void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 {
 	char newline=10;
 	int i;
-	int exit_status;
 	int remote = socket(AF_UNIX, SOCK_STREAM, 0);
 	struct sockaddr_un address;
 	char response[max_response];
@@ -42,11 +58,8 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 		"Couldn't read response from %s", socket_name
 	);
 	
-	exit_status = atoi(response);
-	if (exit_status > 0) {
-		fprintf(stderr, "%s\n", strchr(response, ':')+2);
-	}
-	
+	print_response( response );
+
 	exit(atoi(response));
 	
 	close(remote);

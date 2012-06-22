@@ -79,27 +79,31 @@ void error_handler(int fatal);
 /* mylog a line at the given level (0 being most verbose) */
 void mylog(int line_level, const char* format, ...);
 
+#define levstr(i) (i==0?'D':(i==1?'I':(i==2?'W':(i==3?'E':'F'))))
+
+#define myloglev(level, msg, ...) mylog( level, "%c:%d %p %s:%d: "msg, levstr(level), getpid(),pthread_self(), __FILE__, __LINE__, ##__VA_ARGS__ )
+
 #ifdef DEBUG
-#  define debug(msg, ...) mylog(0, "%s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__)
+#  define debug(msg, ...) myloglev(0, msg, ##__VA_ARGS__)
 #else
 #  define debug(msg, ...) /* no-op */
 #endif
 
 /* informational message, not expected to be compiled out */
-#define info(msg, ...) mylog(1, "%s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__)
+#define info(msg, ...) myloglev(1, msg, ##__VA_ARGS__)
 
 /* messages that might indicate a problem */
-#define warn(msg, ...) mylog(2, "%s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__)
+#define warn(msg, ...) myloglev(2, msg, ##__VA_ARGS__)
 
 /* mylog a message and invoke the error handler to recover */
 #define error(msg, ...) do { \
-	mylog(3, "*** %s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__); \
+	myloglev(3, msg, ##__VA_ARGS__); \
 	error_handler(0); \
 } while(0)
 
 /* mylog a message and invoke the error handler to kill the current thread */
 #define fatal(msg, ...) do { \
-	mylog(4, "*** %s:%d: " msg, __FILE__, __LINE__, ##__VA_ARGS__); \
+	myloglev(4, msg, ##__VA_ARGS__); \
 	error_handler(1); \
 } while(0)
 

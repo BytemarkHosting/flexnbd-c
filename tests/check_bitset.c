@@ -140,17 +140,53 @@ START_TEST(test_bitset)
 }
 END_TEST
 
+
+START_TEST( test_bitset_set )
+{
+	struct bitset_mapping* map;
+	uint64_t *num;
+	
+	map = bitset_alloc(64, 1);
+	num = (uint64_t*) map->bits;
+
+	ck_assert_int_eq( 0x0000000000000000, *num );
+	bitset_set( map );
+	ck_assert_int_eq( 0xffffffffffffffff, *num );
+}
+END_TEST
+
+
+START_TEST( test_bitset_clear )
+{
+	struct bitset_mapping* map;
+	uint64_t *num;
+	
+	map = bitset_alloc(64, 1);
+	num = (uint64_t*) map->bits;
+
+	ck_assert_int_eq( 0x0000000000000000, *num );
+	bitset_set( map );
+	bitset_clear( map );
+	ck_assert_int_eq( 0x0000000000000000, *num );
+}
+END_TEST
+
+
 Suite* bitset_suite(void)
 {
 	Suite *s = suite_create("bitset");
-	TCase *tc_core = tcase_create("bitset");
-	tcase_add_test(tc_core, test_bit_set);
-	tcase_add_test(tc_core, test_bit_clear);
-	tcase_add_test(tc_core, test_bit_tests);
-	tcase_add_test(tc_core, test_bit_ranges);
-	tcase_add_test(tc_core, test_bit_runs);
-	tcase_add_test(tc_core, test_bitset);
-	suite_add_tcase(s, tc_core);
+	TCase *tc_bit = tcase_create("bit");
+	TCase *tc_bitset = tcase_create("bitset");
+	tcase_add_test(tc_bit, test_bit_set);
+	tcase_add_test(tc_bit, test_bit_clear);
+	tcase_add_test(tc_bit, test_bit_tests);
+	tcase_add_test(tc_bit, test_bit_ranges);
+	tcase_add_test(tc_bit, test_bit_runs);
+	tcase_add_test(tc_bitset, test_bitset);
+	tcase_add_test(tc_bitset, test_bitset_set);
+	tcase_add_test(tc_bitset, test_bitset_clear);
+	suite_add_tcase(s, tc_bit);
+	suite_add_tcase(s, tc_bitset);
 	
 	return s;
 }

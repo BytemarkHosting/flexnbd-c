@@ -1,5 +1,7 @@
 require 'socket'
 require 'thread'
+require 'open3'
+require 'timeout'
 require 'rexml/document'
 require 'rexml/streamlistener'
 
@@ -138,7 +140,7 @@ class ValgrindExecutor
   def launch_watch_thread(pid, io_r)
     Thread.start do
       io_source = REXML::IOSource.new( io_r )
-      listener = ErrorListener.new( self )
+      listener = DebugErrorListener.new( self )
       REXML::Document.parse_stream( io_source, listener )
     end
   end
@@ -190,6 +192,17 @@ class FlexNBD
   end
 
 
+  def listen_cmd( file, acl )
+    "#{@bin} listen "\
+      "--addr #{ip} "\
+      "--port #{port} "\
+      "--file #{file} "\
+      "--sock #{ctrl} "\
+      "#{@debug} "\
+      "#{acl.join(' ')}"
+  end
+
+
   def read_cmd( offset, length )
     "#{bin} read "\
       "--addr #{ip} "\
@@ -218,9 +231,16 @@ class FlexNBD
       "#{@debug} "
   end
 
-  def serve(file, *acl)
+
+  def status_cmd
+    "#{@bin} status "\
+      "--sock #{ctrl} "\
+      "#{@debug}"
+  end
+
+
+  def run_serve_cmd(cmd)
     File.unlink(ctrl) if File.exists?(ctrl)
-    cmd =serve_cmd( file, acl )
     debug( cmd )
 
     @pid = @executor.run( cmd )
@@ -233,33 +253,49 @@ class FlexNBD
     end
     at_exit { kill }
   end
+  private :run_serve_cmd
+
+
+  def serve( file, *acl)
+    run_serve_cmd( serve_cmd( file, acl ) )
+  end
+
+  def listen(file, *acl)
+    run_serve_cmd( listen_cmd( file, acl ) )
+  end
+
 
   def start_wait_thread( pid )
-    Thread.start do
-      Process.waitpid2( pid )
+    @wait_thread = Thread.start do
+      _, status = Process.waitpid2( pid )
+
       if @kill
-        fail "flexnbd quit with a bad status #{$?.exitstatus}" unless
-          $?.exitstatus == @kill
+        fail "flexnbd quit with a bad status: #{status.to_i}" unless
+          @kill.include? status.to_i
       else
-        $stderr.puts "flexnbd quit"
-        fail "flexnbd quit early"
+        $stderr.puts "flexnbd #{self.pid} quit"
+        fail "flexnbd #{self.pid} quit early with status #{status.to_i}"
       end
     end
   end
 
 
-  def can_die(status=0)
+  def can_die(*status)
+    status << 0 if status.empty?
     @kill = status
   end
 
   def kill
-    can_die()
-    begin
-      Process.kill("INT", @pid)
-    rescue Errno::ESRCH => e
-      # already dead.  Presumably this means it went away after a
-      # can_die() call.
+    can_die(2)
+    if @pid
+      begin
+        Process.kill("INT", @pid)
+      rescue Errno::ESRCH => e
+        # already dead.  Presumably this means it went away after a
+        # can_die() call.
+      end
     end
+    @wait_thread.join if @wait_thread
   end
 
   def read(offset, length)
@@ -284,20 +320,54 @@ class FlexNBD
     nil
   end
 
-  def mirror(dest_ip, dest_port, bandwidth=nil, action=nil)
+
+  def mirror_unchecked( dest_ip, dest_port, bandwidth=nil, action=nil, timeout=nil )
     cmd = mirror_cmd( dest_ip, dest_port)
     debug( cmd )
-    system cmd
-    raise IOError.new( "Migrate command failed") unless $?.success?
-    nil
+
+    maybe_timeout( cmd, timeout )
+  end
+
+  def maybe_timeout(cmd, timeout=nil )
+    stdout, stderr = "",""
+    run = Proc.new do
+      Open3.popen3( cmd ) do |io_in, io_out, io_err|
+        io_in.close
+        stdout.replace io_out.read
+        stderr.replace io_err.read
+      end
+    end
+
+    if timeout
+      Timeout.timeout(timeout, &run)
+    else
+      run.call
+    end
+
+    [stdout, stderr]
+  end
+
+
+  def mirror(dest_ip, dest_port, bandwidth=nil, action=nil)
+    stdout, stderr = mirror_unchecked( dest_ip, dest_port, bandwidth, action )
+    raise IOError.new( "Migrate command failed\n" + stderr) unless $?.success?
+
+    stdout
   end
 
   def acl(*acl)
     control_command("acl", *acl)
   end
 
-  def status
+
+  def status( timeout = nil )
+    cmd = status_cmd()
+    debug( cmd )
+
+    maybe_timeout( cmd, timeout )
+
   end
+
 
   protected
   def control_command(*args)

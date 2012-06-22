@@ -4,88 +4,25 @@ require 'test/unit'
 require 'flexnbd'
 require 'test_file_writer'
 
-class NBDScenarios < Test::Unit::TestCase
-  def setup
+class Environment
+  attr_reader( :blocksize, :filename1, :filename2, :ip,
+               :port1, :port2, :nbd1, :nbd2, :file1, :file2 )
+
+  def initialize
     @blocksize = 1024
-    @filename1 = ".flexnbd.test.#{$$}.#{Time.now.to_i}.1"
-    @filename2 = ".flexnbd.test.#{$$}.#{Time.now.to_i}.2"
+    @filename1 = "/tmp/.flexnbd.test.#{$$}.#{Time.now.to_i}.1"
+    @filename2 = "/tmp/.flexnbd.test.#{$$}.#{Time.now.to_i}.2"
     @ip = "127.0.0.1"
     @available_ports = [*40000..41000] - listening_ports
     @port1 = @available_ports.shift
     @port2 = @available_ports.shift
     @nbd1 = FlexNBD.new("../build/flexnbd", @ip, @port1)
     @nbd2 = FlexNBD.new("../build/flexnbd", @ip, @port2)
-  end
 
-  def teardown
-    [@filename1, @filename2].each do |f|
-      File.unlink(f) if File.exists?(f)
-    end
-  end
-
-  def test_read1
-    writefile1("f"*64)
-    serve1
-
-    [0, 12, 63].each do |num|
-
-      assert_equal(
-        @nbd1.read(num*@blocksize, @blocksize),
-        @file1.read(num*@blocksize, @blocksize)
-      )
-    end
-
-    [124, 1200, 10028, 25488].each do |num|
-      assert_equal(@nbd1.read(num, 4), @file1.read(num, 4))
-    end
-  end
-
-  # Check that we're not
-  #
-  def test_writeread1
-    writefile1("0"*64)
-    serve1
-
-    [0, 12, 63].each do |num|
-      data = "X"*@blocksize
-      @nbd1.write(num*@blocksize, data)
-      assert_equal(data, @file1.read(num*@blocksize, data.size))
-      assert_equal(data, @nbd1.read(num*@blocksize, data.size))
-    end
-  end
-
-  # Check that we're not overstepping or understepping where our writes end
-  # up.
-  #
-  def test_writeread2
-    writefile1("0"*1024)
-    serve1
-
-    d0 = "\0"*@blocksize
-    d1 = "X"*@blocksize
-    (0..63).each do |num|
-      @nbd1.write(num*@blocksize*2, d1)
-    end
-    (0..63).each do |num|
-      assert_equal(d0, @nbd1.read(((2*num)+1)*@blocksize, d0.size))
-    end
+    @fake_pid = nil
   end
 
 
-  def test_mirror
-    writefile1( "f"*4 )
-    serve1
-
-    writefile2( "0"*4 )
-    serve2
-
-    @nbd1.can_die
-    mirror12
-    assert_equal(@file1.read_original( 0, @blocksize ),
-                 @file2.read( 0, @blocksize ) )
-  end
-
-  protected
   def serve1(*acl)
     @nbd1.serve(@filename1, *acl)
   end
@@ -94,9 +31,59 @@ class NBDScenarios < Test::Unit::TestCase
     @nbd2.serve(@filename2, *acl)
   end
 
+
+  def listen1( *acl )
+    @nbd1.listen( @filename1, *acl )
+  end
+
+  def listen2( *acl )
+    @nbd2.listen( @filename2, *acl )
+  end
+
+
+  def parse_status( status )
+    hsh = {}
+
+    status.split(" ").each do |part|
+      next if part.strip.empty?
+      a,b = part.split("=")
+      b.strip!
+      b = true if b == "true"
+      b = false if b == "false"
+
+      hsh[a.strip] = b
+    end
+
+    hsh
+  end
+
+
+  def status( nbd )
+    stdout, stderr = nbd.status
+    [parse_status(stdout), stderr]
+  end
+
+  def status1
+    status( @nbd1 )
+  end
+
+  def status2
+    puts "Getting status"
+    result = status( @nbd2 )
+    puts "Got status"
+    return result
+  end
+
+
+
   def mirror12
     @nbd1.mirror( @nbd2.ip, @nbd2.port )
   end
+
+  def mirror12_unchecked
+    @nbd1.mirror_unchecked( @nbd2.ip, @nbd2.port, nil, nil, 10 )
+  end
+
 
   def writefile1(data)
     @file1 = TestFileWriter.new(@filename1, @blocksize).write(data)
@@ -114,5 +101,232 @@ class NBDScenarios < Test::Unit::TestCase
       map { |x| x.split(/\s+/) }[2..-1].
       map { |l| l[3].split(":")[-1].to_i }
   end
+
+
+  def cleanup
+    if @fake_pid
+      begin
+        Process.waitpid2( @fake_pid )
+      rescue Errno::ESRCH
+      end
+    end
+
+
+    @nbd1.kill
+    @nbd2.kill
+
+    [@filename1, @filename2].each do |f|
+      File.unlink(f) if File.exists?(f)
+    end
+  end
+
+
+  def run_fake( name, addr, port )
+    fakedir = File.join( File.dirname( __FILE__ ), "fakes" )
+    fake = Dir[File.join( fakedir, name ) + "*"].sort.find { |fn|
+      File.executable?( fn )
+    }
+
+    raise "no fake executable" unless fake
+    raise "no addr" unless addr
+    raise "no port" unless port
+    @fake_pid = fork do
+      exec fake + " " + addr.to_s + " " + port.to_s
+    end
+    sleep(0.5)
+  end
+
+
+  def fake_reports_success
+    _,status = Process.waitpid2( @fake_pid )
+    @fake_pid = nil
+    status.success?
+  end
+
+
+end # class Environment
+
+
+class NBDScenarios < Test::Unit::TestCase
+  def setup
+    @env = Environment.new
+  end
+
+  def teardown
+    @env.cleanup
+  end
+
+
+  def test_read1
+    @env.writefile1("f"*64)
+    @env.serve1
+
+    [0, 12, 63].each do |num|
+
+      assert_equal(
+        @env.nbd1.read(num*@env.blocksize, @env.blocksize),
+        @env.file1.read(num*@env.blocksize, @env.blocksize)
+      )
+    end
+
+    [124, 1200, 10028, 25488].each do |num|
+      assert_equal(@env.nbd1.read(num, 4), @env.file1.read(num, 4))
+    end
+  end
+
+  # Check that we're not
+  #
+  def test_writeread1
+    @env.writefile1("0"*64)
+    @env.serve1
+
+    [0, 12, 63].each do |num|
+      data = "X"*@env.blocksize
+      @env.nbd1.write(num*@env.blocksize, data)
+      assert_equal(data, @env.file1.read(num*@env.blocksize, data.size))
+      assert_equal(data, @env.nbd1.read(num*@env.blocksize, data.size))
+    end
+  end
+
+  # Check that we're not overstepping or understepping where our writes end
+  # up.
+  #
+  def test_writeread2
+    @env.writefile1("0"*1024)
+    @env.serve1
+
+    d0 = "\0"*@env.blocksize
+    d1 = "X"*@env.blocksize
+    (0..63).each do |num|
+      @env.nbd1.write(num*@env.blocksize*2, d1)
+    end
+    (0..63).each do |num|
+      assert_equal(d0, @env.nbd1.read(((2*num)+1)*@env.blocksize, d0.size))
+    end
+  end
+
+
+  def test_mirror
+    @env.writefile1( "f"*4 )
+    @env.serve1
+
+    @env.writefile2( "0"*4 )
+    @env.listen2
+
+    @env.nbd1.can_die
+    stdout, stderr = @env.mirror12
+
+    assert_equal(@env.file1.read_original( 0, @env.blocksize ),
+                 @env.file2.read( 0, @env.blocksize ) )
+    assert @env.status2['has_control'], "destination didn't take control"
+  end
+
 end
 
+
+class NBDConnectSourceFailureScenarios < Test::Unit::TestCase
+  def setup
+    @env = Environment.new
+    @env.writefile1( "f" * 4 )
+    @env.serve1
+
+  end
+
+  def teardown
+    @env.cleanup
+  end
+
+
+  def test_failure_to_connect_reported_in_mirror_cmd_response
+    stdout, stderr = @env.mirror12_unchecked
+    assert_match( /failed to connect/, stderr )
+  end
+
+
+  def test_destination_hangs_after_connect_reports_error_at_source
+    @env.run_fake( "dest/hang_after_connect", @env.ip, @env.port2 )
+
+    stdout, stderr = @env.mirror12_unchecked
+    assert_match( /Remote server failed to respond/, stderr )
+    assert @env.fake_reports_success
+  end
+
+
+  def test_destination_rejects_connection_reports_error_at_source
+    @env.run_fake( "dest/reject_acl", @env.ip, @env.port2 )
+
+    stdout, stderr = @env.mirror12_unchecked
+    assert_match /Mirror was rejected/, stderr
+    assert @env.fake_reports_success
+  end
+
+  def test_wrong_size_causes_disconnect
+    @env.run_fake( "dest/hello_wrong_size", @env.ip, @env.port2 )
+    stdout, stderr = @env.mirror12_unchecked
+    assert_match /Remote size does not match local size/, stderr
+    assert @env.fake_reports_success
+  end
+
+
+  def test_wrong_magic_causes_disconnect
+    @env.run_fake( "dest/hello_wrong_magic", @env.ip, @env.port2 )
+    stdout, stderr = @env.mirror12_unchecked
+    assert_match /Mirror was rejected/, stderr
+    assert @env.fake_reports_success, "dest/hello_wrong_magic fake failed"
+  end
+
+
+  def test_disconnect_after_hello_causes_retry
+    @env.run_fake( "dest/close_after_hello", @env.ip, @env.port2 )
+    stdout, stderr = @env.mirror12_unchecked
+    assert_match( /Mirror started/, stdout )
+
+    assert @env.fake_reports_success
+  end
+end
+
+
+class NBDConnectDestFailureScenarios < Test::Unit::TestCase
+
+  def setup
+    @env = Environment.new
+    @env.writefile1( "0" * 4 )
+    @env.listen1
+  end
+
+  def teardown
+    @env.cleanup
+  end
+
+
+  def test_hello_blocked_by_disconnect_causes_error_not_fatal
+    run_fake( "source/close_after_connect" )
+    assert_no_control
+  end
+
+
+  def test_hello_goes_astray_causes_timeout_error
+    run_fake( "source/hang_after_hello" )
+    assert_no_control
+  end
+
+
+  def test_disconnect_after_hello_causes_error_not_fatal
+    run_fake( "source/close_after_hello" )
+    assert_no_control
+  end
+
+
+  private
+  def run_fake( name )
+    @env.run_fake( name, @env.ip, @env.port1 )
+    assert @env.fake_reports_success
+  end
+
+  def assert_no_control
+    status, stderr = @env.status1
+    assert !status['has_control'],  "Thought it had control"
+  end
+
+
+end # class NBDConnectDestFailureScenarios

@@ -240,8 +240,8 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 					strerror(join_errno) );
 		}
 		else {
-			debug("nbd thread %p exited (%s) with status %ld", 
-					(int) entry->thread, 
+			debug("nbd thread %016x exited (%s) with status %ld", 
+					entry->thread, 
 					s_client_address, 
 					(uint64_t)status);
 			client_destroy( entry->client );
@@ -339,7 +339,6 @@ int server_acl_accepts( struct server *params, union mysockaddr * client_address
 
 int server_should_accept_client( 
 		struct server * params, 
-		int client_fd, 
 		union mysockaddr * client_address,
 		char *s_client_address,
 		size_t s_client_address_len )
@@ -351,17 +350,15 @@ int server_should_accept_client(
 	if (inet_ntop(client_address->generic.sa_family,
 				sockaddr_address_data(&client_address->generic),
 				s_client_address, s_client_address_len ) == NULL) {
-		debug( "Rejecting client %s: Bad client_address", s_client_address );
-		write(client_fd, "Bad client_address", 18);
+		warn( "Rejecting client %s: Bad client_address", s_client_address );
 		return 0;
 	}
 
 	if ( !server_acl_accepts( params, client_address ) ) {
-		debug( "Rejecting client %s: Access control error", s_client_address );
+		warn( "Rejecting client %s: Access control error", s_client_address );
 		debug( "We %s have an acl, and default_deny is %s", 
 				(params->acl ? "do" : "do not"),
 				(params->acl->default_deny ? "true" : "false") );
- 		write(client_fd, "Access control error", 20);
  		return 0;
 	}
 
@@ -428,7 +425,7 @@ void accept_nbd_client(
 	char s_client_address[64] = {0};
 
 
-	if ( !server_should_accept_client( params, client_fd, client_address, s_client_address, 64 ) ) {
+	if ( !server_should_accept_client( params, client_address, s_client_address, 64 ) ) {
 		close( client_fd );
 		return;
 	}
@@ -436,7 +433,6 @@ void accept_nbd_client(
 	slot = cleanup_and_find_client_slot(params); 
 	if (slot < 0) {
 		warn("too many clients to accept connection");
-		write(client_fd, "Too many clients", 16);
 		close(client_fd);
 		return;
 	}
@@ -452,7 +448,6 @@ void accept_nbd_client(
 
 	if (spawn_client_thread( client_params, params->vacuum_signal, thread ) != 0) {
 		debug( "Thread creation problem." );
-		write(client_fd, "Thread creation problem", 23);
 		client_destroy( client_params );
 		close(client_fd);
 		return;
@@ -474,7 +469,7 @@ void server_audit_clients( struct server * serve)
 	 * won't have been audited against the later acl.  This isn't a
 	 * problem though, because in order to update the acl
 	 * server_replace_acl must have been called, so the
-	 * server_accept loop will see a second acl_updated signal as
+	 * server_accept ioop will see a second acl_updated signal as
 	 * soon as it hits select, and a second audit will be run.
 	 */
 	for( i = 0; i < serve->max_nbd_clients; i++ ) {
@@ -544,7 +539,7 @@ void server_replace_acl( struct server *serve, struct acl * new_acl )
 int server_accept( struct server * params )
 {
 	NULLCHECK( params );
-	info("accept loop starting");
+	debug("accept loop starting");
 	int              client_fd;
 	union mysockaddr client_address;
 	fd_set           fds;
@@ -595,6 +590,7 @@ int server_accept( struct server * params )
 
 void serve_accept_loop(struct server* params) 
 {
+	NULLCHECK( params );
 	while( server_accept( params ) );
 }
 
@@ -681,7 +677,16 @@ void serve_cleanup(struct server* params,
 			pthread_join(thread_id, &status);
 		}
 	}
+	debug( "Cleanup done");
 }
+
+
+int server_is_in_control( struct server *serve )
+{
+	NULLCHECK( serve );
+	return serve->has_control;
+}
+
 
 /** Full lifecycle of the server */
 int do_serve(struct server* params)
@@ -697,6 +702,7 @@ int do_serve(struct server* params)
 	serve_accept_loop(params);
 	has_control = params->has_control;
 	serve_cleanup(params, 0);
+	debug("Server %s control.", has_control ? "has" : "does not have" );
 
 	return has_control;
 }

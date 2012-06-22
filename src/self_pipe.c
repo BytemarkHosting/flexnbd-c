@@ -31,11 +31,11 @@
 
 void self_pipe_server_error( int err, char *msg )
 {
-	char errbuf[1024];
+	char errbuf[1024] = {0};
 
 	strerror_r( err, errbuf, 1024 );
 
-	fatal( "%s\t%s", msg, errbuf );
+	fatal( "%s\t%d (%s)", msg, err, errbuf );
 }
 
 /**
@@ -87,6 +87,10 @@ struct self_pipe * self_pipe_create(void)
  */
 int self_pipe_signal( struct self_pipe * sig )
 {
+	NULLCHECK( sig );
+	FATAL_IF( 1 == sig->write_fd, "Shouldn't be writing to stdout" );
+	FATAL_IF( 2 == sig->write_fd, "Shouldn't be writing to stderr" );
+
 	int written = write( sig->write_fd, "X", 1 );
 	if ( written != 1 ) {
 		self_pipe_server_error( errno, ERR_MSG_WRITE );

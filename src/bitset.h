@@ -120,6 +120,17 @@ static inline void bitset_set_range(
 	bit_set_range(set->bits, first, bitlen);
 }
 
+
+/** Set every bit in the bitset. */
+static inline void bitset_set(
+	struct bitset_mapping* set
+)
+{
+	bitset_set_range(set, 0, set->size);
+}
+
+
+
 /** Clear the bits in a bitset which correspond to the given bytes in the 
   * larger file.
   */
@@ -131,6 +142,16 @@ static inline void bitset_clear_range(
 	INT_FIRST_AND_LAST;
 	bit_clear_range(set->bits, first, bitlen);
 }
+
+
+/** Clear every bit in the bitset. */
+static inline void bitset_clear(
+		struct bitset_mapping *set
+)
+{
+	bitset_clear_range(set, 0, set->size);
+}
+
 
 /** Counts the number of contiguous bytes that are represented as a run in
   * the bit field.

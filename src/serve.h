@@ -15,10 +15,24 @@ enum mirror_finish_action {
 	ACTION_NOTHING
 };
 
+enum mirror_state {
+	MS_UNKNOWN,
+	MS_INIT,
+	MS_GO,
+	MS_FINALISE,
+	MS_DONE,
+	MS_FAIL_CONNECT,
+	MS_FAIL_REJECTED,
+	MS_FAIL_NO_HELLO,
+	MS_FAIL_SIZE_MISMATCH
+};
+
 struct mirror_status {
 	pthread_t            thread;
 	/* set to 1, then join thread to make mirror terminate early */
 	int                  signal_abandon;
+	union mysockaddr *   connect_to;
+	union mysockaddr *   connect_from;
 	int                  client;
 	char                 *filename;
 	off64_t              max_bytes_per_second;
@@ -26,7 +40,25 @@ struct mirror_status {
 	
 	char                 *mapped;
 	struct bitset_mapping *dirty_map;
+
+	/* Pass a commit state pointer, then it will be updated
+	 * immediately before commit_signal is sent.
+	 */
+	enum mirror_state *  commit_state;
+
+	/* commit_signal is sent immediately after attempting to connect
+	 * and checking the remote size, whether successful or not.
+	 */
+	struct self_pipe *   commit_signal;
 };
+
+
+struct mirror_super {
+	struct mirror_status * mirror;
+	struct self_pipe * commit_signal;
+	pthread_t thread;
+};
+
 
 struct control_params {
 	int                       socket;
@@ -75,6 +107,7 @@ struct server {
 	struct self_pipe *   vacuum_signal;
 
 	struct mirror_status* mirror;
+	struct mirror_super * mirror_super; 
 	int                  server_fd;
 	int                  control_fd;
 	
@@ -110,6 +143,7 @@ void serve_signal_close( struct server *serve );
 void serve_wait_for_close( struct server * serve );
 void server_replace_acl( struct server *serve, struct acl * acl);
 void server_control_arrived( struct server *serve );
+int server_is_in_control( struct server *serve );
 
 int do_serve( struct server * );
 
