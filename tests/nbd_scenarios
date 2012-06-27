@@ -263,6 +263,8 @@ class NBDConnectSourceFailureScenarios < Test::Unit::TestCase
 
     assert @env.fake_reports_success
   end
+
+
 end
 
 
@@ -280,23 +282,25 @@ class NBDConnectDestFailureScenarios < Test::Unit::TestCase
 
 
   def test_hello_blocked_by_disconnect_causes_error_not_fatal
-    @env.nbd1.can_die(1)
     run_fake( "source/close_after_connect" )
     assert_no_control
   end
 
 
   def test_hello_goes_astray_causes_timeout_error
-    @env.nbd1.can_die(1)
     run_fake( "source/hang_after_hello" )
     assert_no_control
   end
 
 
   def test_disconnect_after_hello_causes_error_not_fatal
-    @env.nbd1.can_die(1)
     run_fake( "source/close_after_hello" )
     assert_no_control
+  end
+
+
+  def test_double_connect_during_hello
+    run_fake( "source/connect_during_hello" )
   end
 
 

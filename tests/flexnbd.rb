@@ -313,7 +313,9 @@ class FlexNBD
   end
 
   def kill
-    can_die(2)
+    # At this point, to a certain degree we don't care what the exit
+    # status is
+    can_die(1)
     if @pid
       begin
         Process.kill("INT", @pid)
