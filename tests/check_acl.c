@@ -212,7 +212,11 @@ Suite* acl_suite(void)
 
 int main(void)
 {
+#ifdef DEBUG
 	log_level = 0;
+#else
+	log_level = 2;
+#endif
 	int number_failed;
 	Suite *s = acl_suite();
 	SRunner *sr = srunner_create(s);
