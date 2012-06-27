@@ -7,30 +7,11 @@
 # listening for an incoming migration.
 
 addr, port = *ARGV
-require 'socket'
-require 'timeout'
+require "flexnbd/fake_source"
+include FlexNBD::FakeSource
 
-require "flexnbd/constants"
-
-
-client_sock=nil
-begin
-  Timeout.timeout(2) do
-    client_sock = TCPSocket.open( addr, port )
-  end
-rescue Timeout::Error
-  $stderr.puts "Timed out connecting"
-  exit 1
-end
-
-begin
-  Timeout.timeout(FlexNBD::MS_HELLO_TIME_SECS) do
-    client_sock.read(152)
-  end
-rescue Timeout::Error
-  $stderr.puts "Timed out reading hello"
-  exit 1
-end
+client_sock = connect( addr, port, "Timed out connecting" )
+read_hello( client_sock )
 
 # Now we do two things:
 
@@ -44,19 +25,8 @@ kidpid = fork do
   client_sock.close
   new_sock = nil
   sleep( FlexNBD::CLIENT_MAX_WAIT_SECS + 1 )
-  begin
-    Timeout.timeout( 2 ) do
-      new_sock = TCPSocket.open( addr, port )
-    end
-    Timeout.timeout( FlexNBD::MS_HELLO_TIME_SECS ) do
-      fail "No hello." unless (hello = new_sock.read( 152 )) &&
-          hello.length==152
-    end
-    new_sock.close
-  rescue Timeout::Error
-    $stderr.puts "Timed out reconnecting"
-    exit 1
-  end
+  new_sock = connect( addr, port, "Timed out reconnecting." )
+  read_hello( new_sock )
   exit 0
 end
 

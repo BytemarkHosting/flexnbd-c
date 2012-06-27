@@ -6,27 +6,19 @@
 # It then connects again, to check that the destination is still
 # listening.
 
+require 'flexnbd/fake_source'
+include FlexNBD::FakeSource
+
 addr, port = *ARGV
-require 'socket'
-require 'timeout'
 
-begin
-  Timeout.timeout( 2 ) do
-    sock = TCPSocket.open( addr, port.to_i )
-    sock.close
-  end
-rescue Timeout::Error
-  $stderr.puts "Failed to connect"
-  exit 1
-end
 
-Timeout.timeout( 3 ) do
+connect( addr, port, "Failed to connect" ).close
   # Sleep to be sure we don't try to connect too soon. That wouldn't
   # be a problem for the destination, but it would prevent us from
-  # determining success or failure here.
-  sleep 0.5
-  sock = TCPSocket.open( addr, port.to_i )
-  sock.close
-end
+  # determining success or failure here in the case where we try to
+  # reconnect before the destination has tidied up after the first
+  # thread went away.
+sleep(0.5)
+connect( addr, port, "Failed to reconnect" ).close
 
 exit 0
