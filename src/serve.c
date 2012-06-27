@@ -512,10 +512,13 @@ int server_accept( struct server * params )
 	union mysockaddr client_address;
 	fd_set           fds;
 	socklen_t        socklen=sizeof(client_address);
+	/* We select on this fd to receive OS signals (only a few of
+	 * which we're interested in, see flexnbd.c */
+	int              signal_fd = flexnbd_signal_fd( params->flexnbd );
 
 	FD_ZERO(&fds);
 	FD_SET(params->server_fd, &fds);
-	FD_SET(flexnbd_signal_fd( params->flexnbd ), &fds);
+	if( 0 <  signal_fd ) { FD_SET(signal_fd, &fds); }
 	self_pipe_fd_set( params->close_signal, &fds );
 	self_pipe_fd_set( params->acl_updated_signal, &fds );
 
@@ -527,7 +530,7 @@ int server_accept( struct server * params )
 		return 0;
 	}
 
-	if ( FD_ISSET( flexnbd_signal_fd( params->flexnbd ), &fds ) ){
+	if ( 0 < signal_fd && FD_ISSET( signal_fd, &fds ) ){
 		debug( "Stop signal received." );
 		server_close_clients( params );
 		return 0;

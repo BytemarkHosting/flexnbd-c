@@ -145,6 +145,7 @@ START_TEST( test_acl_update_closes_bad_client )
 	 * a client socket.
 	 */
 	struct flexnbd flexnbd;
+	flexnbd.signal_fd = -1;
 	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 1 );
 	struct client * c;
