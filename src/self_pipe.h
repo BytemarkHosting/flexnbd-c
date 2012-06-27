@@ -1,3 +1,4 @@
+#ifndef SELF_PIPE_H
 #define SELF_PIPE_H
 
 #include <sys/select.h>
@@ -14,3 +15,5 @@ int self_pipe_signal_clear( struct self_pipe *sig );
 int self_pipe_destroy( struct self_pipe * sig );
 int self_pipe_fd_set( struct self_pipe * sig, fd_set * fds );
 int self_pipe_fd_isset( struct self_pipe *sig, fd_set *fds );
+
+#endif

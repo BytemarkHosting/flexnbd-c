@@ -89,6 +89,11 @@ int acl_includes( struct acl * acl, union mysockaddr * addr )
 	}
 }
 
+int acl_default_deny( struct acl * acl )
+{
+	NULLCHECK( acl );
+	return acl->default_deny;
+}
 
 void acl_destroy( struct acl * acl )
 {

@@ -1,13 +1,16 @@
 #include <check.h>
+#include <stdio.h>
 
 #include "self_pipe.h"
 #include "nbdtypes.h"
 
+#include "serve.h"
 #include "client.h"
 
 #include <unistd.h>
 
-#define FAKE_SERVER ((struct server *)23)
+struct server fake_server = {0};
+#define FAKE_SERVER &fake_server
 #define FAKE_SOCKET (42)
 
 START_TEST( test_assigns_socket )

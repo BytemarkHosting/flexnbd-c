@@ -3,6 +3,7 @@
 
 #include "self_pipe.h"
 #include "client.h"
+#include "flexnbd.h"
 
 #include <stdlib.h>
 #include <check.h>
@@ -61,7 +62,8 @@ void teardown( void )
 
 START_TEST( test_replaces_acl )
 {
-	struct server * s = server_create( "127.0.0.1", "0", dummy_file, NULL, 0, 0, NULL, 1);
+	struct flexnbd flexnbd;
+	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
 	server_replace_acl( s, new_acl );
@@ -74,7 +76,8 @@ END_TEST
 
 START_TEST( test_signals_acl_updated )
 {
-	struct server * s = server_create( "127.0.0.1", "0", dummy_file, NULL, 0, 0, NULL, 1 );
+	struct flexnbd flexnbd;
+	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
 	server_replace_acl( s, new_acl );
@@ -141,7 +144,8 @@ START_TEST( test_acl_update_closes_bad_client )
 	 * and socket out of the server structure, we should be testing
 	 * a client socket.
 	 */
-	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL, 1 );
+	struct flexnbd flexnbd;
+	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 1 );
 	struct client * c;
 	struct client_tbl_entry * entry;
@@ -168,12 +172,12 @@ START_TEST( test_acl_update_closes_bad_client )
 
 	server_replace_acl( s, new_acl );
 
+	/* accept again, so that we can react to the acl replacement signal */
 	server_accept( s );
 
-	pthread_join( entry->thread, NULL );
+	/* Fail if we time out here */
+	while( !fd_is_closed( server_fd ) );
 
-	myfail_unless( fd_is_closed(server_fd),
-			"Client socket wasn't closed." );
 	close( client_fd );
 	server_close_clients( s );
 	server_destroy( s );
@@ -183,7 +187,8 @@ END_TEST
 
 START_TEST( test_acl_update_leaves_good_client )
 {
-	struct server * s = server_create( "127.0.0.7", "0", dummy_file, NULL, 0, 0, NULL, 1 );
+	struct flexnbd flexnbd;
+	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 1 );
 
 	char *lines[] = {"127.0.0.1"};
 	struct acl * new_acl = acl_create( 1, lines, 1 );
@@ -243,6 +248,7 @@ Suite* serve_suite(void)
 int main(void)
 {
 	log_level = LOG_LEVEL;
+	error_init();
 	int number_failed;
 	Suite *s = serve_suite();
 	SRunner *sr = srunner_create(s);

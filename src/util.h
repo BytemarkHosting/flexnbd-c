@@ -6,6 +6,8 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 void* xrealloc(void* ptr, size_t size);
 void* xmalloc(size_t size);
@@ -17,6 +19,9 @@ extern int log_level;
 
 /* set up the error globals */
 void error_init(void);
+
+
+void exit_err( const char * );
 
 /* error_set_handler must be a macro not a function due to setjmp stack rules */
 #include <setjmp.h>
@@ -52,8 +57,9 @@ extern pthread_key_t cleanup_handler_key;
 	case 0: /* setup time */ \
  		if (old) { free(old); }\
 		if( EINVAL == pthread_setspecific(cleanup_handler_key, context) ) { \
-			fprintf(stderr, "Tried to set an error handler" \
-					" without calling error_init().\n");\
+			fprintf(stderr, "Tried to set an error handler at %s:%d" \
+					" without calling error_init().\n", \
+					__FILE__, __LINE__ );\
 			abort();\
 		}\
 		break; \

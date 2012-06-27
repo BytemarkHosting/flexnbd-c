@@ -12,12 +12,21 @@ class Executor
   attr_reader :pid
 
   def run( cmd )
-    @pid = fork do exec @cmd end
+    @pid = fork do exec cmd end
   end
 end # class Executor
 
 
 class ValgrindExecutor
+  attr_reader :pid
+
+  def run( cmd )
+    @pid = fork do exec "valgrind --track-origins=yes #{cmd}" end
+  end
+end # class ValgrindExecutor
+
+
+class ValgrindKillingExecutor
   attr_reader :pid
 
   class Error
@@ -137,10 +146,15 @@ class ValgrindExecutor
 
 
   private
+
+  def pick_listener
+    ENV['DEBUG'] ? DebugErrorListener : ErrorListener
+  end
+
   def launch_watch_thread(pid, io_r)
     Thread.start do
       io_source = REXML::IOSource.new( io_r )
-      listener = DebugErrorListener.new( self )
+      listener = pick_listener.new( self )
       REXML::Document.parse_stream( io_source, listener )
     end
   end
@@ -160,15 +174,28 @@ class FlexNBD
     end
   end
 
+  def pick_executor
+    kls = if ENV['VALGRIND']
+      if ENV['VALGRIND'] =~ /kill/
+        ValgrindKillingExecutor
+      else
+        ValgrindExecutor
+      end
+    else
+      Executor
+    end
+  end
+
+
   def initialize(bin, ip, port)
     @bin  = bin
-    @debug = `#{@bin} serve --help` =~ /--verbose/ ? "--verbose" : ""
+    @debug = (ENV['DEBUG'] && `#{@bin} serve --help` =~ /--verbose/) ? "--verbose" : ""
     raise "#{bin} not executable" unless File.executable?(bin)
-    @executor = ENV['VALGRIND'] ? ValgrindExecutor.new : Executor.new
+    @executor = pick_executor.new
     @ctrl = "/tmp/.flexnbd.ctrl.#{Time.now.to_i}.#{rand}"
     @ip = ip
     @port = port
-    @kill = false
+    @kill = []
   end
 
 
@@ -193,7 +220,7 @@ class FlexNBD
 
 
   def listen_cmd( file, acl )
-    "#{@bin} listen "\
+    "#{bin} listen "\
       "--addr #{ip} "\
       "--port #{port} "\
       "--file #{file} "\
@@ -270,8 +297,8 @@ class FlexNBD
       _, status = Process.waitpid2( pid )
 
       if @kill
-        fail "flexnbd quit with a bad status: #{status.to_i}" unless
-          @kill.include? status.to_i
+        fail "flexnbd quit with a bad status: #{status.exitstatus}" unless
+          @kill.include? status.exitstatus
       else
         $stderr.puts "flexnbd #{self.pid} quit"
         fail "flexnbd #{self.pid} quit early with status #{status.to_i}"
@@ -281,8 +308,8 @@ class FlexNBD
 
 
   def can_die(*status)
-    status << 0 if status.empty?
-    @kill = status
+    status = [0] if status.empty?
+    @kill += status
   end
 
   def kill
@@ -320,6 +347,10 @@ class FlexNBD
     nil
   end
 
+
+  def join
+    @wait_thread.join
+  end
 
   def mirror_unchecked( dest_ip, dest_port, bandwidth=nil, action=nil, timeout=nil )
     cmd = mirror_cmd( dest_ip, dest_port)
@@ -364,8 +395,9 @@ class FlexNBD
     cmd = status_cmd()
     debug( cmd )
 
-    maybe_timeout( cmd, timeout )
+    o,e = maybe_timeout( cmd, timeout )
 
+    [parse_status(o), e]
   end
 
 
@@ -379,5 +411,24 @@ class FlexNBD
       return [code, message]
     end
   end
+
+
+  def parse_status( status )
+    hsh = {}
+
+    status.split(" ").each do |part|
+      next if part.strip.empty?
+      a,b = part.split("=")
+      b.strip!
+      b = true if b == "true"
+      b = false if b == "false"
+
+      hsh[a.strip] = b
+    end
+
+    hsh
+  end
+
+
 end
 

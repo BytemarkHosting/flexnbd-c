@@ -2,6 +2,8 @@ $: << '../rake_utils/lib'
 require 'rake_utils/debian'
 include RakeUtils::DSL
 
+CC=ENV['CC'] || "gcc"
+
 DEBUG  = ENV.has_key?('DEBUG') &&
   %w|yes y ok 1 true t|.include?(ENV['DEBUG'])
 
@@ -71,13 +73,13 @@ end
 
 def gcc_compile( target, source )
   FileUtils.mkdir_p File.dirname( target )
-  sh "gcc -Isrc -c #{CCFLAGS.join(' ')} -o #{target} #{source} "
+  sh "#{CC} -Isrc -c #{CCFLAGS.join(' ')} -o #{target} #{source} "
 end
 
 def gcc_link(target, objects)
   FileUtils.mkdir_p File.dirname( target )
 
-  sh "gcc #{LDFLAGS.join(' ')} "+
+  sh "#{CC} #{LDFLAGS.join(' ')} "+
     LIBS.map { |l| "-l#{l}" }.join(" ")+
     " -Isrc " +
     " -o #{target} "+
@@ -85,7 +87,7 @@ def gcc_link(target, objects)
 end
 
 def headers(c)
-  `gcc -Isrc -MM #{c}`.gsub("\\\n", " ").split(" ")[2..-1]
+  `#{CC} -Isrc -MM #{c}`.gsub("\\\n", " ").split(" ")[2..-1]
 end
 
 rule 'build/flexnbd' => OBJECTS do |t|
@@ -97,6 +99,8 @@ file check("client") =>
 %w{build/tests/check_client.o
   build/self_pipe.o
   build/nbdtypes.o
+  build/listen.o
+  build/flexnbd.o
   build/control.o
   build/readwrite.o
   build/parse.o
@@ -104,6 +108,9 @@ file check("client") =>
   build/serve.o
   build/acl.o
   build/ioutil.o
+  build/mbox.o
+  build/mirror.o
+  build/status.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
@@ -132,7 +139,12 @@ file check("serve") =>
   build/parse.o
   build/client.o
   build/serve.o
+  build/flexnbd.o
+  build/mirror.o
+  build/status.o
+  build/listen.o
   build/acl.o
+  build/mbox.o
   build/ioutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
@@ -147,7 +159,12 @@ file check("readwrite") =>
   build/parse.o
   build/acl.o
   build/control.o
+  build/flexnbd.o
+  build/mirror.o
+  build/status.o
+  build/listen.o
   build/nbdtypes.o
+  build/mbox.o
   build/ioutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
@@ -156,6 +173,10 @@ end
 file check("listen") =>
 %w{build/tests/check_listen.o
   build/listen.o
+  build/flexnbd.o
+  build/status.o
+  build/mbox.o
+  build/mirror.o
   build/self_pipe.o
   build/nbdtypes.o
   build/control.o
@@ -169,8 +190,32 @@ file check("listen") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
+file check("flexnbd") =>
+%w{build/tests/check_flexnbd.o
+  build/flexnbd.o
+  build/ioutil.o
+  build/util.o
+  build/control.o
+  build/listen.o
+  build/mbox.o
+  build/status.o
+  build/self_pipe.o
+  build/client.o
+  build/acl.o
+  build/parse.o
+  build/nbdtypes.o
+  build/readwrite.o
+  build/mirror.o
+  build/serve.o} do |t|
+  gcc_link t.name, t.prerequisites + [LIBCHECK]
+end
 
-(TEST_MODULES- %w{acl client serve readwrite listen util}).each do |m|
+file check("control") =>
+  %w{build/tests/check_control.o} + OBJECTS - ["build/main.o"] do |t|
+  gcc_link t.name, t.prerequisites + [LIBCHECK]
+end
+
+(TEST_MODULES- %w{control flexnbd acl client serve readwrite listen util}).each do |m|
   tgt = "build/tests/check_#{m}.o"
   maybe_obj_name = "build/#{m}.o"
   # Take it out in case we're testing util.o or ioutil.o

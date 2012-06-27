@@ -41,37 +41,12 @@ class Environment
   end
 
 
-  def parse_status( status )
-    hsh = {}
-
-    status.split(" ").each do |part|
-      next if part.strip.empty?
-      a,b = part.split("=")
-      b.strip!
-      b = true if b == "true"
-      b = false if b == "false"
-
-      hsh[a.strip] = b
-    end
-
-    hsh
-  end
-
-
-  def status( nbd )
-    stdout, stderr = nbd.status
-    [parse_status(stdout), stderr]
-  end
-
   def status1
-    status( @nbd1 )
+    @nbd1.status.first
   end
 
   def status2
-    puts "Getting status"
-    result = status( @nbd2 )
-    puts "Got status"
-    return result
+    @nbd2.status.first
   end
 
 
@@ -153,6 +128,8 @@ class NBDScenarios < Test::Unit::TestCase
   end
 
   def teardown
+    @env.nbd1.can_die(0)
+    @env.nbd2.can_die(0)
     @env.cleanup
   end
 
@@ -216,6 +193,8 @@ class NBDScenarios < Test::Unit::TestCase
     @env.nbd1.can_die
     stdout, stderr = @env.mirror12
 
+    @env.nbd1.join
+
     assert_equal(@env.file1.read_original( 0, @env.blocksize ),
                  @env.file2.read( 0, @env.blocksize ) )
     assert @env.status2['has_control'], "destination didn't take control"
@@ -233,6 +212,7 @@ class NBDConnectSourceFailureScenarios < Test::Unit::TestCase
   end
 
   def teardown
+    @env.nbd1.can_die(0)
     @env.cleanup
   end
 
@@ -300,18 +280,21 @@ class NBDConnectDestFailureScenarios < Test::Unit::TestCase
 
 
   def test_hello_blocked_by_disconnect_causes_error_not_fatal
+    @env.nbd1.can_die(1)
     run_fake( "source/close_after_connect" )
     assert_no_control
   end
 
 
   def test_hello_goes_astray_causes_timeout_error
+    @env.nbd1.can_die(1)
     run_fake( "source/hang_after_hello" )
     assert_no_control
   end
 
 
   def test_disconnect_after_hello_causes_error_not_fatal
+    @env.nbd1.can_die(1)
     run_fake( "source/close_after_hello" )
     assert_no_control
   end

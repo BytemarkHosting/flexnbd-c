@@ -1,14 +1,16 @@
 #include "serve.h"
 #include "listen.h"
 #include "util.h"
+#include "flexnbd.h"
 
 #include <check.h>
 #include <string.h>
 
 START_TEST( test_defaults_main_serve_opts )
 {
-	struct listen * listen = listen_create( "127.0.0.1", NULL, "4777", NULL,
-			"foo", "bar", 0, 0, NULL, 1 );
+	struct flexnbd flexnbd;
+	struct listen * listen = listen_create( &flexnbd, "127.0.0.1", NULL, "4777", NULL,
+			"foo", 0, 0, NULL, 1 );
 	NULLCHECK( listen );
 	struct server *init_serve = listen->init_serve;
 	struct server *main_serve = listen->main_serve;
@@ -28,7 +30,7 @@ Suite* listen_suite(void)
 	Suite *s = suite_create("listen");
 	TCase *tc_create = tcase_create("create");
 
-	tcase_add_test(tc_create, test_defaults_main_serve_opts);
+	tcase_add_exit_test(tc_create, test_defaults_main_serve_opts, 0);
 
 	suite_add_tcase(s, tc_create);
 

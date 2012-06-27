@@ -75,7 +75,7 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 	return allocation_map;
 }
 
-int open_and_mmap(char* filename, int* out_fd, off64_t *out_size, void **out_map)
+int open_and_mmap(const char* filename, int* out_fd, off64_t *out_size, void **out_map)
 {
 	off64_t size;
 	
@@ -237,7 +237,6 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
 		 * -1 for a read error
 		 */
 		if (readden <= 1) { return lines_count; }
-		fprintf(stderr, "Mallocing for %s\n", line );
 		*lines = xrealloc(*lines, (lines_count+1) * sizeof(char*));
 		(*lines)[lines_count] = strdup(line);
 		if ((*lines)[lines_count][0] == 0) {
@@ -251,7 +250,7 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines)
 int fd_is_closed( int fd_in )
 {
 	int errno_old = errno;
-	int result = fcntl( fd_in, F_GETFD, 9 ) < 0;
+	int result = fcntl( fd_in, F_GETFL ) < 0;
 	errno = errno_old;
 	return result;
 }

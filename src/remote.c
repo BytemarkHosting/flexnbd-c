@@ -27,6 +27,7 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 {
 	char newline=10;
 	int i;
+	debug( "connecting to run remote command %s", command );
 	int remote = socket(AF_UNIX, SOCK_STREAM, 0);
 	struct sockaddr_un address;
 	char response[max_response];

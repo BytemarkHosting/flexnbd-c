@@ -27,21 +27,24 @@ struct client *client_create( struct server *serve, int socket )
 
 	c->entrusted = 0;
 
+	debug( "Alloced client %p (%d, %d)", c, c->stop_signal->read_fd, c->stop_signal->write_fd );
 	return c;
 }
 
 
-void client_signal_stop( struct client *client )
+void client_signal_stop( struct client *c)
 {
-	NULLCHECK( client );
+	NULLCHECK( c);
 
-	self_pipe_signal( client->stop_signal );
+	debug("client %p: signal stop (%d, %d)", c,c->stop_signal->read_fd, c->stop_signal->write_fd );
+	self_pipe_signal( c->stop_signal );
 }
 
 void client_destroy( struct client *client )
 {
 	NULLCHECK( client );
 
+	debug( "Destroying stop signal for client %p", client );
 	self_pipe_destroy( client->stop_signal );
 	free( client );
 }
@@ -256,7 +259,7 @@ void client_write_init( struct client * client, uint64_t size )
 
 	nbd_h2r_init( &init, &init_raw );
 
-	FATAL_IF_NEGATIVE(
+	ERROR_IF_NEGATIVE(
 		writeloop(client->socket, &init_raw, sizeof(init_raw)),
 		"Couldn't send hello"
 	);
@@ -437,7 +440,7 @@ void client_send_hello(struct client* client)
 void client_cleanup(struct client* client, 
 		int fatal __attribute__ ((unused)) )
 {
-	info("client cleanup");
+	info("client cleanup for client %p", client);
 	
 	if (client->socket) { close(client->socket); }
 	if (client->mapped) {
@@ -452,6 +455,7 @@ void* client_serve(void* client_uncast)
 	
 	error_set_handler((cleanup_handler*) client_cleanup, client);
 	
+	debug("client: mmap");
 	FATAL_IF_NEGATIVE(
 		open_and_mmap(
 			client->serve->filename,
@@ -461,13 +465,17 @@ void* client_serve(void* client_uncast)
 		),
 		"Couldn't open/mmap file %s", client->serve->filename
 	);
+	debug("client: sending hello");
 	client_send_hello(client);
 	
+	debug("client: serving requests");
 	while (client_serve_request(client) == 0)
 		;
+	debug("client: stopped serving requests");
 	client->stopped = 1;
 		
 	if ( client->entrusted ){
+		debug("client: control arrived" );
 		server_control_arrived( client->serve );
 	}
 
@@ -477,8 +485,9 @@ void* client_serve(void* client_uncast)
 		client->socket
 	);
 	
-	debug("Cleaning up normally in thread %p", pthread_self());
+	debug("Cleaning client %p up normally in thread %p", client, pthread_self());
 	client_cleanup(client, 0);
+	debug("Client thread done" );
 	
 	return NULL;
 }

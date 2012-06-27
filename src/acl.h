@@ -25,6 +25,9 @@ struct acl * acl_create( int len, char **lines, int default_deny );
  */
 int acl_includes( struct acl *, union mysockaddr *);
 
+/** Get the default_deny status */
+int acl_default_deny( struct acl * );
+
 
 /** Free the acl structure and the internal acl entries table.
  */
