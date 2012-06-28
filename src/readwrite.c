@@ -81,7 +81,24 @@ void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 	}
 }
 
-void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf)
+void wait_for_data( int fd, int timeout_secs )
+{
+	fd_set fds;
+	struct timeval tv = {timeout_secs, 0};
+	int selected;
+
+	FD_ZERO( &fds );
+	FD_SET( fd, &fds );
+	selected = select( FD_SETSIZE, 
+			&fds, NULL, NULL, 
+			timeout_secs >=0 ? &tv : NULL );
+
+	FATAL_IF( -1 == selected, "Select failed" );
+	ERROR_IF(  0 == selected, "Timed out waiting for reply" );
+}
+
+
+void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf, int timeout_secs)
 {
 	struct nbd_request request;
 	struct nbd_reply   reply;
@@ -89,6 +106,8 @@ void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf)
 	fill_request(&request, REQUEST_READ, from, len);
 	FATAL_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
+
+	wait_for_data( fd, timeout_secs );
 	read_reply(fd, &request, &reply);
 	
 	if (out_buf) {
@@ -103,7 +122,7 @@ void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf)
 	}
 }
 
-void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
+void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf, int timeout_secs)
 {
 	struct nbd_request request;
 	struct nbd_reply   reply;
@@ -123,6 +142,7 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf)
 		);
 	}
 	
+	wait_for_data( fd, timeout_secs );
 	read_reply(fd, &request, &reply);
 }
 
@@ -175,7 +195,7 @@ void do_read(struct mode_readwrite_params* params)
 	FATAL_IF_NEGATIVE( params->client, "Couldn't connect." );
 	CHECK_RANGE("read");
 	socket_nbd_read(params->client, params->from, params->len, 
-	  params->data_fd, NULL);
+	  params->data_fd, NULL, 10);
 	close(params->client);
 }
 
@@ -185,7 +205,7 @@ void do_write(struct mode_readwrite_params* params)
 	FATAL_IF_NEGATIVE( params->client, "Couldn't connect." );
 	CHECK_RANGE("write");
 	socket_nbd_write(params->client, params->from, params->len, 
-	  params->data_fd, NULL);
+	  params->data_fd, NULL, 10);
 	close(params->client);
 }
 

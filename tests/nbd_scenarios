@@ -274,6 +274,14 @@ class NBDConnectSourceFailureScenarios < Test::Unit::TestCase
   end
 
 
+  def test_write_times_out_causes_retry
+    @env.run_fake( "dest/hang_after_write", @env.ip, @env.port2 )
+    stdout, stderr = @env.mirror12_unchecked
+
+    assert @env.fake_reports_success, "Fake failed."
+  end
+
+
 end
 
 

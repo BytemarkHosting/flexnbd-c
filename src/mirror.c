@@ -189,7 +189,8 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 						current,
 						run,
 						0,
-						serve->mirror->mapped + current);
+						serve->mirror->mapped + current,
+						MS_REQUEST_LIMIT_SECS);
 
 				/* now mark it clean */
 				bitset_clear_range(map, current, run);

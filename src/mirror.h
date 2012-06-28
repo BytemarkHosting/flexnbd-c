@@ -10,11 +10,13 @@
 enum mirror_state;
 #include "serve.h"
 
+
 /* MS_CONNECT_TIME_SECS
  * The length of time after which the sender will assume a connect() to
  * the destination has failed.
  */
 #define MS_CONNECT_TIME_SECS 60
+
 
 /* MS_HELLO_TIME_SECS
  * The length of time the sender will wait for the NBD hello message
@@ -28,6 +30,16 @@ enum mirror_state;
  * thread to try again.
  */
 #define MS_RETRY_DELAY_SECS 1
+
+
+/* MS_REQUEST_LIMIT_SECS
+ * We must receive a reply to a request within this time.  For a read
+ * request, this is the time between the end of the NBD request and the
+ * start of the NBD reply.  For a write request, this is the time
+ * between the end of the written data and the start of the NBD reply.
+ */
+#define MS_REQUEST_LIMIT_SECS 4
+
 
 enum mirror_finish_action {
 	ACTION_EXIT,

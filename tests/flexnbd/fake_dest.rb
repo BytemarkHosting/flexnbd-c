@@ -13,7 +13,7 @@ module FlexNBD
     end
 
 
-    def accept( sock, err_msg, timeout=2 )
+    def accept( sock, err_msg = "Timed out waiting for a connection", timeout=2 )
       client_sock = nil
 
       begin
@@ -47,5 +47,11 @@ module FlexNBD
       client_sock.write( "\x00" * 128 )
     end
 
-  end
+
+    def read_request( client_sock )
+      client_sock.read(28)
+    end
+
+
+  end # module FakeDest
 end # module FlexNBD
