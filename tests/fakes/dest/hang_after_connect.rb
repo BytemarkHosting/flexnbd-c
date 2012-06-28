@@ -7,24 +7,13 @@
 # This allows the test runner to check that the command-line sees the
 # right error message after the timeout time.
 
-require 'socket'
-require 'timeout'
-require 'flexnbd/constants'
+require 'flexnbd/fake_dest'
+include FlexNBD::FakeDest
 
 addr, port = *ARGV
 
-serve_sock = TCPServer.new( addr, port )
-client_sock = nil
-
-begin
-  # A failure here means a more serious issue with flexnbd
-  Timeout.timeout( 2 ) do
-    client_sock = serve_sock.accept
-  end
-rescue Timeout::Error
-  $stderr.puts "Client didn't make connection"
-  exit 1
-end
+serve_sock = serve( addr, port )
+client_sock = accept( serve_sock, "Client didn't make a connection" )
 
 # Sleep for one second past the timeout (a bit of slop in case ruby
 # doesn't launch things quickly)

@@ -6,40 +6,18 @@
 # command-line has gone away, and can't feed an error back to the
 # user, we have to keep trying.
 
+require 'flexnbd/fake_dest'
+include FlexNBD::FakeDest
+
 addr, port = *ARGV
 
-require 'socket'
-require 'timeout'
 
-sock = TCPServer.new( addr, port )
-client_sock = nil
-
-begin
-  Timeout.timeout(2) do
-    client_sock = sock.accept
-  end
-rescue Timeout::Error
-  $stderr.puts "Timed out waiting for a connection"
-  exit 1
-end
-
-
-client_sock.write( "NBDMAGIC" )
-client_sock.write( "\x00\x00\x42\x02\x81\x86\x12\x53" )
-client_sock.write( "\x00\x00\x00\x00\x00\x00\x10\x00" )
-client_sock.write( "\x00" * 128 )
-
+sock = serve( addr, port )
+client_sock = accept( sock, "Timed out waiting for a connection" )
+write_hello( client_sock )
 client_sock.close
 
-new_sock = nil
-begin
-  Timeout.timeout(60) do
-    new_sock = sock.accept
-  end
-rescue Timeout::Error
-  $stderr.puts "Timed out waiting for a reconnection"
-  exit 1
-end
+new_sock = accept( sock, "Timed out waiting for a reconnection" )
 
 new_sock.close
 sock.close
