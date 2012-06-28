@@ -33,11 +33,20 @@ class Environment
 
 
   def listen1( *acl )
-    @nbd1.listen( @filename1, *acl )
+    @nbd1.listen( @filename1, *(acl.empty? ? @acl1: acl) )
   end
 
   def listen2( *acl )
     @nbd2.listen( @filename2, *acl )
+  end
+
+
+  def acl1( *acl )
+    @nbd1.acl( *acl )
+  end
+
+  def acl2( *acl )
+    @nbd2.acl( *acl )
   end
 
 
@@ -304,10 +313,16 @@ class NBDConnectDestFailureScenarios < Test::Unit::TestCase
   end
 
 
+  def test_acl_rejection
+    @env.acl1("127.0.0.1")
+    run_fake( "source/connect_from_banned_ip")
+  end
+
+
   private
   def run_fake( name )
     @env.run_fake( name, @env.ip, @env.port1 )
-    assert @env.fake_reports_success
+    assert @env.fake_reports_success, "#{name} failed."
   end
 
   def assert_no_control

@@ -299,6 +299,7 @@ int flexnbd_serve( struct flexnbd * flexnbd )
 	if ( flexnbd->control ) {
 		debug( "Stopping control thread" );
 		flexnbd_stop_control( flexnbd );
+		debug("Control thread stopped");
 	}
 
 	return success;

@@ -265,6 +265,13 @@ class FlexNBD
       "#{@debug}"
   end
 
+  def acl_cmd( *acl )
+    "#{@bin} acl " \
+      "--sock #{ctrl} "\
+      "#{@debug} "\
+      "#{acl.join " "}"
+  end
+
 
   def run_serve_cmd(cmd)
     File.unlink(ctrl) if File.exists?(ctrl)
@@ -354,12 +361,14 @@ class FlexNBD
     @wait_thread.join
   end
 
+
   def mirror_unchecked( dest_ip, dest_port, bandwidth=nil, action=nil, timeout=nil )
     cmd = mirror_cmd( dest_ip, dest_port)
     debug( cmd )
 
     maybe_timeout( cmd, timeout )
   end
+
 
   def maybe_timeout(cmd, timeout=nil )
     stdout, stderr = "",""
@@ -388,8 +397,12 @@ class FlexNBD
     stdout
   end
 
+
   def acl(*acl)
-    control_command("acl", *acl)
+    cmd = acl_cmd( *acl )
+    debug( cmd )
+
+    maybe_timeout( cmd, 2 )
   end
 
 
@@ -400,6 +413,11 @@ class FlexNBD
     o,e = maybe_timeout( cmd, timeout )
 
     [parse_status(o), e]
+  end
+
+
+  def launched?
+    !!@pid
   end
 
 

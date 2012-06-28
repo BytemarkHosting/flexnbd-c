@@ -134,6 +134,7 @@ int control_accept( struct control * control )
 	FD_ZERO( &fds );
 	FD_SET( control->control_fd, &fds );
 	self_pipe_fd_set( control->close_signal, &fds );
+	debug("Control thread selecting");
 	FATAL_UNLESS( 0 < select( FD_SETSIZE, &fds, NULL, NULL, NULL ),
 			"Control select failed." );
 
@@ -398,49 +399,44 @@ void control_cleanup(struct control_client* client,
 void control_respond(struct control_client * client)
 {
 	char **lines = NULL;
-	int finished=0;
-	
+
 	error_set_handler((cleanup_handler*) control_cleanup, client);
-		
-	while (!finished) {
-		int i, linesc;		
-		linesc = read_lines_until_blankline(client->socket, 256, &lines);
-		
-		if (linesc < 1)
-		{
-			write(client->socket, "9: missing command\n", 19);
-			finished = 1;
-			/* ignore failure */
-		}
-		else if (strcmp(lines[0], "acl") == 0) {
-			info("acl command received" );
-			if (control_acl(client, linesc-1, lines+1) < 0) {
-				finished = 1;
-			}
-		}
-		else if (strcmp(lines[0], "mirror") == 0) {
-			info("mirror command received" );
-			if (control_mirror(client, linesc-1, lines+1) < 0) {
-				finished = 1;
-			}
-		}
-		else if (strcmp(lines[0], "status") == 0) {
-			info("status command received" );
-			if (control_status(client, linesc-1, lines+1) < 0) {
-				finished = 1;
-			}
-		}
-		else {
-			write(client->socket, "10: unknown command\n", 23);
-			finished = 1;
-		}
-		
-		for (i=0; i<linesc; i++) {
-			free(lines[i]);
-		}
-		free(lines);
+
+	int i, linesc;		
+	linesc = read_lines_until_blankline(client->socket, 256, &lines);
+
+	if (linesc < 1)
+	{
+		write(client->socket, "9: missing command\n", 19);
+		/* ignore failure */
 	}
-	
+	else if (strcmp(lines[0], "acl") == 0) {
+		info("acl command received" );
+		if (control_acl(client, linesc-1, lines+1) < 0) {
+			debug("acl command failed");
+		}
+	}
+	else if (strcmp(lines[0], "mirror") == 0) {
+		info("mirror command received" );
+		if (control_mirror(client, linesc-1, lines+1) < 0) {
+			debug("mirror command failed");
+		}
+	}
+	else if (strcmp(lines[0], "status") == 0) {
+		info("status command received" );
+		if (control_status(client, linesc-1, lines+1) < 0) {
+			debug("status command failed");
+		}
+	}
+	else {
+		write(client->socket, "10: unknown command\n", 23);
+	}
+
+	for (i=0; i<linesc; i++) {
+		free(lines[i]);
+	}
+	free(lines);
+
 	control_cleanup(client, 0);
 	debug("control command handled" );
 }

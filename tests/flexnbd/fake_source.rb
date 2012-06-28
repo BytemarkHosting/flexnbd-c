@@ -7,9 +7,9 @@ require 'flexnbd/constants'
 module FlexNBD
   module FakeSource
 
-    def connect( addr, port, err_msg )
+    def connect( addr, port, err_msg, source_addr=nil, source_port=0 )
       timing_out( 2, err_msg ) do
-        TCPSocket.open( addr, port )
+        TCPSocket.new( addr, port, source_addr, source_port )
       end
     end
 
