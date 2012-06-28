@@ -199,18 +199,25 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	}
 
 	if (fd_read_request(client->socket, &request_raw) == -1) {
-		if (errno == 0) {
-			debug("EOF reading request");
-			return 0; /* neat point to close the socket */
-		}
-		else { 
-			/* FIXME: I've seen this happen, but I couldn't
-			 * reproduce it so I'm leaving it here with a
-			 * better debug output in the hope it'll
-			 * spontaneously happen again.  It should
-			 * *probably* be an error() call, but I want to
-			 * be sure. */
-			fatal("Error reading request: %s", strerror( errno )); 
+		switch( errno ){
+			case 0:
+				debug( "EOF while reading request" );
+				return 0;
+			case ECONNRESET:
+				debug( "Connection reset while"
+						" reading request" );
+				return 0;
+			default:
+				/* FIXME: I've seen this happen, but I
+				 * couldn't reproduce it so I'm leaving
+				 * it here with a better debug output in
+				 * the hope it'll spontaneously happen
+				 * again.  It should *probably* be an
+				 * error() call, but I want to be sure.
+				 * */
+				fatal("Error reading request: %d, %s", 
+						errno, 
+						strerror( errno )); 
 		}
 	}
 
@@ -230,7 +237,21 @@ int fd_write_reply( int fd, char *handle, int error )
 
 	nbd_h2r_reply( &reply, &reply_raw );
 
-	write( fd, &reply_raw, sizeof( reply_raw ) );
+	if( -1 == write( fd, &reply_raw, sizeof( reply_raw ) ) ) {
+		switch( errno ) {
+			case ECONNRESET:
+				error( "Connection reset while writing reply" );
+				break;
+			case EBADF:
+				fatal( "Tried to write to an invalid file descriptor" );
+				break;
+			case EPIPE:
+				error( "Remote end closed" );
+				break;
+			default:
+				fatal( "Unhandled error while writing: %d", errno );
+		}
+	}
 
 	return 1;
 }
@@ -287,12 +308,14 @@ int client_request_needs_reply( struct client * client,
 	switch (request.type)
 	{
 	case REQUEST_READ:
-		FATAL_IF( client->entrusted,
-				"Received a read request after an entrust message.");
+		ERROR_IF( client->entrusted,
+				"Received a read request "
+				"after an entrust message.");
 		break;
 	case REQUEST_WRITE:
-		FATAL_IF( client->entrusted,
-				"Received a write request after an entrust message.");
+		ERROR_IF( client->entrusted,
+				"Received a write request "
+				"after an entrust message.");
 		/* check it's not out of range */
 		if ( request.from+request.len > client->serve->size) {
 			debug("request read %ld+%d out of range", 
