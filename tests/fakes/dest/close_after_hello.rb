@@ -7,19 +7,16 @@
 # user, we have to keep trying.
 
 require 'flexnbd/fake_dest'
-include FlexNBD::FakeDest
+include FlexNBD
 
-addr, port = *ARGV
+server = FakeDest.new( *ARGV )
+client = server.accept( "Timed out waiting for a connection" )
+client.write_hello
+client.close
 
+new_client = server.accept( "Timed out waiting for a reconnection" )
+new_client.close
 
-sock = serve( addr, port )
-client_sock = accept( sock, "Timed out waiting for a connection" )
-write_hello( client_sock )
-client_sock.close
-
-new_sock = accept( sock, "Timed out waiting for a reconnection" )
-
-new_sock.close
-sock.close
+server.close
 
 exit 0

@@ -5,19 +5,18 @@
 # EOF on read.
 
 require 'flexnbd/fake_dest'
-include FlexNBD::FakeDest
+include FlexNBD
 
-sock = serve( *ARGV )
-client_sock = accept( sock, "Timed out waiting for a connection" )
-
+server = FakeDest.new( *ARGV )
+client = server.accept
 
 t = Thread.new do
-  client_sock2 = accept( sock, "Timed out waiting for a reconnection",
-                         FlexNBD::MS_RETRY_DELAY_SECS + 1 )
-  client_sock2.close
+  client2 = server.accept( "Timed out waiting for a reconnection",
+                    FlexNBD::MS_RETRY_DELAY_SECS + 1 )
+  client2.close
 end
 
-write_hello( client_sock, :size => :wrong )
+client.write_hello( :size => :wrong )
 
 t.join
 

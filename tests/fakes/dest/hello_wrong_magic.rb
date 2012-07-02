@@ -4,21 +4,21 @@
 # We expect the sender to disconnect and reconnect.
 
 require 'flexnbd/fake_dest'
-include FlexNBD::FakeDest
+include FlexNBD
 
-sock = serve( *ARGV )
-client_sock = accept( sock, "Timed out waiting for a connection" )
+server = FakeDest.new( *ARGV )
+client1 = server.accept
 
 # Launch a second thread so that we can spot the reconnection attempt
 # as soon as it happens, or alternatively die a flaming death on
 # timeout.
 t = Thread.new do
-  client_sock2 = accept( sock, "Timed out waiting for a reconnection",
-                         FlexNBD::MS_RETRY_DELAY_SECS + 1 )
-  client_sock2.close
+  client2 = server.accept( "Timed out waiting for a reconnection",
+                           FlexNBD::MS_RETRY_DELAY_SECS + 1 )
+  client2.close
 end
 
-write_hello( client_sock, :magic => :wrong )
+client1.write_hello( :magic => :wrong )
 
 t.join
 

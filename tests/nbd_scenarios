@@ -233,52 +233,69 @@ class NBDConnectSourceFailureScenarios < Test::Unit::TestCase
 
 
   def test_destination_hangs_after_connect_reports_error_at_source
-    @env.run_fake( "dest/hang_after_connect", @env.ip, @env.port2 )
+    run_fake( "dest/hang_after_connect" )
 
     stdout, stderr = @env.mirror12_unchecked
     assert_match( /Remote server failed to respond/, stderr )
-    assert @env.fake_reports_success
+    assert_success
   end
 
 
   def test_destination_rejects_connection_reports_error_at_source
-    @env.run_fake( "dest/reject_acl", @env.ip, @env.port2 )
+    run_fake( "dest/reject_acl" )
 
     stdout, stderr = @env.mirror12_unchecked
     assert_match /Mirror was rejected/, stderr
-    assert @env.fake_reports_success
+    assert_success
   end
 
   def test_wrong_size_causes_disconnect
-    @env.run_fake( "dest/hello_wrong_size", @env.ip, @env.port2 )
+    run_fake( "dest/hello_wrong_size" )
     stdout, stderr = @env.mirror12_unchecked
     assert_match /Remote size does not match local size/, stderr
-    assert @env.fake_reports_success
+    assert_success
   end
 
 
   def test_wrong_magic_causes_disconnect
-    @env.run_fake( "dest/hello_wrong_magic", @env.ip, @env.port2 )
+    run_fake( "dest/hello_wrong_magic" )
     stdout, stderr = @env.mirror12_unchecked
     assert_match /Mirror was rejected/, stderr
-    assert @env.fake_reports_success, "dest/hello_wrong_magic fake failed"
+    assert_success "dest/hello_wrong_magic fake failed"
   end
 
 
   def test_disconnect_after_hello_causes_retry
-    @env.run_fake( "dest/close_after_hello", @env.ip, @env.port2 )
+    run_fake( "dest/close_after_hello" )
     stdout, stderr = @env.mirror12_unchecked
     assert_match( /Mirror started/, stdout )
 
-    assert @env.fake_reports_success
+    assert_success
   end
 
 
   def test_write_times_out_causes_retry
-    @env.run_fake( "dest/hang_after_write", @env.ip, @env.port2 )
+    run_fake( "dest/hang_after_write" )
     stdout, stderr = @env.mirror12_unchecked
 
-    assert @env.fake_reports_success, "Fake failed."
+    assert_success
+  end
+
+
+  def test_rejected_write_causes_retry
+    run_fake( "dest/error_on_write" )
+    stdout, stderr = @env.mirror12_unchecked
+    assert_success
+  end
+
+
+  private
+  def run_fake(name)
+    @env.run_fake( name, @env.ip, @env.port2 )
+  end
+
+  def assert_success( msg=nil )
+    assert @env.fake_reports_success, msg || "Fake failed"
   end
 
 

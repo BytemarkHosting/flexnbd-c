@@ -3,11 +3,11 @@
 # Accept a connection, then immediately close it.  This simulates an ACL rejection.
 
 require 'flexnbd/fake_dest'
-include FlexNBD::FakeDest
+include FlexNBD
 
-serve_sock = serve( *ARGV )
-accept( serve_sock, "Timed out waiting for a connection" ).close
+server = FakeDest.new( *ARGV )
+server.accept.close
 
-serve_sock.close
+server.close
 
 exit(0)

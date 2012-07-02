@@ -68,16 +68,17 @@ void fill_request(struct nbd_request *request, int type, int from, int len)
 
 void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 {
-	FATAL_IF_NEGATIVE(readloop(fd, reply, sizeof(*reply)),
+	ERROR_IF_NEGATIVE(readloop(fd, reply, sizeof(*reply)),
 	  "Couldn't read reply");
+
 	if (be32toh(reply->magic) != REPLY_MAGIC) {
-		fatal("Reply magic incorrect (%p)", be32toh(reply->magic));
+		error("Reply magic incorrect (%p)", be32toh(reply->magic));
 	}
 	if (be32toh(reply->error) != 0) {
-		fatal("Server replied with error %d", be32toh(reply->error));
+		error("Server replied with error %d", be32toh(reply->error));
 	}
 	if (strncmp(request->handle, reply->handle, 8) != 0) {
-		fatal("Did not reply with correct handle");
+		error("Did not reply with correct handle");
 	}
 }
 
