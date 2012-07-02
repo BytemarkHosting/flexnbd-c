@@ -21,8 +21,12 @@
 int fd_read_request( int, struct nbd_request_raw *);
 int fd_write_reply( int, char *, int );
 
-void dummy_error_handler(void * foo __attribute__((unused)))
+int marker;
+
+void error_marker(void * unused __attribute__((unused)), 
+		int fatal __attribute__((unused)))
 {
+	marker = 1;
 	return;
 }
 
@@ -81,20 +85,33 @@ void respond_destroy( struct respond * respond ){
 }
 
 
+void * entruster( void * nothing __attribute__((unused)))
+{
+	DECLARE_ERROR_CONTEXT( error_context );
+	error_set_handler( (cleanup_handler *)error_marker, error_context );
+
+	struct respond * respond = respond_create( 1 );
+
+	socket_nbd_entrust( respond->sock_fds[0] );
+
+	return NULL;
+}
 
 START_TEST( test_rejects_mismatched_handle )
 {
-	struct respond * respond = respond_create( 1 );
 
-	DECLARE_ERROR_CONTEXT( error_context );
 	error_init();
-	error_set_handler( (cleanup_handler *)dummy_error_handler, error_context );
+	pthread_t entruster_thread;
 
 	log_level=5;
-	socket_nbd_entrust( respond->sock_fds[0] );
+	
+	marker = 0;
+	pthread_create( &entruster_thread, NULL, entruster, NULL );
+	FATAL_UNLESS( 0 == pthread_join( entruster_thread, NULL ), "pthread_join failed");
+	
 	log_level=2;
 
-	respond_destroy( respond );
+	fail_unless( marker == 1, "Error handler wasn't called" );
 }
 END_TEST
 
@@ -140,7 +157,7 @@ Suite* readwrite_suite(void)
 	TCase *tc_disconnect = tcase_create("disconnect");
 
 
-	tcase_add_test_raise_signal(tc_transfer, test_rejects_mismatched_handle, 6);
+	tcase_add_test(tc_transfer, test_rejects_mismatched_handle);
 	tcase_add_exit_test(tc_transfer, test_accepts_matched_handle, 0);
 	tcase_add_test( tc_transfer, test_entrust_type_sent );
 
