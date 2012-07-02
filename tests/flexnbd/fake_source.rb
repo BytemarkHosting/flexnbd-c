@@ -24,6 +24,31 @@ module FlexNBD
     end
 
 
+    def write_write_request( client_sock, from, len, handle )
+      fail "Bad handle" unless handle.length == 8
+
+      client_sock.write( "\x25\x60\x95\x13" )
+      client_sock.write( "\x00\x00\x00\x01" )
+      client_sock.write( handle )
+      client_sock.write( "\x0"*4 )
+      client_sock.write( [from].pack( 'N' ) )
+      client_sock.write( [len ].pack( 'N' ) )
+    end
+
+
+    def read_response( client_sock )
+      magic = client_sock.read(4)
+      error_s = client_sock.read(4)
+      handle = client_sock.read(8)
+
+      {
+        :magic => magic,
+        :error => error_s.unpack("N"),
+        :handle => handle
+      }
+    end
+
+
     def timing_out( time, msg )
       begin
         Timeout.timeout( time ) do

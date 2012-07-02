@@ -344,6 +344,11 @@ class NBDConnectDestFailureScenarios < Test::Unit::TestCase
   end
 
 
+  def test_bad_write
+    run_fake( "source/write_out_of_range" )
+  end
+
+
   private
   def run_fake( name )
     @env.run_fake( name, @env.ip, @env.port1 )
