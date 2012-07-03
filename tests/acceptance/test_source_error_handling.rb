@@ -82,6 +82,13 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
+  def test_disconnect_before_write_reply_causes_retry
+    run_fake( "dest/close_after_write" )
+    @env.mirror12_unchecked
+    assert_success
+  end
+
+
   private
   def run_fake(name)
     @env.run_fake( name, @env.ip, @env.port2 )
