@@ -7,16 +7,15 @@
 
 require 'timeout'
 require 'flexnbd/fake_source'
-include FlexNBD::FakeSource
+include FlexNBD
 
 addr, port = *ARGV
-sock = connect( addr, port, "Timed out connecting", "127.0.0.6" )
-sleep( 0.25 )
-Timeout.timeout( 2 ) do
-  fail "Not disconnected" if sock.read(1)
-end
 
-sock.close
+client = FakeSource.new( addr, port, "Timed out connecting", "127.0.0.6" )
+sleep( 0.25 )
+client.ensure_disconnected
+
+client.close
 exit(0)
 
 

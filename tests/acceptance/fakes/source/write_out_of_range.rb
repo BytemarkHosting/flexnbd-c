@@ -6,16 +6,17 @@
 # disconnected.
 
 require 'flexnbd/fake_source'
-include FlexNBD::FakeSource
+include FlexNBD
 
 addr, port = *ARGV
-client_sock = connect( addr, port, "Timed out connecting" )
-read_hello( client_sock )
-write_write_request( client_sock, 1 << 31, 1 << 31, "myhandle" )
-response = read_response( client_sock )
+
+client = FakeSource.new( addr, port, "Timed out connecting" )
+client.read_hello
+client.write_write_request( 1 << 31, 1 << 31, "myhandle" )
+response = client.read_response
 
 fail "Not an error" if response[:error] == 0
 fail "Wrong handle" unless "myhandle" == response[:handle]
 
-client_sock.close
+client.close
 exit(0)

@@ -7,18 +7,17 @@
 # listening.
 
 require 'flexnbd/fake_source'
-include FlexNBD::FakeSource
+include FlexNBD
 
 addr, port = *ARGV
 
-
-connect( addr, port, "Failed to connect" ).close
+FakeSource.new( addr, port, "Failed to connect" ).close
   # Sleep to be sure we don't try to connect too soon. That wouldn't
   # be a problem for the destination, but it would prevent us from
   # determining success or failure here in the case where we try to
   # reconnect before the destination has tidied up after the first
   # thread went away.
 sleep(0.5)
-connect( addr, port, "Failed to reconnect" ).close
+FakeSource.new( addr, port, "Failed to reconnect" ).close
 
 exit 0

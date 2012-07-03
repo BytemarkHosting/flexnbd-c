@@ -8,10 +8,10 @@
 
 addr, port = *ARGV
 require "flexnbd/fake_source"
-include FlexNBD::FakeSource
+include FlexNBD
 
-client_sock = connect( addr, port, "Timed out connecting" )
-read_hello( client_sock )
+client = FakeSource.new( addr, port, "Timed out connecting" )
+client.read_hello
 
 # Now we do two things:
 
@@ -22,18 +22,18 @@ read_hello( client_sock )
 #   closed its end yet.
 
 kidpid = fork do
-  client_sock.close
-  new_sock = nil
+  client.close
+  new_client = nil
   sleep( FlexNBD::CLIENT_MAX_WAIT_SECS + 1 )
-  new_sock = connect( addr, port, "Timed out reconnecting." )
-  read_hello( new_sock )
+  new_client = FakeSource.new( addr, port, "Timed out reconnecting." )
+  new_client.read_hello
   exit 0
 end
 
 # Sleep for longer than the child, to give the flexnbd process a bit
 # of slop
 sleep( FlexNBD::CLIENT_MAX_WAIT_SECS + 3 )
-client_sock.close
+client.close
 
 _,status = Process.waitpid2( kidpid )
 exit status.exitstatus

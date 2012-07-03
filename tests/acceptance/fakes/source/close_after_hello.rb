@@ -8,15 +8,17 @@
 # is still alive.
 
 require 'flexnbd/fake_source'
-include FlexNBD::FakeSource
+include FlexNBD
 
 addr, port = *ARGV
 
 
-client_sock = connect( addr, port, "Timed out connecting." )
-read_hello( client_sock )
-client_sock.close
+client = FakeSource.new( addr, port, "Timed out connecting." )
+client.read_hello
+client.close
+
 sleep(0.2)
-connect( addr, port, "Timed out reconnecting." )
+
+FakeSource.new( addr, port, "Timed out reconnecting." )
 
 exit(0)
