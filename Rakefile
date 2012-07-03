@@ -10,8 +10,10 @@ DEBUG  = ENV.has_key?('DEBUG') &&
 ALL_SOURCES =FileList['src/*']
 SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
 OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
-TEST_SOURCES = FileList['tests/*.c']
-TEST_OBJECTS = TEST_SOURCES.pathmap( "%{^tests,build/tests}X.o" )
+TEST_SOURCES = FileList['tests/unit/*.c']
+p TEST_SOURCES
+TEST_OBJECTS = TEST_SOURCES.pathmap( "%{^tests/unit,build/tests}X.o" )
+p TEST_OBJECTS
 
 LIBS    = %w( pthread )
 CCFLAGS = %w(
@@ -25,7 +27,8 @@ CCFLAGS = %w(
 LDFLAGS = []
 LIBCHECK = "/usr/lib/libcheck.a"
 
-TEST_MODULES = Dir["tests/check_*.c"].map { |n| n[12..-3] }
+TEST_MODULES = Dir["tests/unit/check_*.c"].map { |n|
+  File.basename( n )[%r{check_(.+)\.c},1] }
 
 if DEBUG
   LDFLAGS << ["-g"]
