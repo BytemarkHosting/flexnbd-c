@@ -92,4 +92,4 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
-end
+end # class TestSourceErrorHandling

@@ -3,7 +3,7 @@
 require 'test/unit'
 require 'environment'
 
-class NBDConnectDestFailureScenarios < Test::Unit::TestCase
+class TestDestErrorHandling  < Test::Unit::TestCase
 
   def setup
     @env = Environment.new
@@ -62,4 +62,4 @@ class NBDConnectDestFailureScenarios < Test::Unit::TestCase
   end
 
 
-end # class NBDConnectDestFailureScenarios
+end # class TestDestErrorHandling
