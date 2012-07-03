@@ -50,8 +50,16 @@ class TestDestErrorHandling  < Test::Unit::TestCase
   end
 
 
-  def test_disconnect_before_write_reply_causes_error
+  def test_disconnect_before_write_data_causes_error
     run_fake( "source/close_after_write" )
+  end
+
+
+  def test_disconnect_before_write_reply_causes_error
+    # Note that this is an odd case: writing the reply doesn't fail.
+    # The test passes because the next attempt by flexnbd to read a
+    # request returns EOF.
+    run_fake( "source/close_after_write_data" )
   end
 
   private

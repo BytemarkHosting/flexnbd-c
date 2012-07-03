@@ -40,6 +40,10 @@ module FlexNBD
       @sock.write( [len ].pack( 'N' ) )
     end
 
+    def write_data( data )
+      @sock.write( data )
+    end
+
 
     def read_response
       magic = @sock.read(4)
