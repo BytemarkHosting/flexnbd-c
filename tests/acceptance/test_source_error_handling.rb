@@ -89,6 +89,13 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
+  def test_bad_write_reply_causes_retry
+    run_fake( "dest/write_wrong_magic" )
+    @env.mirror12_unchecked
+    assert_success
+  end
+
+
   private
   def run_fake(name)
     @env.run_fake( name, @env.ip, @env.port2 )

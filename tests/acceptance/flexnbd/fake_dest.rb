@@ -56,10 +56,21 @@ module FlexNBD
         }
       end
 
+      REPLY_MAGIC="\x67\x44\x66\x98"
 
       def write_error( handle )
-        @sock.write( "\x67\x44\x66\x98" )
-        @sock.write( "\x00\x00\x00\x01" )
+        write_reply( handle, 1 )
+      end
+
+
+      def write_reply( handle, err=0, opts={} )
+        if opts[:magic] == :wrong
+          write_rand( @sock, 4 )
+        else
+          @sock.write( REPLY_MAGIC )
+        end
+
+        @sock.write( [err].pack("N") )
         @sock.write( handle )
       end
 
@@ -68,6 +79,10 @@ module FlexNBD
         @sock.close
       end
 
+
+      def read_data( len )
+        @sock.read( len )
+      end
 
 
       def self.parse_be64(str)
