@@ -7,7 +7,8 @@
 require 'flexnbd/fake_dest'
 include FlexNBD
 
-server = FakeDest.new( *ARGV )
+addr, port = *ARGV
+server = FakeDest.new( addr, port )
 client = server.accept
 
 t = Thread.new do

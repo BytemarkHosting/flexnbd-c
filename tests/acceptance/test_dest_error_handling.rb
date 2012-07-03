@@ -50,6 +50,10 @@ class TestDestErrorHandling  < Test::Unit::TestCase
   end
 
 
+  def test_disconnect_before_write_reply_causes_error
+    run_fake( "source/close_after_write" )
+  end
+
   private
   def run_fake( name )
     @env.run_fake( name, @env.ip, @env.port1 )

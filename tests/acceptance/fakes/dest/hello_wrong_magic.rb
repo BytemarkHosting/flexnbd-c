@@ -6,7 +6,8 @@
 require 'flexnbd/fake_dest'
 include FlexNBD
 
-server = FakeDest.new( *ARGV )
+addr, port = *ARGV
+server = FakeDest.new( addr, port )
 client1 = server.accept
 
 # Launch a second thread so that we can spot the reconnection attempt

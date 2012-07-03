@@ -29,7 +29,7 @@ module FlexNBD
     end
 
 
-    def write_write_request( from, len, handle )
+    def write_write_request( from, len, handle="myhandle" )
       fail "Bad handle" unless handle.length == 8
 
       @sock.write( "\x25\x60\x95\x13" )

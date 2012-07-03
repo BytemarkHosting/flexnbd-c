@@ -8,7 +8,8 @@
 require 'flexnbd/fake_dest'
 include FlexNBD
 
-server = FakeDest.new( *ARGV )
+addr, port = *ARGV
+server = FakeDest.new( addr, port )
 client1 = server.accept( server )
 client1.write_hello
 client1.read_request

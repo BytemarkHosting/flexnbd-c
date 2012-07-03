@@ -101,7 +101,7 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 			fprintf(stderr, "\n");
 		}
 		
-		#define DO_READ(dst, len) FATAL_IF_NEGATIVE( \
+		#define DO_READ(dst, len) ERROR_IF_NEGATIVE( \
 			readloop( \
 				client->socket, \
 				(dst), \

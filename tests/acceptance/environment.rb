@@ -114,7 +114,7 @@ class Environment
     raise "no addr" unless addr
     raise "no port" unless port
     @fake_pid = fork do
-      exec fake + " " + addr.to_s + " " + port.to_s
+      exec fake + " " + addr.to_s + " " + port.to_s + " " + @nbd1.pid.to_s
     end
     sleep(0.5)
   end
