@@ -11,9 +11,7 @@ ALL_SOURCES =FileList['src/*']
 SOURCES = ALL_SOURCES.select { |c| c =~ /\.c$/ }
 OBJECTS = SOURCES.pathmap( "%{^src,build}X.o" )
 TEST_SOURCES = FileList['tests/unit/*.c']
-p TEST_SOURCES
 TEST_OBJECTS = TEST_SOURCES.pathmap( "%{^tests/unit,build/tests}X.o" )
-p TEST_OBJECTS
 
 LIBS    = %w( pthread )
 CCFLAGS = %w(
@@ -68,7 +66,7 @@ namespace "test" do
 
   desc "Run NBD test scenarios"
   task 'scenarios' => 'flexnbd' do
-    sh "cd tests; ruby nbd_scenarios"
+    sh "cd tests/acceptance; ruby nbd_scenarios"
   end
 end
 
