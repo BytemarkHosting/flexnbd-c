@@ -96,6 +96,13 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
+  def test_pre_entrust_disconnect_causes_retry
+    run_fake( "dest/close_after_writes" )
+    @env.mirror12_unchecked
+    assert_success
+  end
+
+
   private
   def run_fake(name)
     @env.run_fake( name, @env.ip, @env.port2 )
