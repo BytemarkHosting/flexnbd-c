@@ -27,7 +27,7 @@ Process.kill( "CONT", srv_pid.to_i )
 sleep(0.25)
 
 # ...and can we reconnect?
-client2 = FakeSource.new( addr, port, "Timed out connecting" )
+client2 = FakeSource.new( addr, port, "Timed out reconnecting" )
 client2.close
 
 exit(0)

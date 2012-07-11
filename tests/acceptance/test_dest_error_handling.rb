@@ -54,6 +54,10 @@ class TestDestErrorHandling  < Test::Unit::TestCase
     run_fake( "source/close_after_write" )
   end
 
+  def test_disconnect_before_entrust_reply_causes_error
+    run_fake( "source/close_after_entrust" )
+  end
+
 
   def test_disconnect_before_write_reply_causes_error
     # Note that this is an odd case: writing the reply doesn't fail.

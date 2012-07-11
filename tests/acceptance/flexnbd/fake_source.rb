@@ -29,20 +29,32 @@ module FlexNBD
     end
 
 
-    def write_write_request( from, len, handle="myhandle" )
+    def send_request( type, handle="myhandle", from=0, len=0 )
       fail "Bad handle" unless handle.length == 8
 
       @sock.write( "\x25\x60\x95\x13" )
-      @sock.write( "\x00\x00\x00\x01" )
+      @sock.write( [type].pack( 'N' ) )
       @sock.write( handle )
       @sock.write( "\x0"*4 )
       @sock.write( [from].pack( 'N' ) )
       @sock.write( [len ].pack( 'N' ) )
     end
 
+
+    def write_write_request( from, len, handle="myhandle" )
+      send_request( 1, handle, from, len )
+    end
+
+
+    def write_entrust_request( handle="myhandle" )
+      send_request( 65536, handle )
+    end
+
+
     def write_data( data )
       @sock.write( data )
     end
+
 
 
     def read_response

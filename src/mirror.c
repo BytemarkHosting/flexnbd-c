@@ -239,8 +239,16 @@ void mirror_give_control( struct mirror_status * mirror )
 	 * requests while the response was in flight, and if the
 	 * response went astray we'd have two servers claiming
 	 * responsibility for the same data.
+	 *
+	 * The meaning of these is as follows:
+	 * The entrust signifies that all the data has been sent, and
+	 * the client is currently paused but not disconnected.
+	 * The disconnect signifies that the client has been
+	 * safely disconnected.
+	 * TODO: Disconnect the client!
 	 */
 	socket_nbd_entrust( mirror->client );
+	debug("TODO: The client *should* be disconnected here, but isn't yet");
 	socket_nbd_disconnect( mirror->client );
 }
 
