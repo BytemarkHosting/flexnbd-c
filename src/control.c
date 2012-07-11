@@ -205,6 +205,7 @@ void control_serve( struct control * control )
 
 void * control_runner( void * control_uncast )
 {
+	debug("Control thread");
 	NULLCHECK( control_uncast );
 	struct control * control = (struct control *)control_uncast;
 
@@ -313,7 +314,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	 * one mirror at a time.  This is enforced by only accepting a
 	 * single client at a time on the control socket.
 	 */
-	flexnbd_switch_lock( flexnbd );
+	flexnbd_lock_switch( flexnbd );
 	{
 		struct server * serve = flexnbd_server(flexnbd);
 		serve->mirror_super = mirror_super_create( 
@@ -333,10 +334,13 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 				"Failed to create mirror thread"
 			);
 
+		debug("Control thread mirror super waiting");
 		enum mirror_state state = mirror_super_wait( serve->mirror_super );
+		debug("Control thread writing response");
 		control_write_mirror_response( state, client->socket );
 	}
-	flexnbd_switch_unlock( flexnbd );
+	debug( "Control thread unlocking switch" );
+	flexnbd_unlock_switch( flexnbd );
 	debug( "Control thread going away." );
 	
 	return 0;
@@ -392,6 +396,12 @@ void control_cleanup(struct control_client* client,
 		int fatal __attribute__ ((unused)) )
 {
 	if (client->socket) { close(client->socket); }
+
+	/* This is wrongness */
+	if ( server_io_locked( client->flexnbd->serve ) ) { server_unlock_io( client->flexnbd->serve ); }
+	if ( server_acl_locked( client->flexnbd->serve ) ) { server_unlock_acl( client->flexnbd->serve ); }
+	if ( flexnbd_switch_locked( client->flexnbd ) ) { flexnbd_unlock_switch( client->flexnbd ); }
+
 	control_client_destroy( client );
 }
 

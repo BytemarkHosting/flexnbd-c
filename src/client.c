@@ -470,6 +470,10 @@ void client_cleanup(struct client* client,
 		munmap(client->mapped, client->serve->size);
 	}
 	if (client->fileno) { close(client->fileno); }
+
+	if ( server_io_locked( client->serve ) ) { server_unlock_io( client->serve ); }
+	if ( server_acl_locked( client->serve ) ) { server_unlock_acl( client->serve ); }
+
 }
 
 void* client_serve(void* client_uncast)

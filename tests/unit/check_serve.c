@@ -63,6 +63,7 @@ void teardown( void )
 START_TEST( test_replaces_acl )
 {
 	struct flexnbd flexnbd;
+	flexnbd.signal_fd = -1;
 	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
@@ -77,6 +78,7 @@ END_TEST
 START_TEST( test_signals_acl_updated )
 {
 	struct flexnbd flexnbd;
+	flexnbd.signal_fd = -1;
 	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
@@ -189,6 +191,8 @@ END_TEST
 START_TEST( test_acl_update_leaves_good_client )
 {
 	struct flexnbd flexnbd;
+	flexnbd.signal_fd = -1;
+
 	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 1 );
 
 	char *lines[] = {"127.0.0.1"};
@@ -202,7 +206,6 @@ START_TEST( test_acl_update_leaves_good_client )
 
 	serve_open_server_socket( s );
 	actual_port = server_port( s );
-
 	client_fd = connect_client( "127.0.0.7", actual_port, "127.0.0.1" );
 	server_accept( s );
 	entry = &s->nbd_client[0];

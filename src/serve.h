@@ -38,7 +38,7 @@ struct server {
 	uint64_t 	     size;
 
 	/** Claims around any I/O to this file */
-	pthread_mutex_t      l_io;
+	struct flexthread_mutex * l_io;
 	
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
 	struct self_pipe *   close_signal;
@@ -49,7 +49,9 @@ struct server {
 	 * has been replaced
 	 */
 	struct self_pipe *   acl_updated_signal;
-	pthread_mutex_t      l_acl;
+
+	/* Claimed around any updates to the ACL. */
+	struct flexthread_mutex *   l_acl;
 
 	struct mirror_status* mirror;
 	struct mirror_super * mirror_super; 
@@ -90,6 +92,11 @@ void server_replace_acl( struct server *serve, struct acl * acl);
 void server_control_arrived( struct server *serve );
 int server_is_in_control( struct server *serve );
 int server_default_deny( struct server * serve );
+int server_io_locked( struct server * serve );
+int server_acl_locked( struct server * serve );
+void server_lock_acl( struct server *serve );
+void server_unlock_acl( struct server *serve );
+
 
 int do_serve( struct server * );
 

@@ -39,8 +39,7 @@ void self_pipe_server_error( int err, char *msg )
 }
 
 /**
- * Allocate a struct self_pipe, opening the pipe and allocating a
- * pthread mutex.
+ * Allocate a struct self_pipe, opening the pipe.
  *
  * Returns NULL if the pipe couldn't be opened or if we couldn't set it
  * non-blocking.

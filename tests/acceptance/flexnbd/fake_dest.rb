@@ -94,6 +94,31 @@ module FlexNBD
       end
 
 
+      def receive_mirror
+        write_hello()
+        loop do
+          req = read_request
+          case req[:type]
+          when 1
+            read_data( req[:len] )
+            write_reply( req[:handle] )
+          when 65536
+            write_reply( req[:handle] )
+            break
+          else
+            raise "Unexpected request: #{req.inspect}"
+          end
+        end
+
+        disc = read_request
+
+        if disc[:type] == 2
+          close
+        else
+          raise "Not a disconnect: #{req.inspect}"
+        end
+      end
+
     end # class Client
 
 

@@ -65,8 +65,13 @@ struct server *listen_switch( struct listen * listen )
 }
 
 
-void listen_cleanup( void * unused __attribute__((unused)) )
+void listen_cleanup( struct listen * listen )
 {
+	NULLCHECK( listen );
+
+	if ( flexnbd_switch_locked( listen->flexnbd ) ) { 
+		flexnbd_unlock_switch( listen->flexnbd ); 
+	}
 }
 
 int do_listen( struct listen * listen )
@@ -75,11 +80,11 @@ int do_listen( struct listen * listen )
 
 	int have_control = 0;
 
-	flexnbd_switch_lock( listen->flexnbd );
+	flexnbd_lock_switch( listen->flexnbd );
 	{
 		flexnbd_set_server( listen->flexnbd, listen->init_serve );
 	}
-	flexnbd_switch_unlock( listen->flexnbd );
+	flexnbd_unlock_switch( listen->flexnbd );
 
 	/* WATCH FOR RACES HERE: flexnbd->serve is set, but the server
 	 * isn't running yet and the switch lock is released.

@@ -42,6 +42,8 @@ def check(m)
   "build/tests/check_#{m}"
 end
 
+
+
 namespace "test" do
   desc "Run all tests"
   task 'run' => ["unit", "scenarios"]
@@ -102,6 +104,7 @@ file check("client") =>
   build/nbdtypes.o
   build/listen.o
   build/flexnbd.o
+  build/flexthread.o
   build/control.o
   build/readwrite.o
   build/parse.o
@@ -139,6 +142,7 @@ file check("serve") =>
   build/readwrite.o
   build/parse.o
   build/client.o
+  build/flexthread.o
   build/serve.o
   build/flexnbd.o
   build/mirror.o
@@ -159,6 +163,7 @@ file check("readwrite") =>
   build/serve.o
   build/parse.o
   build/acl.o
+  build/flexthread.o
   build/control.o
   build/flexnbd.o
   build/mirror.o
@@ -176,6 +181,7 @@ file check("listen") =>
   build/listen.o
   build/flexnbd.o
   build/status.o
+  build/flexthread.o
   build/mbox.o
   build/mirror.o
   build/self_pipe.o
@@ -199,6 +205,7 @@ file check("flexnbd") =>
   build/control.o
   build/listen.o
   build/mbox.o
+  build/flexthread.o
   build/status.o
   build/self_pipe.o
   build/client.o

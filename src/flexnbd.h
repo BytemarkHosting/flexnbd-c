@@ -8,6 +8,7 @@
 #include "self_pipe.h"
 #include "mbox.h"
 #include "control.h"
+#include "flexthread.h"
 
 /* Carries the "globals". */
 struct flexnbd {
@@ -28,7 +29,7 @@ struct flexnbd {
 	/* switch_mutex is the lock around dereferencing the serve
 	 * pointer.
 	 */
-	pthread_mutex_t switch_mutex;
+	struct flexthread_mutex * switch_mutex;
 
 	/* File descriptor for a signalfd(2) signal stream. */
 	int signal_fd;
@@ -60,8 +61,9 @@ struct flexnbd * flexnbd_create_listening(
 void flexnbd_destroy( struct flexnbd * );
 enum mirror_state;
 enum mirror_state flexnbd_get_mirror_state( struct flexnbd * );
-void flexnbd_switch_lock( struct flexnbd * );
-void flexnbd_switch_unlock( struct flexnbd * );
+void flexnbd_lock_switch( struct flexnbd * );
+void flexnbd_unlock_switch( struct flexnbd * );
+int flexnbd_switch_locked( struct flexnbd * );
 int flexnbd_default_deny( struct flexnbd * );
 void flexnbd_set_server( struct flexnbd * flexnbd, struct server * serve );
 void flexnbd_switch( struct flexnbd * flexnbd, struct server *(listen_cb)(struct listen *) );

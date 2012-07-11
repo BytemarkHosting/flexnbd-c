@@ -77,7 +77,7 @@ void flexnbd_create_shared(
 
 	flexnbd->signal_fd = flexnbd_build_signal_fd();
 
-	pthread_mutex_init( &flexnbd->switch_mutex, NULL );
+	flexnbd->switch_mutex = flexthread_mutex_create();
 }
 
 
@@ -186,16 +186,22 @@ void flexnbd_destroy( struct flexnbd * flexnbd )
 
 /* THOU SHALT NOT DEREFERENCE flexnbd->serve OUTSIDE A SWITCH LOCK
  */
-void flexnbd_switch_lock( struct flexnbd * flexnbd )
+void flexnbd_lock_switch( struct flexnbd * flexnbd )
 {
 	NULLCHECK( flexnbd );
-	pthread_mutex_lock( &flexnbd->switch_mutex );
+	flexthread_mutex_lock( flexnbd->switch_mutex );
 }
 
-void flexnbd_switch_unlock( struct flexnbd * flexnbd )
+void flexnbd_unlock_switch( struct flexnbd * flexnbd )
 {
 	NULLCHECK( flexnbd );
-	pthread_mutex_unlock( &flexnbd->switch_mutex );
+	flexthread_mutex_unlock( flexnbd->switch_mutex );
+}
+
+int flexnbd_switch_locked( struct flexnbd * flexnbd )
+{
+	NULLCHECK( flexnbd );
+	return flexthread_mutex_held( flexnbd->switch_mutex );
 }
 
 struct server * flexnbd_server( struct flexnbd * flexnbd )
@@ -208,11 +214,11 @@ struct server * flexnbd_server( struct flexnbd * flexnbd )
 void flexnbd_replace_acl( struct flexnbd * flexnbd, struct acl * acl )
 {
 	NULLCHECK( flexnbd );
-	flexnbd_switch_lock( flexnbd );
+	flexnbd_lock_switch( flexnbd );
 	{
 		server_replace_acl( flexnbd_server(flexnbd), acl );
 	}
-	flexnbd_switch_unlock( flexnbd );
+	flexnbd_unlock_switch( flexnbd );
 }
 
 
@@ -221,11 +227,11 @@ struct status * flexnbd_status_create( struct flexnbd * flexnbd )
 	NULLCHECK( flexnbd );
 	struct status * status;
 	
-	flexnbd_switch_lock( flexnbd );
+	flexnbd_lock_switch( flexnbd );
 	{
 		status = status_create( flexnbd_server( flexnbd ) );
 	}
-	flexnbd_switch_unlock( flexnbd );
+	flexnbd_unlock_switch( flexnbd );
 	return status;
 }
 
@@ -245,13 +251,13 @@ void flexnbd_switch( struct flexnbd * flexnbd, struct server *(listen_cb)(struct
 	NULLCHECK( flexnbd );
 	NULLCHECK( flexnbd->listen );
 
-	flexnbd_switch_lock( flexnbd );
+	flexnbd_lock_switch( flexnbd );
 	{
 		struct server * new_server = listen_cb( flexnbd->listen );
 		NULLCHECK( new_server );
 		flexnbd_set_server( flexnbd, new_server );
 	}
-	flexnbd_switch_unlock( flexnbd );
+	flexnbd_unlock_switch( flexnbd );
 
 }
 
@@ -266,11 +272,11 @@ int flexnbd_default_deny( struct flexnbd * flexnbd )
 	int result;
 
 	NULLCHECK( flexnbd );
-	flexnbd_switch_lock( flexnbd );
+	flexnbd_lock_switch( flexnbd );
 	{
 		result = server_default_deny( flexnbd->serve );
 	}
-	flexnbd_switch_unlock( flexnbd );
+	flexnbd_unlock_switch( flexnbd );
 	return result;
 }
 

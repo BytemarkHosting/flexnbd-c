@@ -23,7 +23,6 @@
 #include "readwrite.h"
 #include "bitset.h"
 #include "self_pipe.h"
-#include "acl.h"
 #include "status.h"
 
 
@@ -182,6 +181,7 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 			 */
 			if (should_lock) { server_lock_io( serve ); }
 			{
+				debug("in lock block");
 				/** FIXME: do something useful with bytes/second */
 
 				/** FIXME: error handling code here won't unlock */
@@ -194,6 +194,7 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 
 				/* now mark it clean */
 				bitset_clear_range(map, current, run);
+				debug("leaving lock block");
 			}
 			if (should_lock) { server_unlock_io( serve ); }
 
@@ -280,9 +281,11 @@ void mirror_on_exit( struct server * serve )
 }
 
 
-void mirror_cleanup( struct mirror_status * mirror,
+void mirror_cleanup( struct server * serve,
 		int fatal __attribute__((unused)))
 {
+	NULLCHECK( serve );
+	struct mirror_status * mirror = serve->mirror;
 	NULLCHECK( mirror );
 	info( "Cleaning up mirror thread");
 
@@ -290,6 +293,8 @@ void mirror_cleanup( struct mirror_status * mirror,
 		close( mirror->client );
 	}
 	mirror->client = -1;
+
+	if( server_io_locked( serve ) ){ server_unlock_io( serve ); }
 }
 
 
@@ -404,7 +409,7 @@ void* mirror_runner(void* serve_params_uncast)
 	struct mirror_status * mirror = serve->mirror;
 	NULLCHECK( mirror->dirty_map );
 
-	error_set_handler( (cleanup_handler *) mirror_cleanup, mirror );
+	error_set_handler( (cleanup_handler *) mirror_cleanup, serve );
 
 	info( "Connecting to mirror" );
 	

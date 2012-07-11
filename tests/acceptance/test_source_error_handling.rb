@@ -26,86 +26,72 @@ class TestSourceErrorHandling < Test::Unit::TestCase
 
 
   def test_destination_hangs_after_connect_reports_error_at_source
-    run_fake( "dest/hang_after_connect" )
-
-    stdout, stderr = @env.mirror12_unchecked
-    assert_match( /Remote server failed to respond/, stderr )
-    assert_success
+    run_fake( "dest/hang_after_connect",
+              /Remote server failed to respond/ )
   end
 
 
   def test_destination_rejects_connection_reports_error_at_source
-    run_fake( "dest/reject_acl" )
-
-    stdout, stderr = @env.mirror12_unchecked
-    assert_match /Mirror was rejected/, stderr
-    assert_success
+    run_fake( "dest/reject_acl",
+              /Mirror was rejected/ )
   end
 
   def test_wrong_size_causes_disconnect
-    run_fake( "dest/hello_wrong_size" )
-    stdout, stderr = @env.mirror12_unchecked
-    assert_match /Remote size does not match local size/, stderr
-    assert_success
+    run_fake( "dest/hello_wrong_size",
+              /Remote size does not match local size/ )
   end
 
 
   def test_wrong_magic_causes_disconnect
-    run_fake( "dest/hello_wrong_magic" )
-    stdout, stderr = @env.mirror12_unchecked
-    assert_match /Mirror was rejected/, stderr
-    assert_success "dest/hello_wrong_magic fake failed"
+    run_fake( "dest/hello_wrong_magic",
+              /Mirror was rejected/ )
   end
 
 
   def test_disconnect_after_hello_causes_retry
-    run_fake( "dest/close_after_hello" )
-    stdout, stderr = @env.mirror12_unchecked
-    assert_match( /Mirror started/, stdout )
-
-    assert_success
+    run_fake( "dest/close_after_hello",
+              /Mirror started/ )
   end
 
 
   def test_write_times_out_causes_retry
     run_fake( "dest/hang_after_write" )
-    stdout, stderr = @env.mirror12_unchecked
-
-    assert_success
   end
 
 
   def test_rejected_write_causes_retry
     run_fake( "dest/error_on_write" )
-    stdout, stderr = @env.mirror12_unchecked
-    assert_success
   end
 
 
   def test_disconnect_before_write_reply_causes_retry
     run_fake( "dest/close_after_write" )
-    @env.mirror12_unchecked
-    assert_success
   end
 
 
   def test_bad_write_reply_causes_retry
     run_fake( "dest/write_wrong_magic" )
-    @env.mirror12_unchecked
-    assert_success
   end
 
 
   def test_pre_entrust_disconnect_causes_retry
     run_fake( "dest/close_after_writes" )
-    @env.mirror12_unchecked
-    assert_success
+  end
+
+
+  def test_post_entrust_disconnect_causes_retry
+    @env.nbd1.can_die(0)
+    run_fake( "dest/close_after_entrust" )
   end
 
 
   private
-  def run_fake(name)
+  def run_fake(name, err=nil)
     @env.run_fake( name, @env.ip, @env.port2 )
+    stdout, stderr = @env.mirror12_unchecked
+    assert_success
+    assert_match( err, stderr ) if err
+    return stdout, stderr
   end
 
   def assert_success( msg=nil )
