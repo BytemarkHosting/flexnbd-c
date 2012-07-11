@@ -27,30 +27,30 @@ class TestSourceErrorHandling < Test::Unit::TestCase
 
   def test_destination_hangs_after_connect_reports_error_at_source
     run_fake( "dest/hang_after_connect",
-              /Remote server failed to respond/ )
+              :err => /Remote server failed to respond/ )
   end
 
 
   def test_destination_rejects_connection_reports_error_at_source
     run_fake( "dest/reject_acl",
-              /Mirror was rejected/ )
+              :err => /Mirror was rejected/ )
   end
 
   def test_wrong_size_causes_disconnect
     run_fake( "dest/hello_wrong_size",
-              /Remote size does not match local size/ )
+              :err => /Remote size does not match local size/ )
   end
 
 
   def test_wrong_magic_causes_disconnect
     run_fake( "dest/hello_wrong_magic",
-              /Mirror was rejected/ )
+              :err => /Mirror was rejected/ )
   end
 
 
   def test_disconnect_after_hello_causes_retry
     run_fake( "dest/close_after_hello",
-              /Mirror started/ )
+              :out => /Mirror started/ )
   end
 
 
@@ -86,11 +86,12 @@ class TestSourceErrorHandling < Test::Unit::TestCase
 
 
   private
-  def run_fake(name, err=nil)
+  def run_fake(name, opts = {})
     @env.run_fake( name, @env.ip, @env.port2 )
     stdout, stderr = @env.mirror12_unchecked
     assert_success
-    assert_match( err, stderr ) if err
+    assert_match( opts[:err], stderr ) if opts[:err]
+    assert_match( opts[:out], stdout ) if opts[:out]
     return stdout, stderr
   end
 
