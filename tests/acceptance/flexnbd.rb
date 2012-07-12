@@ -187,9 +187,22 @@ class FlexNBD
   end
 
 
+  def build_debug_opt
+    if @do_debug
+      if `#{@bin} serve --help` =~ /--verbose/
+        "--verbose"
+      else
+        ""
+      end
+    else
+      "--quiet"
+    end
+  end
+
   def initialize(bin, ip, port, rebind_ip = ip, rebind_port = port)
     @bin  = bin
-    @debug = (ENV['DEBUG'] && `#{@bin} serve --help` =~ /--verbose/) ? "--verbose" : ""
+    @do_debug = ENV['DEBUG']
+    @debug = build_debug_opt
     raise "#{bin} not executable" unless File.executable?(bin)
     @executor = pick_executor.new
     @ctrl = "/tmp/.flexnbd.ctrl.#{Time.now.to_i}.#{rand}"
@@ -202,7 +215,7 @@ class FlexNBD
 
 
   def debug?
-    !@debug.empty? || ENV['DEBUG']
+    !!@do_debug
   end
 
   def debug( msg )

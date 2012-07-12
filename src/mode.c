@@ -14,10 +14,11 @@ static struct option serve_options[] = {
 	GETOPT_FILE,
 	GETOPT_SOCK,
 	GETOPT_DENY,
+	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char serve_short_options[] = "hl:p:f:s:d" SOPT_VERBOSE;
+static char serve_short_options[] = "hl:p:f:s:d" SOPT_QUIET SOPT_VERBOSE;
 static char serve_help_text[] =
 	"Usage: flexnbd " CMD_SERVE " <options> [<acl address>*]\n\n"
 	"Serve FILE from ADDR:PORT, with an optional control socket at SOCK.\n\n"
@@ -27,7 +28,8 @@ static char serve_help_text[] =
 	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
 	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
 	SOCK_LINE
-	VERBOSE_LINE;
+	VERBOSE_LINE
+	QUIET_LINE;
 
 
 static struct option listen_options[] = {
@@ -39,10 +41,11 @@ static struct option listen_options[] = {
 	GETOPT_FILE,
 	GETOPT_SOCK,
 	GETOPT_DENY,
+	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char listen_short_options[] = "hl:L:p:P:f:s:d" SOPT_VERBOSE;
+static char listen_short_options[] = "hl:L:p:P:f:s:d" SOPT_QUIET SOPT_VERBOSE;
 static char listen_help_text[] =
 	"Usage: flexnbd " CMD_LISTEN " <options> [<acl_address>*]\n\n"
 	"Listen for an incoming migration on ADDR:PORT, "
@@ -56,7 +59,8 @@ static char listen_help_text[] =
 	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
 	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
 	SOCK_LINE
-	VERBOSE_LINE;
+	VERBOSE_LINE
+	QUIET_LINE;
 
 
 static struct option read_options[] = {
@@ -66,10 +70,11 @@ static struct option read_options[] = {
 	GETOPT_FROM,
 	GETOPT_SIZE,
 	GETOPT_BIND,
+	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char read_short_options[] = "hl:p:F:S:b:" SOPT_VERBOSE;
+static char read_short_options[] = "hl:p:F:S:b:" SOPT_QUIET SOPT_VERBOSE;
 static char read_help_text[] =
 	"Usage: flexnbd " CMD_READ " <options>\n\n"
 	"Read SIZE bytes from a server at ADDR:PORT to stdout, starting at OFFSET.\n\n"
@@ -79,7 +84,8 @@ static char read_help_text[] =
 	"\t--" OPT_FROM ",-F <OFFSET>\tByte offset to read from.\n"
 	"\t--" OPT_SIZE ",-S <SIZE>\tBytes to read.\n"
 	BIND_LINE
-	VERBOSE_LINE;
+	VERBOSE_LINE
+	QUIET_LINE;
 
 
 static struct option *write_options = read_options;
@@ -93,21 +99,24 @@ static char write_help_text[] =
 	"\t--" OPT_FROM ",-F <OFFSET>\tByte offset to write from.\n"
 	"\t--" OPT_SIZE ",-S <SIZE>\tBytes to write.\n"
 	BIND_LINE
-	VERBOSE_LINE;
+	VERBOSE_LINE
+	QUIET_LINE;
 
 static struct option acl_options[] = {
 	GETOPT_HELP,
 	GETOPT_SOCK,
+	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char acl_short_options[] = "hs:" SOPT_VERBOSE;
+static char acl_short_options[] = "hs:" SOPT_QUIET SOPT_VERBOSE;
 static char acl_help_text[] =
 	"Usage: flexnbd " CMD_ACL " <options> [<acl address>+]\n\n"
 	"Set the access control list for a server with control socket SOCK.\n\n"
 	HELP_LINE
 	SOCK_LINE
-	VERBOSE_LINE;
+	VERBOSE_LINE
+	QUIET_LINE;
 
 static struct option mirror_options[] = {
 	GETOPT_HELP,
@@ -115,10 +124,11 @@ static struct option mirror_options[] = {
 	GETOPT_ADDR,
 	GETOPT_PORT,
 	GETOPT_BIND,
+	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char mirror_short_options[] = "hs:l:p:b:" SOPT_VERBOSE;
+static char mirror_short_options[] = "hs:l:p:b:" SOPT_QUIET SOPT_VERBOSE;
 static char mirror_help_text[] =
 	"Usage: flexnbd " CMD_MIRROR " <options>\n\n"
 	"Start mirroring from the server with control socket SOCK to one at ADDR:PORT.\n\n"
@@ -127,22 +137,25 @@ static char mirror_help_text[] =
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to mirror to.\n"
 	SOCK_LINE
 	BIND_LINE
-	VERBOSE_LINE;
+	VERBOSE_LINE
+	QUIET_LINE;
 
 
 static struct option status_options[] = {
 	GETOPT_HELP,
 	GETOPT_SOCK,
+	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char status_short_options[] = "hs:" SOPT_VERBOSE;
+static char status_short_options[] = "hs:" SOPT_QUIET SOPT_VERBOSE;
 static char status_help_text[] =
 	"Usage: flexnbd " CMD_STATUS " <options>\n\n"
 	"Get the status for a server with control socket SOCK.\n\n"
 	HELP_LINE
 	SOCK_LINE
-	VERBOSE_LINE;
+	VERBOSE_LINE
+	QUIET_LINE;
 
 char help_help_text_arr[] =
 	"Usage: flexnbd <cmd> [cmd options]\n\n"
@@ -190,6 +203,9 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 		case 'd':
 			*default_deny = 1;
 			break;
+		case 'q':
+			log_level = 4;
+			break;
 		case 'v':
 			log_level = 0;
 			break;
@@ -235,6 +251,9 @@ void read_listen_param( int c,
 		case 'd':
 			*default_deny = 1;
 			break;
+		case 'q':
+			log_level = 4;
+			break;
 		case 'v':
 			log_level = 0;
 			break;
@@ -266,6 +285,9 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_ad
 		case 'b':
 			*bind_addr = optarg;
 			break;
+		case 'q':
+			log_level = 4;
+			break;
 		case 'v':
 			log_level = 0;
 			break;
@@ -284,6 +306,9 @@ void read_sock_param( int c, char **sock, char *help_text )
 			break;
 		case 's':
 			*sock = optarg;
+			break;
+		case 'q':
+			log_level = 4;
 			break;
 		case 'v':
 			log_level = 0;
@@ -317,6 +342,10 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port, char
 			break;
 		case 'b':
 			*bind_addr = optarg;
+			break;
+		case 'q':
+			log_level = 4;
+			break;
 		case 'v':
 			log_level = 0;
 			break;

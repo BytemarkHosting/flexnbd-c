@@ -63,6 +63,13 @@ void mode(char* mode, int argc, char **argv);
 #  define SOPT_VERBOSE ""
 #endif
 
+#define OPT_QUIET "quiet"
+#define SOPT_QUIET "q"
+#define GETOPT_QUIET GETOPT_FLAG( OPT_QUIET, 'q' )
+#define QUIET_LINE \
+	"\t--" OPT_QUIET ",-" SOPT_QUIET "\t\tOutput only fatal informatio.\n"
+
+
 #define HELP_LINE \
 	"\t--" OPT_HELP  ",-h       \tThis text.\n"
 #define SOCK_LINE \
