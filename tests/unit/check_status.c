@@ -41,7 +41,7 @@ START_TEST( test_gets_is_mirroring )
 	fail_if( status->is_mirroring, "is_mirroring was set" );
 	status_destroy( status );
 
-	server.mirror = (struct mirror_status *)xmalloc( sizeof( struct mirror_status ) );
+	server.mirror = (struct mirror *)xmalloc( sizeof( struct mirror ) );
 	status = status_create( &server );
 	fail_unless( status->is_mirroring, "is_mirroring wasn't set" );
 	status_destroy( status );

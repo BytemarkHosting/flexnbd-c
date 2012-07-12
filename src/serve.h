@@ -53,7 +53,7 @@ struct server {
 	/* Claimed around any updates to the ACL. */
 	struct flexthread_mutex *   l_acl;
 
-	struct mirror_status* mirror;
+	struct mirror* mirror;
 	struct mirror_super * mirror_super; 
 	int                  server_fd;
 	int                  control_fd;

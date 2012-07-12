@@ -58,7 +58,7 @@ enum mirror_state {
 	MS_FAIL_SIZE_MISMATCH
 };
 
-struct mirror_status {
+struct mirror {
 	pthread_t            thread;
 	/* set to 1, then join thread to make mirror terminate early */
 	int                  signal_abandon;
@@ -82,7 +82,7 @@ struct mirror_status {
 
 
 struct mirror_super {
-	struct mirror_status * mirror;
+	struct mirror * mirror;
 	pthread_t thread;
 	struct mbox * state_mbox;
 };

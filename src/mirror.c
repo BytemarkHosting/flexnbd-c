@@ -31,16 +31,16 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-struct mirror_status * mirror_status_alloc(
+struct mirror * mirror_alloc(
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
 		int max_Bps,
 		int action_at_finish,
 		struct self_pipe * commit_signal)
 {
-	struct mirror_status * mirror;
+	struct mirror * mirror;
 
-	mirror = xmalloc(sizeof(struct mirror_status));
+	mirror = xmalloc(sizeof(struct mirror));
 	mirror->connect_to = connect_to;
 	mirror->connect_from = connect_from;
 	mirror->max_bytes_per_second = max_Bps;
@@ -51,7 +51,7 @@ struct mirror_status * mirror_status_alloc(
 	return mirror;
 }
 
-void mirror_set_state_f( struct mirror_status * mirror, enum mirror_state state )
+void mirror_set_state_f( struct mirror * mirror, enum mirror_state state )
 {
 	NULLCHECK( mirror );
 	mirror->commit_state = state;
@@ -62,14 +62,14 @@ void mirror_set_state_f( struct mirror_status * mirror, enum mirror_state state 
 	mirror_set_state_f( mirror, state );\
 } while(0)
 
-enum mirror_state mirror_get_state( struct mirror_status * mirror )
+enum mirror_state mirror_get_state( struct mirror * mirror )
 {
 	NULLCHECK( mirror );
 	return mirror->commit_state;
 }
 
 
-void mirror_status_init( struct mirror_status * mirror, const char * filename )
+void mirror_init( struct mirror * mirror, const char * filename )
 {
 	int map_fd;
 	off64_t size;
@@ -94,7 +94,7 @@ void mirror_status_init( struct mirror_status * mirror, const char * filename )
 
 
 /* Call this before a mirror attempt. */
-void mirror_status_reset( struct mirror_status * mirror )
+void mirror_reset( struct mirror * mirror )
 {
 	NULLCHECK( mirror );
 	NULLCHECK( mirror->dirty_map );
@@ -103,7 +103,7 @@ void mirror_status_reset( struct mirror_status * mirror )
 }
 
 
-struct mirror_status * mirror_status_create(
+struct mirror * mirror_create(
 		const char * filename,
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
@@ -112,23 +112,23 @@ struct mirror_status * mirror_status_create(
 		struct self_pipe * commit_signal)
 {
 	/* FIXME: shouldn't map_fd get closed? */
-	struct mirror_status * mirror;
+	struct mirror * mirror;
 
-	mirror = mirror_status_alloc( connect_to,
+	mirror = mirror_alloc( connect_to,
 			connect_from,
 			max_Bps,
 			action_at_finish,
 			commit_signal);
 	
-	mirror_status_init( mirror, filename );
-	mirror_status_reset( mirror );
+	mirror_init( mirror, filename );
+	mirror_reset( mirror );
 
 
 	return mirror;
 }
 
 
-void mirror_status_destroy( struct mirror_status *mirror )
+void mirror_destroy( struct mirror *mirror )
 {
 	NULLCHECK( mirror );
 	free(mirror->connect_to);
@@ -213,7 +213,7 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 }
 
 
-void mirror_give_control( struct mirror_status * mirror )
+void mirror_give_control( struct mirror * mirror )
 {
 	debug( "mirror: entrusting and disconnecting" );
 	/* TODO: set up an error handler to clean up properly on ERROR.
@@ -293,7 +293,7 @@ void mirror_cleanup( struct server * serve,
 		int fatal __attribute__((unused)))
 {
 	NULLCHECK( serve );
-	struct mirror_status * mirror = serve->mirror;
+	struct mirror * mirror = serve->mirror;
 	NULLCHECK( mirror );
 	info( "Cleaning up mirror thread");
 
@@ -307,7 +307,7 @@ void mirror_cleanup( struct server * serve,
 
 
 
-int mirror_status_connect( struct mirror_status * mirror, off64_t local_size )
+int mirror_connect( struct mirror * mirror, off64_t local_size )
 {
 	struct sockaddr * connect_from = NULL;
 	if ( mirror->connect_from ) {
@@ -394,7 +394,7 @@ void mirror_run( struct server *serve )
 }
 
 
-void mirror_signal_commit( struct mirror_status * mirror )
+void mirror_signal_commit( struct mirror * mirror )
 {
 	NULLCHECK( mirror );
 
@@ -414,7 +414,7 @@ void* mirror_runner(void* serve_params_uncast)
 
 	NULLCHECK( serve );
 	NULLCHECK( serve->mirror );
-	struct mirror_status * mirror = serve->mirror;
+	struct mirror * mirror = serve->mirror;
 	NULLCHECK( mirror->dirty_map );
 
 	error_set_handler( (cleanup_handler *) mirror_cleanup, serve );
@@ -422,7 +422,7 @@ void* mirror_runner(void* serve_params_uncast)
 	info( "Connecting to mirror" );
 	
 	time_t start_time = time(NULL);
-	int connected = mirror_status_connect( mirror, serve->size );
+	int connected = mirror_connect( mirror, serve->size );
 	mirror_signal_commit( mirror );
 	if ( !connected ) { goto abandon_mirror; }
 
@@ -460,7 +460,7 @@ struct mirror_super * mirror_super_create(
 		int action_at_finish)
 {
 	struct mirror_super * super = xmalloc( sizeof( struct mirror_super) );
-	super->mirror = mirror_status_create( 
+	super->mirror = mirror_create( 
 			filename, 
 			connect_to, 
 			connect_from, 
@@ -491,14 +491,14 @@ void mirror_super_destroy( struct mirror_super * super )
 
 	mbox_destroy( super->state_mbox );
 	self_pipe_destroy( super->mirror->commit_signal );
-	mirror_status_destroy( super->mirror );
+	mirror_destroy( super->mirror );
 	free( super );
 }
 
 
 /* The mirror supervisor thread.  Responsible for kicking off retries if
  * the mirror thread fails.
- * The mirror_status and mirror_super objects are never freed, and the
+ * The mirror and mirror_super objects are never freed, and the
  * mirror_super_runner thread is never joined.
  */
 void * mirror_super_runner( void * serve_uncast )
@@ -513,7 +513,7 @@ void * mirror_super_runner( void * serve_uncast )
 	fd_set fds;
 	int fd_count;
 
-	struct mirror_status * mirror = serve->mirror;
+	struct mirror * mirror = serve->mirror;
 	struct mirror_super *  super  = serve->mirror_super;
 
 	do {
@@ -524,7 +524,7 @@ void * mirror_super_runner( void * serve_uncast )
 
 			/* We also have to reset the bitmap to be sure
 			 * we transfer everything */
-			mirror_status_reset( mirror );
+			mirror_reset( mirror );
 		}
 
 		FATAL_IF( 0 != pthread_create(
