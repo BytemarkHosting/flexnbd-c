@@ -24,5 +24,6 @@ client.close
 client2 = server.accept
 client2.receive_mirror
 
+
 exit(0)
 

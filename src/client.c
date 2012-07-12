@@ -366,7 +366,11 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 	client_write_reply( client, &request, 0);
 
 	offset = request.from;
-	FATAL_IF_NEGATIVE(
+
+	/* If we get cut off partway through this sendfile, we don't
+	 * want to kill the server.  This should be an error.
+	 */
+	ERROR_IF_NEGATIVE(
 			sendfileloop(
 				client->socket, 
 				client->fileno, 

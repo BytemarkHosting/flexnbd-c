@@ -9,7 +9,7 @@
 require 'flexnbd/fake_source'
 include FlexNBD
 
-addr, port, srv_pid = *ARGV
+addr, port, srv_pid, rebind_addr, rebind_port = *ARGV
 
 client = FakeSource.new( addr, port, "Timed out connecting" )
 client.read_hello
@@ -25,8 +25,8 @@ sleep(0.25)
 client2 = FakeSource.new( addr, port, "Timed out reconnecting to mirror" )
 client2.send_mirror
 
-sleep(0.25)
-client3 = FakeSource.new( addr, port, "Timed out reconnecting to read" )
+sleep(1)
+client3 = FakeSource.new( rebind_addr, rebind_port, "Timed out reconnecting to read" )
 client3.close
 
 exit(0)

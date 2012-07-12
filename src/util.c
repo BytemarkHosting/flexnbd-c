@@ -44,13 +44,24 @@ void exit_err( const char *msg )
 void mylog(int line_level, const char* format, ...)
 {
 	va_list argptr;
+
 	
 	if (line_level < log_level) { return; }
 	
+	/* Copy the format sideways so that we can append a "\n" to it
+	 * and avoid a second fprintf. This stops log lines from getting
+	 * interleaved.
+	 */
+	int format_len = strlen( format );
+	char *format_n = xmalloc( format_len + 2 );
+	memcpy( format_n, format, format_len );
+	format_n[format_len] = '\n';
+
 	va_start(argptr, format);
-	vfprintf(stderr, format, argptr);
+	vfprintf(stderr, format_n, argptr);
 	va_end(argptr);
-	fprintf(stderr, "\n");
+
+	free( format_n );
 }
 
 void* xrealloc(void* ptr, size_t size)

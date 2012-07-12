@@ -34,6 +34,10 @@ class TestDestErrorHandling  < Test::Unit::TestCase
   end
 
 
+  def test_partial_read_causes_error
+    run_fake( "source/close_mid_read" )
+  end
+
   def test_double_connect_during_hello
     run_fake( "source/connect_during_hello" )
   end
@@ -72,18 +76,32 @@ class TestDestErrorHandling  < Test::Unit::TestCase
     # This fake runs a failed migration then a succeeding one, so we
     # expect the destination to take control.
     run_fake( "source/close_after_entrust_reply" )
+    assert_control
   end
+
+
+  def test_cant_rebind_retries
+    run_fake( "source/successful_transfer" )
+  end
+
 
   private
   def run_fake( name )
-    @env.run_fake( name, @env.ip, @env.port1 )
+    @env.run_fake( name, @env.ip, @env.port1, @env.ip, @env.rebind_port1 )
     assert @env.fake_reports_success, "#{name} failed."
   end
 
+  def status
+    stat, _ = @env.status1
+    stat
+  end
+
   def assert_no_control
-    status, stderr = @env.status1
     assert !status['has_control'],  "Thought it had control"
   end
 
+  def assert_control
+    assert status['has_control'], "Didn't think it had control"
+  end
 
 end # class TestDestErrorHandling

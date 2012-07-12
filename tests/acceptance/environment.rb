@@ -5,7 +5,7 @@ require 'file_writer'
 
 class Environment
   attr_reader( :blocksize, :filename1, :filename2, :ip,
-               :port1, :port2, :nbd1, :nbd2, :file1, :file2 )
+               :port1, :port2, :nbd1, :nbd2, :file1, :file2, :rebind_port1 )
 
   def initialize
     @blocksize = 1024
@@ -14,9 +14,11 @@ class Environment
     @ip = "127.0.0.1"
     @available_ports = [*40000..41000] - listening_ports
     @port1 = @available_ports.shift
+    @rebind_port1 = @available_ports.shift
     @port2 = @available_ports.shift
-    @nbd1 = FlexNBD.new("../../build/flexnbd", @ip, @port1)
-    @nbd2 = FlexNBD.new("../../build/flexnbd", @ip, @port2)
+    @rebind_port2 = @available_ports.shift
+    @nbd1 = FlexNBD.new("../../build/flexnbd", @ip, @port1, @ip, @rebind_port1)
+    @nbd2 = FlexNBD.new("../../build/flexnbd", @ip, @port2, @ip, @rebind_port2)
 
     @fake_pid = nil
   end
@@ -95,6 +97,7 @@ class Environment
     end
 
 
+    @nbd1.can_die(0)
     @nbd1.kill
     @nbd2.kill
 
@@ -104,7 +107,7 @@ class Environment
   end
 
 
-  def run_fake( name, addr, port )
+  def run_fake( name, addr, port, rebind_addr = addr, rebind_port = port )
     fakedir = File.join( File.dirname( __FILE__ ), "fakes" )
     fake = Dir[File.join( fakedir, name ) + "*"].sort.find { |fn|
       File.executable?( fn )
@@ -113,8 +116,11 @@ class Environment
     raise "no fake executable" unless fake
     raise "no addr" unless addr
     raise "no port" unless port
+    raise "no rebind_addr" unless rebind_addr
+    raise "no rebind_port" unless rebind_port
+
     @fake_pid = fork do
-      exec fake + " " + addr.to_s + " " + port.to_s + " " + @nbd1.pid.to_s
+      exec [fake, addr, port, @nbd1.pid, rebind_addr, rebind_port].map{|x| x.to_s}.join(" ")
     end
     sleep(0.5)
   end

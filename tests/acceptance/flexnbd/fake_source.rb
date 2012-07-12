@@ -54,11 +54,27 @@ module FlexNBD
       send_request( 2, handle )
     end
 
+    def write_read_request( from, len, handle="myhandle" )
+      send_request( 0, "myhandle", from, len )
+    end
+
 
     def write_data( data )
       @sock.write( data )
     end
 
+
+    # Handy utility
+    def read( from, len )
+      timing_out( 2, "Timed out reading" ) do
+        send_request( 0, "myhandle", from, len )
+        read_raw( len )
+      end
+    end
+
+    def read_raw( len )
+      @sock.read( len )
+    end
 
     def send_mirror
       read_hello()

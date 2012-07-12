@@ -192,6 +192,62 @@ int server_port( struct server * server )
 }
 
 
+/* Try to bind to our serving socket, retrying until it works or gives a
+ * fatal error. */
+void serve_bind( struct server * serve )
+{
+	int bind_result;
+
+	char s_address[64];
+	memset( s_address, 0, 64 );
+	strcpy( s_address, "???" );
+	inet_ntop( serve->bind_to.generic.sa_family,
+			sockaddr_address_data( &serve->bind_to.generic),
+			s_address, 64 );
+
+	do {
+		bind_result = bind(
+				serve->server_fd, 
+				&serve->bind_to.generic,
+				sizeof(serve->bind_to));
+
+		if ( 0 == bind_result ) {
+			info( "Bound to %s port %d", 
+					s_address, 
+					ntohs(serve->bind_to.v4.sin_port));
+			break;
+		}
+		else {
+
+			warn( "Couldn't bind to %s port %d: %s", 
+					s_address, 
+					ntohs(serve->bind_to.v4.sin_port),
+					strerror( errno ) );
+
+			switch (errno){
+				/* bind() can give us EACCES,
+				 * EADDRINUSE, EADDRNOTAVAIL, EBADF,
+				 * EINVAL or ENOTSOCK.
+				 *
+				 * Any of these other than EACCES, 
+				 * EADDRINUSE or EADDRNOTAVAIL signify
+				 * that there's a logic error somewhere.
+				 */
+				case EACCES:
+				case EADDRINUSE:
+				case EADDRNOTAVAIL:
+					debug("retrying");
+					sleep(1);
+					continue;
+				default:
+					fatal( "Giving up" );
+			}
+		}
+	} while ( 1 );
+}
+
+
+
 /** Prepares a listening socket for the NBD server, binding etc. */
 void serve_open_server_socket(struct server* params)
 {
@@ -205,21 +261,32 @@ void serve_open_server_socket(struct server* params)
 	FATAL_IF_NEGATIVE(params->server_fd, 
 	  "Couldn't create server socket");
 
+	/* We need SO_REUSEADDR so that when we switch from listening to
+	 * serving we don't have to change address if we don't want to.
+	 *
+	 * If this fails, it's not necessarily bad in principle, but at
+	 * this point in the code we can't tell if it's going to be a
+	 * problem.  It's also indicative of something odd going on, so
+	 * we barf.
+	 */
 	FATAL_IF_NEGATIVE(
 		setsockopt(params->server_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)),
 		"Couldn't set SO_REUSEADDR"
 	);
 
+	/* TCP_NODELAY makes everything not be slow.  If we can't set
+	 * this, again, there's something odd going on which we don't
+	 * understand.
+	 */
 	FATAL_IF_NEGATIVE(
 		setsockopt(params->server_fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval)),
 		"Couldn't set TCP_NODELAY"
 	);
 
-	FATAL_IF_NEGATIVE(
-		bind(params->server_fd, &params->bind_to.generic,
-		  sizeof(params->bind_to)),
-		"Couldn't bind server to IP address"
-	);
+	/* If we can't bind, presumably that's because someone else is
+	 * squatting on our ip/port combo, or the ip isn't yet
+	 * configured. Ideally we want to retry this. */
+	serve_bind(params);
 	
 	FATAL_IF_NEGATIVE(
 		listen(params->server_fd, params->tcp_backlog),

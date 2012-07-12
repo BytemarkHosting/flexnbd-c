@@ -166,7 +166,7 @@ end # class ValgrindExecutor
 # Noddy test class to exercise FlexNBD from the outside for testing.
 #
 class FlexNBD
-  attr_reader :bin, :ctrl, :pid, :ip, :port
+  attr_reader :bin, :ctrl, :pid, :ip, :port, :rebind_ip, :rebind_port
 
   class << self
     def counter
@@ -187,7 +187,7 @@ class FlexNBD
   end
 
 
-  def initialize(bin, ip, port)
+  def initialize(bin, ip, port, rebind_ip = ip, rebind_port = port)
     @bin  = bin
     @debug = (ENV['DEBUG'] && `#{@bin} serve --help` =~ /--verbose/) ? "--verbose" : ""
     raise "#{bin} not executable" unless File.executable?(bin)
@@ -195,6 +195,8 @@ class FlexNBD
     @ctrl = "/tmp/.flexnbd.ctrl.#{Time.now.to_i}.#{rand}"
     @ip = ip
     @port = port
+    @rebind_ip = rebind_ip
+    @rebind_port = rebind_port
     @kill = []
   end
 
@@ -224,6 +226,8 @@ class FlexNBD
       "--addr #{ip} "\
       "--port #{port} "\
       "--file #{file} "\
+      "--rebind-addr #{rebind_ip} " \
+      "--rebind-port #{rebind_port} " \
       "--sock #{ctrl} "\
       "#{@debug} "\
       "#{acl.join(' ')}"
