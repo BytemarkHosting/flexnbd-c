@@ -81,4 +81,15 @@ class TestHappyPath < Test::Unit::TestCase
     assert @env.status2['has_control'], "destination didn't take control"
   end
 
+
+  def test_write_to_high_block
+    # Create a large file, then try to write to somewhere after the 2G boundary
+    @env.truncate1 "4G"
+    @env.serve1
+
+    @env.nbd1.write( 2**31+2**29, "12345678" )
+    sleep(1)
+    assert_equal "12345678", @env.nbd1.read( 2**31+2**29, 8 )
+  end
+
 end

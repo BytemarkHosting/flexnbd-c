@@ -56,7 +56,7 @@ fail:
 	return 0;
 }
 
-void fill_request(struct nbd_request *request, int type, int from, int len)
+void fill_request(struct nbd_request *request, int type, off64_t from, int len)
 {
 	request->magic  = htobe32(REQUEST_MAGIC);
 	request->type   = htobe32(type);

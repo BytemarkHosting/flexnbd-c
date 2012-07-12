@@ -55,18 +55,22 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 		);
 	}
 	
-	for (i=0; i<(size/resolution); i++) {
-		debug("map[%d] = %d%d%d%d%d%d%d%d",
-		  i,
-		  (allocation_map->bits[i] & 1) == 1,
-		  (allocation_map->bits[i] & 2) == 2,
-		  (allocation_map->bits[i] & 4) == 4,
-		  (allocation_map->bits[i] & 8) == 8,
-		  (allocation_map->bits[i] & 16) == 16,
-		  (allocation_map->bits[i] & 32) == 32,
-		  (allocation_map->bits[i] & 64) == 64,
-		  (allocation_map->bits[i] & 128) == 128
-		);
+	/* This is pointlessly verbose for real discs, it's here as a
+	 * reference for pulling data out of the allocation map */
+	if ( 0 ) {
+		for (i=0; i<(size/resolution); i++) {
+			debug("map[%d] = %d%d%d%d%d%d%d%d",
+					i,
+					(allocation_map->bits[i] & 1) == 1,
+					(allocation_map->bits[i] & 2) == 2,
+					(allocation_map->bits[i] & 4) == 4,
+					(allocation_map->bits[i] & 8) == 8,
+					(allocation_map->bits[i] & 16) == 16,
+					(allocation_map->bits[i] & 32) == 32,
+					(allocation_map->bits[i] & 64) == 64,
+					(allocation_map->bits[i] & 128) == 128
+			     );
+		}
 	}
 	
 	

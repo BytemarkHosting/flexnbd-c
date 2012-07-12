@@ -136,7 +136,6 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 				 */
 				if (zerobuffer[0] != 0 || 
 				    memcmp(zerobuffer, zerobuffer + 1, blockrun - 1)) {
-					debug("non-zero, writing from=%ld, blockrun=%d", from, blockrun);
 					memcpy(client->mapped+from, zerobuffer, blockrun);
 					bitset_set_range(map, from, blockrun);
 					server_dirty(client->serve, from, blockrun);
@@ -147,9 +146,7 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 					 * sparseness as possible.
 					 */
 				}
-				else {
-					debug("all zero, skip write");
-				}
+
 				len  -= blockrun;
 				run  -= blockrun;
 				from += blockrun;
@@ -163,6 +160,7 @@ int fd_read_request( int fd, struct nbd_request_raw *out_request)
 {
 	return readloop(fd, out_request, sizeof(struct nbd_request_raw));
 }
+
 
 /* Returns 1 if *request was filled with a valid request which we should
  * try to honour. 0 otherwise. */
@@ -318,7 +316,7 @@ int client_request_needs_reply( struct client * client,
 				"after an entrust message.");
 		/* check it's not out of range */
 		if ( request.from+request.len > client->serve->size) {
-			debug("request read %ld+%d out of range", 
+			debug("request read %llx+%ld out of range", 
 			  request.from, 
 			  request.len
 			);
@@ -495,7 +493,7 @@ void* client_serve(void* client_uncast)
 			NULL, 
 			(void**) &client->mapped
 		),
-		"Couldn't open/mmap file %s", client->serve->filename
+		"Couldn't open/mmap file %s: %s", client->serve->filename, strerror( errno )
 	);
 	debug("client: sending hello");
 	client_send_hello(client);

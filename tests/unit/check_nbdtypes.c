@@ -182,6 +182,24 @@ START_TEST(test_reply_handle)
 END_TEST
 
 
+START_TEST( test_convert_from )
+{
+	/* Check that we can correctly pull numbers out of an
+	 * nbd_request_raw */
+	struct nbd_request_raw request_raw;
+	struct nbd_request     request;
+	char readbuf[] = {0x80, 0, 0, 0, 0, 0, 0, 0};
+
+	memcpy( &request_raw.from, readbuf, 8 );
+
+	nbd_r2h_request( &request_raw, &request );
+
+	uint64_t target = 1;
+	target <<= 63;
+	fail_unless( target == request.from, "from was wrong" );
+}	
+END_TEST
+
 Suite *nbdtypes_suite(void) 
 {
 	Suite *s = suite_create( "nbdtypes" );
@@ -197,6 +215,7 @@ Suite *nbdtypes_suite(void)
 	tcase_add_test( tc_request, test_request_handle );
 	tcase_add_test( tc_request, test_request_from );
 	tcase_add_test( tc_request, test_request_len );
+	tcase_add_test( tc_request, test_convert_from );
 	tcase_add_test( tc_reply, test_reply_magic );
 	tcase_add_test( tc_reply, test_reply_error );
 	tcase_add_test( tc_reply, test_reply_handle );

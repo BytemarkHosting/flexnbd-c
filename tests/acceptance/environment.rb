@@ -79,6 +79,10 @@ class Environment
   end
 
 
+  def truncate1( size )
+    system "truncate -s #{size} #{@filename1}"
+  end
+
 
   def listening_ports
     `netstat -ltn`.
