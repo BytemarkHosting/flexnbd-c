@@ -50,11 +50,26 @@ module FlexNBD
       send_request( 65536, handle )
     end
 
+    def write_disconnect_request( handle="myhandle" )
+      send_request( 2, handle )
+    end
+
 
     def write_data( data )
       @sock.write( data )
     end
 
+
+    def send_mirror
+      read_hello()
+      write_write_request( 0, 8 )
+      write_data( "12345678" )
+      read_response()
+      write_entrust_request()
+      read_response()
+      write_disconnect_request()
+      close()
+    end
 
 
     def read_response

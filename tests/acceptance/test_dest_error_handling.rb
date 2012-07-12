@@ -66,6 +66,14 @@ class TestDestErrorHandling  < Test::Unit::TestCase
     run_fake( "source/close_after_write_data" )
   end
 
+
+  def test_disconnect_after_entrust_reply_causes_error
+    @env.nbd1.can_die(0)
+    # This fake runs a failed migration then a succeeding one, so we
+    # expect the destination to take control.
+    run_fake( "source/close_after_entrust_reply" )
+  end
+
   private
   def run_fake( name )
     @env.run_fake( name, @env.ip, @env.port1 )

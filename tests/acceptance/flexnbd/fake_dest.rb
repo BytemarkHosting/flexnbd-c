@@ -94,7 +94,7 @@ module FlexNBD
       end
 
 
-      def receive_mirror
+      def receive_mirror( opts = {} )
         write_hello()
         loop do
           req = read_request
@@ -103,7 +103,7 @@ module FlexNBD
             read_data( req[:len] )
             write_reply( req[:handle] )
           when 65536
-            write_reply( req[:handle] )
+            write_reply( req[:handle], opts[:err] == :entrust ? 1 : 0 )
             break
           else
             raise "Unexpected request: #{req.inspect}"

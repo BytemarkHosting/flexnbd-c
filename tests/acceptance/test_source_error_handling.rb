@@ -85,6 +85,12 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
+  def test_entrust_error_causes_retry
+    run_fake( "dest/error_on_entrust" )
+  end
+
+
+
   private
   def run_fake(name, opts = {})
     @env.run_fake( name, @env.ip, @env.port2 )

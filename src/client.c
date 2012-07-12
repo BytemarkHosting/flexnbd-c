@@ -166,7 +166,7 @@ int fd_read_request( int fd, struct nbd_request_raw *out_request)
 
 /* Returns 1 if *request was filled with a valid request which we should
  * try to honour. 0 otherwise. */
-int client_read_request( struct client * client , struct nbd_request *out_request )
+int client_read_request( struct client * client , struct nbd_request *out_request, int * disconnected )
 {
 	NULLCHECK( client );
 	NULLCHECK( out_request );
@@ -199,6 +199,7 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	}
 
 	if (fd_read_request(client->socket, &request_raw) == -1) {
+		*disconnected = 1;
 		switch( errno ){
 			case 0:
 				debug( "EOF while reading request" );
@@ -296,8 +297,7 @@ void client_write_init( struct client * client, uint64_t size )
  * DISCONNECT and any bad request.
  */
 int client_request_needs_reply( struct client * client, 
-		struct nbd_request request,
-		int *should_disconnect )
+		struct nbd_request request )
 {
 	debug("request type %d", request.type);
 	
@@ -323,7 +323,7 @@ int client_request_needs_reply( struct client * client,
 			  request.len
 			);
 			client_write_reply( client, &request, 1 );
-			*should_disconnect = 0;
+			client->disconnect = 0;
 			return 0;
 		}
 		break;
@@ -335,7 +335,7 @@ int client_request_needs_reply( struct client * client,
 		break;
 	case REQUEST_DISCONNECT:
 		debug("request disconnect");
-		*should_disconnect = 1;
+		client->disconnect = 1;
 		return 0;
 		
 	default:
@@ -434,12 +434,13 @@ void client_reply( struct client* client, struct nbd_request request )
 int client_serve_request(struct client* client)
 {
 	struct nbd_request    request;
-	int                   request_err;
 	int                   failure = 1;
+	int                   disconnected = 0;
 
-	if ( !client_read_request( client, &request ) ) { return failure; }
-	if ( !client_request_needs_reply( client, request, &request_err ) )  {
-		return request_err;
+	if ( !client_read_request( client, &request, &disconnected ) ) { return failure; }
+	if ( disconnected ) { return failure; }
+	if ( !client_request_needs_reply( client, request ) )  {
+		return client->disconnect;
 	} 
 
 	server_lock_io( client->serve );
@@ -501,9 +502,14 @@ void* client_serve(void* client_uncast)
 	debug("client: stopped serving requests");
 	client->stopped = 1;
 		
-	if ( client->entrusted ){
-		debug("client: control arrived" );
-		server_control_arrived( client->serve );
+	if ( client->entrusted ) {
+		if ( client->disconnect ){
+			debug("client: control arrived" );
+			server_control_arrived( client->serve );
+		}
+		else {
+			warn( "client: control transfer failed." );
+		}
 	}
 
 	FATAL_IF_NEGATIVE(
