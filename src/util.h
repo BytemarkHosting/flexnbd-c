@@ -87,7 +87,7 @@ void mylog(int line_level, const char* format, ...);
 
 #define levstr(i) (i==0?'D':(i==1?'I':(i==2?'W':(i==3?'E':'F'))))
 
-#define myloglev(level, msg, ...) mylog( level, "%c:%d %p %s:%d: "msg, levstr(level), getpid(),pthread_self(), __FILE__, __LINE__, ##__VA_ARGS__ )
+#define myloglev(level, msg, ...) mylog( level, "%c:%d %p %s:%d: "msg"\n", levstr(level), getpid(),pthread_self(), __FILE__, __LINE__, ##__VA_ARGS__ )
 
 #ifdef DEBUG
 #  define debug(msg, ...) myloglev(0, msg, ##__VA_ARGS__)
