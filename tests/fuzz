@@ -1,5 +1,7 @@
 #!/usr/bin/ruby
 
+$:.push "acceptance"
+
 require 'flexnbd'
 
 binary      = ARGV.shift
@@ -40,7 +42,7 @@ end
 repetitions.times do |n|
 
   begin
-  
+
     if File.size(testname_local) != File.size(testname_serve)
       STDERR.print "Before pass #{n}: File sizes are different: local=#{File.size(testname_local)} serve=#{File.size(testname_serve)}\n"
       exit 1;
@@ -48,7 +50,7 @@ repetitions.times do |n|
 
     md5_local = `md5sum < #{testname_local}`.split(" ").first
     md5_serve = `md5sum < #{testname_serve}`.split(" ").first
-  
+
     if md5_local != md5_serve
       STDERR.print "Before pass #{n}: MD5 error: local=#{md5_local} serve=#{md5_serve}\n"
       print_record
@@ -63,17 +65,17 @@ repetitions.times do |n|
     length &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
     offset = rand(test_size - length)
     offset &= 0xfffff000 if CHEAT_AND_ROUND_DOWN
-    
+
     content = (n%2 == 0) ? ("\0" * length) : ( (n&255).chr * length)
-    
+
     $record << [offset, length, content[0]]
-        
+
     @local.seek(offset, IO::SEEK_SET)
     @local.write(content)
     @local.fsync
-  
+
     @serve.write(offset, content)
-  
+
     check_read = @serve.read(offset, length)
     if check_read != content
       STDERR.print "After pass #{n}: Didn't read back what we wrote!\n"
@@ -84,16 +86,17 @@ repetitions.times do |n|
       IO.popen("hexdump", "w") { |io| io.print(check_read) }
       exit 1
     end
-    
+
   rescue StandardError => ex
     STDERR.print "During pass #{n}: Exception: #{ex}"
       print_record
     STDERR.print ex.backtrace.join("\n") + "\n"
     exit 2
   end
-  
+
 end
 
 File.unlink(testname_local)
 File.unlink(testname_serve)
 
+@serve.can_die(0)
