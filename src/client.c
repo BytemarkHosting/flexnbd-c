@@ -316,7 +316,7 @@ int client_request_needs_reply( struct client * client,
 				"after an entrust message.");
 		/* check it's not out of range */
 		if ( request.from+request.len > client->serve->size) {
-			debug("request read %llx+%ld out of range", 
+			debug("request read %d+%d out of range",
 			  request.from, 
 			  request.len
 			);
@@ -435,7 +435,7 @@ void client_reply( struct client* client, struct nbd_request request )
 /* Returns 0 if we should continue trying to serve requests */
 int client_serve_request(struct client* client)
 {
-	struct nbd_request    request;
+	struct nbd_request    request = {0};
 	int                   failure = 1;
 	int                   disconnected = 0;
 

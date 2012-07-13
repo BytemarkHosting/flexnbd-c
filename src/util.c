@@ -44,6 +44,8 @@ void exit_err( const char *msg )
 void mylog(int line_level, const char* format, ...)
 {
 	va_list argptr;
+	char * format_n = NULL;
+	int format_len;
 
 	
 	if (line_level < log_level) { return; }
@@ -52,9 +54,9 @@ void mylog(int line_level, const char* format, ...)
 	 * and avoid a second fprintf. This stops log lines from getting
 	 * interleaved.
 	 */
-	int format_len = strlen( format );
-	char *format_n = xmalloc( format_len + 2 );
-	memcpy( format_n, format, format_len );
+	format_len = strlen( format );
+	format_n = xmalloc( format_len + 2 );
+	memcpy( format_n, format, format_len+1 );
 	format_n[format_len] = '\n';
 
 	va_start(argptr, format);
