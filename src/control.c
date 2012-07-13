@@ -172,12 +172,12 @@ int open_control_socket( const char * socket_name )
 	bind_address.sun_family = AF_UNIX;
 	strncpy(bind_address.sun_path, socket_name, sizeof(bind_address.sun_path)-1);
 	
-	unlink(socket_name); /* ignore failure */
+	//unlink(socket_name); /* ignore failure */
 	
 	FATAL_IF_NEGATIVE(
 		bind(control_fd , &bind_address, sizeof(bind_address)),
-		"Couldn't bind control socket to %s",
-		socket_name
+		"Couldn't bind control socket to %s: %s",
+		socket_name, strerror( errno )
 	);
 	
 	FATAL_IF_NEGATIVE(
@@ -203,13 +203,27 @@ void control_serve( struct control * control )
 }
 
 
+void control_cleanup( 
+		struct control * control, 
+		int fatal __attribute__((unused)) )
+{
+	NULLCHECK( control );
+	unlink( control->socket_name );
+	close( control->control_fd );
+}
+
+
 void * control_runner( void * control_uncast )
 {
 	debug("Control thread");
 	NULLCHECK( control_uncast );
 	struct control * control = (struct control *)control_uncast;
 
+	error_set_handler( (cleanup_handler*)control_cleanup, control );
+
 	control_serve( control );
+
+	control_cleanup( control, 0 );
 	return NULL;
 }
 
@@ -390,7 +404,7 @@ int control_status(
 	return 0;
 }
 
-void control_cleanup(struct control_client* client, 
+void control_client_cleanup(struct control_client* client, 
 		int fatal __attribute__ ((unused)) )
 {
 	if (client->socket) { close(client->socket); }
@@ -408,7 +422,7 @@ void control_respond(struct control_client * client)
 {
 	char **lines = NULL;
 
-	error_set_handler((cleanup_handler*) control_cleanup, client);
+	error_set_handler((cleanup_handler*) control_client_cleanup, client);
 
 	int i, linesc;		
 	linesc = read_lines_until_blankline(client->socket, 256, &lines);
@@ -445,7 +459,7 @@ void control_respond(struct control_client * client)
 	}
 	free(lines);
 
-	control_cleanup(client, 0);
+	control_client_cleanup(client, 0);
 	debug("control command handled" );
 }
 

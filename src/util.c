@@ -18,18 +18,17 @@ void error_init(void)
 	pthread_key_create(&cleanup_handler_key, free);
 }
 
-void error_handler(int fatal __attribute__ ((unused)) )
+void error_handler(int fatal)
 {
 	DECLARE_ERROR_CONTEXT(context);
 	
-	if (!context) {
-		/* FIXME: This can't be right - by default we exit()
-		 * with a status of 0 in this case.
-		 */
-		pthread_exit((void*) 1);
+	if (context) {
+		longjmp(context->jmp, fatal ? 1 : 2 );
+	} 
+	else {
+		if ( fatal ) { abort(); }
+		else { pthread_exit((void*) 1); }
 	}
-		
-	longjmp(context->jmp, fatal ? 1 : 2 );
 }
 
 
