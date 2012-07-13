@@ -179,6 +179,8 @@ void flexnbd_destroy( struct flexnbd * flexnbd )
 		listen_destroy( flexnbd->listen );
 	}
 
+	flexthread_mutex_destroy( flexnbd->switch_mutex );
+
 	close( flexnbd->signal_fd );
 	free( flexnbd );
 }
