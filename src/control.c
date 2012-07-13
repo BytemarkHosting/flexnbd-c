@@ -256,7 +256,6 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	struct flexnbd * flexnbd = client->flexnbd;
 	union mysockaddr *connect_to = xmalloc( sizeof( union mysockaddr ) );
 	union mysockaddr *connect_from = NULL;
-	int use_connect_from = 0;
 	uint64_t max_Bps = 0;
 	int action_at_finish;
 	int raw_port;
@@ -285,7 +284,6 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 			write_socket("1: bad bind address");
 			return -1;
 		}
-		use_connect_from = 1;
 	}
 
 	if (linesc > 3) { max_Bps = atoi(lines[2]); }

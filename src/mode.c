@@ -370,8 +370,6 @@ int mode_serve( int argc, char *argv[] )
 	int default_deny = 0; // not on by default
 	int err = 0;
 
-	int success;
-
 	struct flexnbd * flexnbd;
 
 	while (1) {
@@ -392,7 +390,7 @@ int mode_serve( int argc, char *argv[] )
 	if ( err ) { exit_err( serve_help_text ); }
 
 	flexnbd = flexnbd_create_serving( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
-	success = flexnbd_serve( flexnbd );
+	flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
 
 	return 0;
