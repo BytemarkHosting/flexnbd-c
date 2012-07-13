@@ -49,6 +49,9 @@ static int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], uni
 			raw_address1 = (unsigned char*) &test->v6.sin6_addr;
 			raw_address2 = (unsigned char*) &entry->ip.v6.sin6_addr;
 		}
+		else {
+			fatal( "Can't check an ACL for this address type." );
+		}
 
 		debug("testbits=%d", entry->mask);
 
