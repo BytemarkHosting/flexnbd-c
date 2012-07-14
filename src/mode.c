@@ -207,7 +207,7 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 			log_level = 4;
 			break;
 		case 'v':
-			log_level = 0;
+			log_level = VERBOSE_LOG_LEVEL;
 			break;
 		default:
 			exit_err( serve_help_text );
@@ -255,7 +255,7 @@ void read_listen_param( int c,
 			log_level = 4;
 			break;
 		case 'v':
-			log_level = 0;
+			log_level = VERBOSE_LOG_LEVEL;
 			break;
 		default:
 			exit_err( listen_help_text );
@@ -289,7 +289,7 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_ad
 			log_level = 4;
 			break;
 		case 'v':
-			log_level = 0;
+			log_level = VERBOSE_LOG_LEVEL;
 			break;
 		default:
 			exit_err( read_help_text );
@@ -311,7 +311,7 @@ void read_sock_param( int c, char **sock, char *help_text )
 			log_level = 4;
 			break;
 		case 'v':
-			log_level = 0;
+			log_level = VERBOSE_LOG_LEVEL;
 			break;
 		default:
 			exit_err( help_text );
@@ -347,7 +347,7 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port, char
 			log_level = 4;
 			break;
 		case 'v':
-			log_level = 0;
+			log_level = VERBOSE_LOG_LEVEL;
 			break;
 		default:
 			exit_err( mirror_help_text );

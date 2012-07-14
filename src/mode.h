@@ -51,23 +51,23 @@ void mode(char* mode, int argc, char **argv);
 #define GETOPT_SIZE GETOPT_ARG( OPT_SIZE, 'S' )
 #define GETOPT_BIND GETOPT_ARG( OPT_BIND, 'b' )
 
-#ifdef DEBUG
-#  define OPT_VERBOSE "verbose"
-#  define SOPT_VERBOSE "v"
-#  define GETOPT_VERBOSE GETOPT_FLAG( OPT_VERBOSE, 'v' )
-#  define VERBOSE_LINE \
+#define OPT_VERBOSE "verbose"
+#define SOPT_VERBOSE "v"
+#define GETOPT_VERBOSE GETOPT_FLAG( OPT_VERBOSE, 'v' )
+#define VERBOSE_LINE \
   "\t--" OPT_VERBOSE ",-" SOPT_VERBOSE "\t\tOutput debug information.\n"
+
+#ifdef DEBUG
+# define VERBOSE_LOG_LEVEL 0
 #else
-#  define GETOPT_VERBOSE {0}
-#  define VERBOSE_LINE ""
-#  define SOPT_VERBOSE ""
+# define VERBOSE_LOG_LEVEL 1
 #endif
 
 #define OPT_QUIET "quiet"
 #define SOPT_QUIET "q"
 #define GETOPT_QUIET GETOPT_FLAG( OPT_QUIET, 'q' )
 #define QUIET_LINE \
-	"\t--" OPT_QUIET ",-" SOPT_QUIET "\t\tOutput only fatal informatio.\n"
+	"\t--" OPT_QUIET ",-" SOPT_QUIET "\t\tOutput only fatal information.\n"
 
 
 #define HELP_LINE \
