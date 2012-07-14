@@ -34,19 +34,26 @@ if DEBUG
   CCFLAGS << ["-g -DDEBUG"]
 end
 
-desc "Build flexnbd binary"
-task :flexnbd => 'build/flexnbd'
-task :build => :flexnbd
-task :default => :flexnbd
+desc "Build the binary and man page"
+task :build => ['build/flexnbd', 'build/flexnbd.1.gz']
+task :default => :build
+
+desc "Build just the binary"
+task :flexnbd => "build/flexnbd"
 
 def check(m)
   "build/tests/check_#{m}"
 end
 
 
-task :man do
+file "build/flexnbd.1.gz" => "README.txt" do
+  FileUtils.mkdir_p( "build" )
   sh "a2x --destination-dir build --format manpage README.txt"
+  sh "gzip build/flexnbd.1"
 end
+
+desc "Build just the man page"
+task :man => "build/flexnbd.1.gz"
 
 
 namespace "test" do
