@@ -21,7 +21,8 @@ CCFLAGS = %w(
              -Werror-implicit-function-declaration
              -Wstrict-prototypes
              -Wno-missing-field-initializers
-            ) # Added -Wno-missing-field-initializers to shut GCC up over {0} struct initialisers
+            ) + # Added -Wno-missing-field-initializers to shut GCC up over {0} struct initialisers
+            [ENV['CFLAGS']]
 LDFLAGS = []
 LIBCHECK = "/usr/lib/libcheck.a"
 
