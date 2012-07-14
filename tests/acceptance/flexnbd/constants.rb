@@ -23,7 +23,8 @@ module FlexNBD
       txt_lines = File.readlines( header_filename )
       txt_lines.each do |line|
         if line =~ /^#\s*define\s+([A-Z0-9_]+)\s+(\d+)\s*$/
-          const_set($1, $2.to_i)
+          # Bodge until I can figure out what to do with #ifdefs
+          const_set($1, $2.to_i) unless constants.include?( $1 )
         end
       end
     end
