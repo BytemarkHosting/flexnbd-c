@@ -387,26 +387,28 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		write_not_zeroes( client, request.from, request.len );
 	}
 	else {
-		FATAL_IF_NEGATIVE(
-				readloop(
-					client->socket,
-					client->mapped + request.from,
-					request.len),
-				"read failed from=%ld, len=%d",
-				request.from,
-				request.len );
+		debug("No allocation map, writing directly.");
+		/* If we get cut off partway through reading this data
+		 * */
+		ERROR_IF_NEGATIVE(
+			readloop( client->socket,
+				client->mapped + request.from,
+				request.len),
+			"reading write data failed from=%ld, len=%d",
+			request.from,
+			request.len 
+		);
 		server_dirty(client->serve, request.from, request.len);
 	}
-	
+
 	if (1) /* not sure whether this is necessary... */
 	{
 		/* multiple of 4K page size */
 		uint64_t from_rounded = request.from & (!0xfff);
 		uint64_t len_rounded = request.len + (request.from - from_rounded);
-		
+
 		FATAL_IF_NEGATIVE(
-			msync(
-				client->mapped + from_rounded, 
+			msync( client->mapped + from_rounded, 
 				len_rounded, 
 				MS_SYNC),
 			"msync failed %ld %ld", request.from, request.len

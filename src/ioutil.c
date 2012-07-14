@@ -15,7 +15,7 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 {
 	unsigned int i;
 	struct bitset_mapping* allocation_map = bitset_alloc(size, resolution);
-	struct fiemap *fiemap_count, *fiemap;
+	struct fiemap *fiemap_count = NULL, *fiemap = NULL;
 
 	fiemap_count = (struct fiemap*) xmalloc(sizeof(struct fiemap));
 
@@ -27,17 +27,18 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 
 	/* Find out how many extents there are */
 	if (ioctl(fd, FS_IOC_FIEMAP, fiemap_count) < 0) {
-		return NULL;
+		debug( "Couldn't get fiemap_count, returning no allocation_map" );
+		goto no_map;
 	}
 
 	/* Resize fiemap to allow us to read in the extents */
 	fiemap = (struct fiemap*)xmalloc(
-		sizeof(struct fiemap) + (
-			sizeof(struct fiemap_extent) * 
-        		fiemap_count->fm_mapped_extents
-        	)
-	); 
-	
+			sizeof(struct fiemap) + (
+				sizeof(struct fiemap_extent) * 
+				fiemap_count->fm_mapped_extents
+				)
+			); 
+
 	/* realloc makes valgrind complain a lot */
 	memcpy(fiemap, fiemap_count, sizeof(struct fiemap));
 	free( fiemap_count );
@@ -45,7 +46,10 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 	fiemap->fm_extent_count = fiemap->fm_mapped_extents;
 	fiemap->fm_mapped_extents = 0;
 
-	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0) { return NULL; }
+	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0) { 
+		debug( "Couldn't get fiemap, returning no allocation_map" );
+		goto no_map;
+	}
 
 	for (i=0;i<fiemap->fm_mapped_extents;i++) {
 		bitset_set_range(
@@ -54,7 +58,7 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 			fiemap->fm_extents[i].fe_length
 		);
 	}
-	
+
 	/* This is pointlessly verbose for real discs, it's here as a
 	 * reference for pulling data out of the allocation map */
 	if ( 0 ) {
@@ -72,12 +76,21 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 			     );
 		}
 	}
-	
-	
+
+
 	free(fiemap);
-	
+
+	debug("Successfully built allocation map");
 	return allocation_map;
+
+no_map:
+	fprintf(stderr, "Freeing");
+	free( allocation_map );
+	if ( NULL != fiemap ) { free( fiemap ); }
+	if ( NULL != fiemap_count ) { free( fiemap_count ); }
+	return NULL;
 }
+
 
 int open_and_mmap(const char* filename, int* out_fd, off64_t *out_size, void **out_map)
 {
