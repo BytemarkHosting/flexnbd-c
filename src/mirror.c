@@ -244,11 +244,13 @@ void mirror_give_control( struct mirror * mirror )
 	 * The entrust signifies that all the data has been sent, and
 	 * the client is currently paused but not disconnected.
 	 * The disconnect signifies that the client has been
-	 * safely disconnected.
-	 * TODO: Disconnect the client!
+	 * safely prevented from making any more writes.
+	 *
+	 * Since we lock io and close the server it in mirror_on_exit before
+	 * releasing, we don't actually need to take any action between the
+	 * two here.
 	 */
 	socket_nbd_entrust( mirror->client );
-	debug("TODO: The client *should* be disconnected here, but isn't yet");
 	socket_nbd_disconnect( mirror->client );
 }
 

@@ -485,7 +485,7 @@ void* client_serve(void* client_uncast)
 	
 	error_set_handler((cleanup_handler*) client_cleanup, client);
 	
-	debug("client: mmap");
+	info("client: mmaping file");
 	FATAL_IF_NEGATIVE(
 		open_and_mmap(
 			client->serve->filename,

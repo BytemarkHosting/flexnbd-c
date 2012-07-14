@@ -83,13 +83,22 @@ int open_and_mmap(const char* filename, int* out_fd, off64_t *out_size, void **o
 {
 	off64_t size;
 	
-	*out_fd = open(filename, O_RDWR|O_DIRECT|O_SYNC);
+	/* O_DIRECT seems to be intermittently supported.  Leaving it as
+	 * a compile-time option for now. */
+#ifdef DIRECT_IO
+	*out_fd = open(filename, O_RDWR | O_DIRECT | O_SYNC );
+#else
+	*out_fd = open(filename, O_RDWR | O_SYNC );
+#endif
+
 	if (*out_fd < 1) {
+		warn("open(%s) failed: does it exist?", filename);
 		return *out_fd;
 	}
 	
 	size = lseek64(*out_fd, 0, SEEK_END);
 	if (size < 0) {
+		warn("lseek64() failed");
 		return size;
 	}
 	if (out_size) {
@@ -100,6 +109,7 @@ int open_and_mmap(const char* filename, int* out_fd, off64_t *out_size, void **o
 		*out_map = mmap64(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, 
 		  *out_fd, 0);
 		if (((long) *out_map) == -1) {
+			warn("mmap64() failed");
 			return -1;
 		}
 	}
