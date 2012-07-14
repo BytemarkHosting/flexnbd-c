@@ -84,7 +84,6 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 	return allocation_map;
 
 no_map:
-	fprintf(stderr, "Freeing");
 	free( allocation_map );
 	if ( NULL != fiemap ) { free( fiemap ); }
 	if ( NULL != fiemap_count ) { free( fiemap_count ); }
