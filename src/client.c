@@ -316,7 +316,7 @@ int client_request_needs_reply( struct client * client,
 				"after an entrust message.");
 		/* check it's not out of range */
 		if ( request.from+request.len > client->serve->size) {
-			debug("request read %d+%d out of range",
+			warn("write request %d+%d out of range",
 			  request.from, 
 			  request.len
 			);
