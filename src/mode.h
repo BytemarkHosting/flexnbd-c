@@ -75,7 +75,7 @@ void mode(char* mode, int argc, char **argv);
 #define SOCK_LINE \
 	"\t--" OPT_SOCK  ",-s <SOCK>\tPath to the control socket.\n"
 #define BIND_LINE \
-	 "\t--" OPT_BIND ",-b <ADDR>\tBind the local socket to a particular IP address.\n"
+	 "\t--" OPT_BIND ",-b <BIND-ADDR>\tBind the local socket to a particular IP address.\n"
 
 
 char * help_help_text;
