@@ -44,6 +44,10 @@ def check(m)
 end
 
 
+task :man do
+  sh "a2x --destination-dir build --format manpage README.txt"
+end
+
 
 namespace "test" do
   desc "Run all tests"
