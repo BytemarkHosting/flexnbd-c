@@ -144,8 +144,7 @@ module FlexNBD
           client_sock = @sock.accept
         end
       rescue Timeout::Error
-        $stderr.puts err_msg
-        exit 1
+        raise Timeout::Error.new(err_msg)
       end
 
       client_sock

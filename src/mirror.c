@@ -533,6 +533,7 @@ void * mirror_super_runner( void * serve_uncast )
 	NULLCHECK( serve->mirror );
 	NULLCHECK( serve->mirror_super );
 
+	int first_pass = 1;
 	int should_retry = 0;
 	int success = 0;
 
@@ -540,16 +541,6 @@ void * mirror_super_runner( void * serve_uncast )
 	struct mirror_super *  super  = serve->mirror_super;
 
 	do {
-		if ( should_retry ) { 
-			/* We don't want to hammer the destination too
-			 * hard, so if this is a retry, insert a delay. */
-			sleep( MS_RETRY_DELAY_SECS );
-
-			/* We also have to reset the bitmap to be sure
-			 * we transfer everything */
-			mirror_reset( mirror );
-		}
-
 		FATAL_IF( 0 != pthread_create(
 					&mirror->thread, 
 					NULL, 
@@ -562,14 +553,22 @@ void * mirror_super_runner( void * serve_uncast )
 			mbox_receive( mirror->commit_signal );
 
 		debug( "Supervisor got commit signal" );
-		if ( 0 == should_retry ) {
-			should_retry = 1;
+		if ( first_pass ) {
+			/* Only retry if the connection attempt was
+			 * successful.  Otherwise the user will see an
+			 * error reported while we're still trying to
+			 * retry behind the scenes.
+			 */
+			should_retry = *commit_state == MS_GO;
 			/* Only send this signal the first time */
 			mirror_super_signal_committed(
 					super, 
 					*commit_state);
 			debug("Mirror supervisor committed");
 		}
+		/* We only care about the value of the commit signal on
+		 * the first pass, so this is ok
+		 */
 		free( commit_state );
 
 		debug("Supervisor waiting for mirror thread" );
@@ -577,8 +576,8 @@ void * mirror_super_runner( void * serve_uncast )
 
 		success = MS_DONE == mirror_get_state( mirror );
 
-
-		if( success ){ info( "Mirror supervisor success, exiting" ); }
+		if( success ){ 
+			info( "Mirror supervisor success, exiting" ); }
 		else if ( mirror->signal_abandon ) {
 			info( "Mirror abandoned" );
 			should_retry = 0;
@@ -587,6 +586,19 @@ void * mirror_super_runner( void * serve_uncast )
 			info( "Mirror failed, retrying" );
 		}
 		else { info( "Mirror failed before commit, giving up" ); }
+
+		first_pass = 0;
+
+		if ( should_retry ) { 
+			/* We don't want to hammer the destination too
+			 * hard, so if this is a retry, insert a delay. */
+			sleep( MS_RETRY_DELAY_SECS );
+
+			/* We also have to reset the bitmap to be sure
+			 * we transfer everything */
+			mirror_reset( mirror );
+		}
+
 	} 
 	while ( should_retry && !success );
 
