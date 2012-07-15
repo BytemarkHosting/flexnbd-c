@@ -11,6 +11,13 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+
+
+
 
 struct client *client_create( struct server *serve, int socket )
 {
@@ -286,6 +293,49 @@ void client_write_init( struct client * client, uint64_t size )
 }
 
 
+/* Remove len bytes from the client socket. This is needed when the
+ * client sends a write we can't honour - we need to get rid of the
+ * bytes they've already written before we can look for another request.
+ */
+void client_flush( struct client * client, size_t len )
+{
+	int devnull = open("/dev/null", O_WRONLY);
+	FATAL_IF_NEGATIVE( devnull, 
+			"Couldn't open /dev/null: %s", strerror(errno));
+	int pipes[2];
+	pipe( pipes );
+
+	const unsigned int flags = SPLICE_F_MORE | SPLICE_F_MOVE;
+	size_t spliced = 0;
+
+	while ( spliced < len ) {
+		ssize_t received = splice( 
+				client->socket, NULL,
+				pipes[1], NULL, 
+				len-spliced, flags );
+		FATAL_IF_NEGATIVE( received,
+				"splice error: %s",
+				strerror(errno));
+		ssize_t junked = 0;
+		while( junked < received ) {
+			ssize_t junk;
+			junk = splice( 
+				pipes[0], NULL,
+				devnull, NULL, 
+				received, flags );
+			FATAL_IF_NEGATIVE( junk,
+				"splice error: %s",
+				strerror(errno));
+			junked += junk;
+		}
+		spliced += received;
+	}
+	debug("Flushed %d bytes", len);
+
+
+	close( devnull );
+}
+
 
 /* Check to see if the client's request needs a reply constructing.
  * Returns 1 if we do, 0 otherwise.
@@ -321,6 +371,7 @@ int client_request_needs_reply( struct client * client,
 			  request.len
 			);
 			client_write_reply( client, &request, 1 );
+			client_flush( client, request.len );
 			client->disconnect = 0;
 			return 0;
 		}

@@ -26,9 +26,17 @@ module FlexNBD
     def read_hello()
       timing_out( FlexNBD::MS_HELLO_TIME_SECS,
                   "Timed out waiting for hello." ) do
-          fail "No hello." unless (hello = @sock.read( 152 )) &&
-            hello.length==152
-        hello
+        fail "No hello." unless (hello = @sock.read( 152 )) &&
+          hello.length==152
+
+        magic_s = hello[0..7]
+        ignore_s= hello[8..15]
+        size_s  = hello[16..23]
+
+        size_h, size_l = size_s.unpack("NN")
+        size = (size_h << 32) + size_l
+
+        return { :magic => magic_s, :size => size }
       end
     end
 
@@ -99,7 +107,7 @@ module FlexNBD
 
       {
         :magic => magic,
-        :error => error_s.unpack("N"),
+        :error => error_s.unpack("N").first,
         :handle => handle
       }
     end

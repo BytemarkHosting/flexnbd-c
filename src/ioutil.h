@@ -27,6 +27,9 @@ int readloop(int filedes, void *buffer, size_t size);
   */
 int sendfileloop(int out_fd, int in_fd, off64_t *offset, size_t count);
 
+/** Repeat a splice() operation until we have 'len' bytes. */
+ssize_t spliceloop(int fd_in, loff_t *off_in, int fd_out, loff_t *off_out, size_t len, unsigned int flags2);
+
 /** Copy ''len'' bytes from ''fd_in'' to ''fd_out'' by creating a temporary
   * pipe and using the Linux splice call repeatedly until it has transferred
   * all the data.  Returns -1 on error.
