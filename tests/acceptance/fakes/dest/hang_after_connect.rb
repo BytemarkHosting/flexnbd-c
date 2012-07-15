@@ -4,6 +4,9 @@
 # seconds.  After that time, the client should have disconnected,
 # which we can can't effectively check.
 #
+# We also expect the client *not* to reconnect, since it could feed back
+# an error.
+#
 # This allows the test runner to check that the command-line sees the
 # right error message after the timeout time.
 
@@ -19,4 +22,14 @@ client = server.accept( "Client didn't make a connection" )
 sleep(FlexNBD::MS_HELLO_TIME_SECS + 1)
 
 client.close
+
+# Invert the sense of the timeout exception, since we *don't* want a
+# connection attempt
+begin
+  server.accept( "Expected timeout" )
+  fail "Unexpected reconnection"
+rescue Timeout::Error
+  # expected 
+end
+
 server.close

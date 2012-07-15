@@ -100,7 +100,8 @@ struct mirror_super * mirror_super_create(
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
 		int max_Bps,
-		int action_at_finish);
+		int action_at_finish,
+		struct mbox * state_mbox
+		);
 void * mirror_super_runner( void * serve_uncast );
-enum mirror_state mirror_super_wait( struct mirror_super * );
 #endif

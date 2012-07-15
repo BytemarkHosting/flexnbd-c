@@ -481,7 +481,8 @@ struct mirror_super * mirror_super_create(
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
 		int max_Bps,
-		int action_at_finish)
+		int action_at_finish,
+		struct mbox * state_mbox)
 {
 	struct mirror_super * super = xmalloc( sizeof( struct mirror_super) );
 	super->mirror = mirror_create( 
@@ -491,12 +492,12 @@ struct mirror_super * mirror_super_create(
 			max_Bps, 
 			action_at_finish,
 			mbox_create() ) ;
-	super->state_mbox = mbox_create();
+	super->state_mbox = state_mbox;
 	return super;
 }
 
 
-/* Post the current state of the mirror into super->state_mbox */
+/* Post the current state of the mirror into super->state_mbox.*/
 void mirror_super_signal_committed( 
 		struct mirror_super * super ,
 		enum mirror_state commit_state )
@@ -514,7 +515,6 @@ void mirror_super_destroy( struct mirror_super * super )
 {
 	NULLCHECK( super );
 
-	mbox_destroy( super->state_mbox );
 	mbox_destroy( super->mirror->commit_signal );
 	mirror_destroy( super->mirror );
 	free( super );
@@ -611,26 +611,4 @@ void * mirror_super_runner( void * serve_uncast )
 	return NULL;
 }
 
-
-#define write_socket(msg) write(client_fd, (msg "\n"), strlen((msg))+1)
-
-/* Call this in the thread where you want to receive the mirror state */
-enum mirror_state mirror_super_wait( struct mirror_super * super )
-{
-	NULLCHECK( super );
-	NULLCHECK( super->state_mbox );
-
-	struct mbox * mbox = super->state_mbox;
-	enum mirror_state mirror_state;
-	enum mirror_state * contents;
-	
-	contents = (enum mirror_state*)mbox_receive( mbox );
-	NULLCHECK( contents );
-	
-	mirror_state = *contents;
-	
-	free(contents);
-	
-	return mirror_state;
-}
 

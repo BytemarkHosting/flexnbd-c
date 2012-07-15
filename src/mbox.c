@@ -55,10 +55,10 @@ void * mbox_receive( struct mbox * mbox )
 		mbox->full = 0;
 		result = mbox->contents;
 		mbox->contents = NULL;
+
 		while( 0 != pthread_cond_signal( &mbox->emptied_cond));
 	}
 	pthread_mutex_unlock( &mbox->mutex );
-
 
 	return result;
 }

@@ -44,7 +44,9 @@
 #include <unistd.h>
 
 
-struct control * control_create(struct flexnbd * flexnbd, const char * csn)
+struct control * control_create(
+		struct flexnbd * flexnbd, 
+		const char * csn)
 {
 	struct control * control = xmalloc( sizeof( struct control ) );
 
@@ -53,6 +55,7 @@ struct control * control_create(struct flexnbd * flexnbd, const char * csn)
 	control->flexnbd = flexnbd;
 	control->socket_name = csn;
 	control->close_signal = self_pipe_create();
+	control->mirror_state_mbox = mbox_create();
 	
 	return control;
 }
@@ -70,11 +73,15 @@ void control_destroy( struct control * control )
 {
 	NULLCHECK( control );
 
+	mbox_destroy( control->mirror_state_mbox );
 	self_pipe_destroy( control->close_signal );
 	free( control );
 }
 
-struct control_client * control_client_create( struct flexnbd * flexnbd, int client_fd )
+struct control_client * control_client_create( 
+		struct flexnbd * flexnbd, 
+		int client_fd ,
+		struct mbox * state_mbox )
 {
 	NULLCHECK( flexnbd );
 
@@ -83,6 +90,7 @@ struct control_client * control_client_create( struct flexnbd * flexnbd, int cli
 
 	control_client->socket = client_fd;
 	control_client->flexnbd = flexnbd; 
+	control_client->mirror_state_mbox = state_mbox;
 	return control_client;
 }
 
@@ -102,7 +110,10 @@ void control_handle_client( struct control * control, int client_fd )
 	NULLCHECK( control );
 	NULLCHECK( control->flexnbd );
 	struct control_client * control_client =
-		control_client_create( control->flexnbd, client_fd );
+		control_client_create( 
+				control->flexnbd,
+				client_fd ,
+				control->mirror_state_mbox);
 
 	/* We intentionally don't spawn a thread for the client here.
 	 * This is to avoid having more than one thread potentially
@@ -260,6 +271,28 @@ void control_write_mirror_response( enum mirror_state mirror_state, int client_f
 #undef write_socket
 
 
+/* Call this in the thread where you want to receive the mirror state */
+enum mirror_state control_client_mirror_wait( 
+		struct control_client* client)
+{
+	NULLCHECK( client );
+	NULLCHECK( client->mirror_state_mbox );
+
+	struct mbox * mbox = client->mirror_state_mbox;
+	enum mirror_state mirror_state;
+	enum mirror_state * contents;
+	
+	contents = (enum mirror_state*)mbox_receive( mbox );
+	NULLCHECK( contents );
+	
+	mirror_state = *contents;
+	
+	free( contents );
+	
+	return mirror_state;
+}
+
+
 #define write_socket(msg) write(client->socket, (msg "\n"), strlen((msg))+1)
 /** Command parser to start mirror process from socket input */
 int control_mirror(struct control_client* client, int linesc, char** lines)
@@ -333,7 +366,8 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 				connect_to,
 				connect_from,
 				max_Bps ,
-				action_at_finish);
+				action_at_finish,
+				client->mirror_state_mbox );
 		serve->mirror = serve->mirror_super->mirror;
 
 		FATAL_IF( 0 != pthread_create(
@@ -346,7 +380,8 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 			);
 
 		debug("Control thread mirror super waiting");
-		enum mirror_state state = mirror_super_wait( serve->mirror_super );
+		enum mirror_state state =  
+			control_client_mirror_wait( client );
 		debug("Control thread writing response");
 		control_write_mirror_response( state, client->socket );
 	}
