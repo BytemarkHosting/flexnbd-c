@@ -312,6 +312,8 @@ void mirror_cleanup( struct server * serve,
 int mirror_connect( struct mirror * mirror, off64_t local_size )
 {
 	struct sockaddr * connect_from = NULL;
+	int connected =  0;
+
 	if ( mirror->connect_from ) {
 		connect_from = &mirror->connect_from->generic;
 	}
@@ -332,6 +334,7 @@ int mirror_connect( struct mirror * mirror, off64_t local_size )
 			off64_t remote_size;
 			if ( socket_nbd_read_hello( mirror->client, &remote_size ) ) {
 				if( remote_size == local_size ){
+					connected = 1;
 					mirror_set_state( mirror, MS_GO );
 				}
 				else {
@@ -349,13 +352,15 @@ int mirror_connect( struct mirror * mirror, off64_t local_size )
 			warn( "No NBD Hello received." );
 			mirror_set_state( mirror, MS_FAIL_NO_HELLO );
 		}
+
+		if ( !connected ) { close( mirror->client ); }
 	}
 	else {
 		warn( "Mirror failed to connect.");
 		mirror_set_state( mirror, MS_FAIL_CONNECT );
 	}
 
-	return MS_GO == mirror_get_state(mirror);
+	return connected;
 }
 
 
@@ -574,9 +579,9 @@ void * mirror_super_runner( void * serve_uncast )
 			should_retry = 0;
 		}
 		else if (should_retry){
-			warn( "Mirror failed, retrying" );
+			info( "Mirror failed, retrying" );
 		}
-		else { warn( "Mirror failed before commit, giving up" ); }
+		else { info( "Mirror failed before commit, giving up" ); }
 	} 
 	while ( should_retry && !success );
 

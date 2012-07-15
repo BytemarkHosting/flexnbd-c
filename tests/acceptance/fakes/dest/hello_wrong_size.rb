@@ -21,4 +21,9 @@ client.write_hello( :size => :wrong )
 
 t.join
 
+# Now check that the source closed the first socket (yes, this was an
+# actual bug)
+
+fail "Didn't close socket" unless client.disconnected?
+
 exit 0

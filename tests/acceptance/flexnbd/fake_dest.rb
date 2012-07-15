@@ -62,6 +62,15 @@ module FlexNBD
         write_reply( handle, 1 )
       end
 
+      def disconnected?
+        begin
+          Timeout.timeout(2) do
+            @sock.read(1) == nil
+          end
+        rescue Timeout::Error
+          return false
+        end
+      end
 
       def write_reply( handle, err=0, opts={} )
         if opts[:magic] == :wrong
