@@ -50,7 +50,6 @@ enum mirror_state {
 	MS_UNKNOWN,
 	MS_INIT,
 	MS_GO,
-	MS_FINALISE,
 	MS_DONE,
 	MS_FAIL_CONNECT,
 	MS_FAIL_REJECTED,

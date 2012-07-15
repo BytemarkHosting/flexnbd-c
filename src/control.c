@@ -250,7 +250,6 @@ void control_write_mirror_response( enum mirror_state mirror_state, int client_f
 			write_socket( "1: Remote size does not match local size" );
 			break;
 		case MS_GO:
-		case MS_FINALISE:
 		case MS_DONE: /* Yes, I know we know better, but it's simpler this way */
 			write_socket( "0: Mirror started" );
 			break;

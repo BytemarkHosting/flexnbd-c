@@ -386,7 +386,6 @@ void mirror_run( struct server *serve )
 		if (written < mirror_last_pass_after_bytes_written) { break; }
 	}
 
-	mirror_set_state( serve->mirror, MS_FINALISE );
 	server_lock_io( serve );
 	{
 		if ( mirror_pass( serve, 0, &written ) &&
