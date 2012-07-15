@@ -9,6 +9,7 @@
 #include "self_pipe.h"
 enum mirror_state;
 #include "serve.h"
+#include "mbox.h"
 
 
 /* MS_CONNECT_TIME_SECS
@@ -71,12 +72,12 @@ struct mirror {
 	char                 *mapped;
 	struct bitset_mapping *dirty_map;
 
-	enum mirror_state   commit_state;
+	enum mirror_state    commit_state;
 
 	/* commit_signal is sent immediately after attempting to connect
 	 * and checking the remote size, whether successful or not.
 	 */
-	struct self_pipe *   commit_signal;
+	struct mbox *        commit_signal;
 };
 
 
