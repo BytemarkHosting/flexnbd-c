@@ -189,11 +189,7 @@ class FlexNBD
 
   def build_debug_opt
     if @do_debug
-      if `#{@bin} serve --help` =~ /--verbose/
-        "--verbose"
-      else
-        ""
-      end
+      "--verbose"
     else
       "--quiet"
     end
