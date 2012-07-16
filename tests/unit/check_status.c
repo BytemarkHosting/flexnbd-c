@@ -49,6 +49,21 @@ START_TEST( test_gets_is_mirroring )
 END_TEST
 
 
+START_TEST( test_gets_pid )
+{
+	struct server server;
+	struct status * status;
+
+	server.mirror = NULL;
+	status = status_create( &server );
+
+	fail_unless( getpid() == status->pid, "Pid wasn't gathered" );
+
+	status_destroy( status );
+}
+END_TEST
+
+
 START_TEST( test_renders_has_control )
 {
 	struct status status;
@@ -105,6 +120,24 @@ START_TEST( test_renders_is_mirroring )
 END_TEST
 
 
+START_TEST( test_renders_pid )
+{
+	struct status status;
+	int fds[2];
+	pipe(fds);
+	char buf[1024] = {0};
+
+	status.pid = 42;
+	status_write( &status, fds[1] );
+
+	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
+			"Couldn't read the result" );
+	char *found = strstr( buf, "pid=42" );
+	fail_if( NULL == found, "pid=42 not found" );
+}
+END_TEST
+
+
 Suite *status_suite(void)
 {
 	Suite *s = suite_create("status");
@@ -114,9 +147,11 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_status_create);
 	tcase_add_test(tc_create, test_gets_has_control);
 	tcase_add_test(tc_create, test_gets_is_mirroring);
+	tcase_add_test(tc_create, test_gets_pid);
 
 	tcase_add_test(tc_render, test_renders_has_control);
 	tcase_add_test(tc_render, test_renders_is_mirroring);
+	tcase_add_test(tc_render, test_renders_pid);
 
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_render);

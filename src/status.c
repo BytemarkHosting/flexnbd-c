@@ -8,6 +8,7 @@ struct status * status_create( struct server * serve )
 	struct status * status;
 	
 	status = xmalloc( sizeof( struct status ) );
+	status->pid = getpid();
 	status->has_control = serve->has_control;
 	status->is_mirroring = NULL != serve->mirror;
 	return status;
@@ -15,13 +16,16 @@ struct status * status_create( struct server * serve )
 }
 
 #define BOOL_S(var) (var ? "true" : "false" )
-#define PRINT_FIELD( var ) \
+#define PRINT_BOOL( var ) \
 	do{dprintf( fd, #var "=%s ", BOOL_S( status->var ) );}while(0)
+#define PRINT_INT( var ) \
+	do{dprintf( fd, #var "=%d ", status->var );}while(0)
 
 int status_write( struct status * status, int fd )
 {
-	PRINT_FIELD( is_mirroring );
-	PRINT_FIELD( has_control );
+	PRINT_INT( pid );
+	PRINT_BOOL( is_mirroring );
+	PRINT_BOOL( has_control );
 	dprintf(fd, "\n");
 	return 1;
 }

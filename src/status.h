@@ -17,6 +17,9 @@
  *
  * The following status fields are defined:
  *
+ * pid:
+ *      The current process ID.
+ *
  * has_control:
  * 	This will be false when the server is listening for an incoming
  * 	migration.  It will switch to true when the end-of-migration
@@ -36,7 +39,11 @@
 
 #include "serve.h"
 
+#include <sys/types.h>
+#include <unistd.h>
+
 struct status {
+	pid_t pid;
 	int has_control;
 	int is_mirroring;
 };
