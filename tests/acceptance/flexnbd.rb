@@ -317,8 +317,13 @@ class FlexNBD
       _, status = Process.waitpid2( pid )
 
       if @kill
-        fail "flexnbd quit with a bad status: #{status.exitstatus}" unless
-          @kill.include? status.exitstatus
+        if status.signaled?
+          fail "flexnbd quit with a bad signal: #{status.inspect}" unless
+            @kill.include? status.termsig
+        else
+          fail "flexnbd quit with a bad status: #{status.inspect}" unless
+            @kill.include? status.exitstatus
+        end
       else
         $stderr.puts "flexnbd #{self.pid} quit"
         fail "flexnbd #{self.pid} quit early with status #{status.to_i}"

@@ -17,13 +17,5 @@ client.send_mirror()
 
 sleep(1)
 
-squatter.close()
-
-sleep(1)
-
-client2 = FakeSource.new( newaddr, newport.to_i, "Timed out reconnecting" )
-client2.read_hello
-client2.read( 0, 8 )
-client2.close
 
 exit( 0 )

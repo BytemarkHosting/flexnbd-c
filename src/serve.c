@@ -232,13 +232,21 @@ void serve_bind( struct server * serve )
 				 * Any of these other than EACCES, 
 				 * EADDRINUSE or EADDRNOTAVAIL signify
 				 * that there's a logic error somewhere.
+				 * 
+				 * EADDRINUSE is fatal: if there's
+				 * something already where we want to be
+				 * listening, we have no guarantees that
+				 * any clients will cope with it.
 				 */
 				case EACCES:
-				case EADDRINUSE:
 				case EADDRNOTAVAIL:
 					debug("retrying");
 					sleep(1);
 					continue;
+				case EADDRINUSE:
+					fatal( "%s port %d in use, giving up.",
+							s_address, 
+							ntohs(serve->bind_to.v4.sin_port));
 				default:
 					fatal( "Giving up" );
 			}

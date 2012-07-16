@@ -80,7 +80,8 @@ class TestDestErrorHandling  < Test::Unit::TestCase
   end
 
 
-  def test_cant_rebind_retries
+  def test_cant_rebind_dies
+    @env.nbd1.can_die(6)
     run_fake( "source/successful_transfer" )
   end
 
