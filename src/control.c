@@ -361,29 +361,35 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	flexnbd_lock_switch( flexnbd );
 	{
 		struct server * serve = flexnbd_server(flexnbd);
-		serve->mirror_super = mirror_super_create( 
-				serve->filename,
-				connect_to,
-				connect_from,
-				max_Bps ,
-				action_at_finish,
-				client->mirror_state_mbox );
-		serve->mirror = serve->mirror_super->mirror;
 
-		FATAL_IF( 0 != pthread_create(
-					&serve->mirror_super->thread, 
-					NULL, 
-					mirror_super_runner, 
-					serve
-					),
-				"Failed to create mirror thread"
-			);
+		if ( serve->mirror_super ) {
+			warn( "Tried to start a second mirror run" );
+			write_socket( "1: mirror already running" );
+		} else {
+			serve->mirror_super = mirror_super_create( 
+					serve->filename,
+					connect_to,
+					connect_from,
+					max_Bps ,
+					action_at_finish,
+					client->mirror_state_mbox );
+			serve->mirror = serve->mirror_super->mirror;
 
-		debug("Control thread mirror super waiting");
-		enum mirror_state state =  
-			control_client_mirror_wait( client );
-		debug("Control thread writing response");
-		control_write_mirror_response( state, client->socket );
+			FATAL_IF( 0 != pthread_create(
+						&serve->mirror_super->thread, 
+						NULL, 
+						mirror_super_runner, 
+						serve
+						),
+					"Failed to create mirror thread"
+				);
+
+			debug("Control thread mirror super waiting");
+			enum mirror_state state =  
+				control_client_mirror_wait( client );
+			debug("Control thread writing response");
+			control_write_mirror_response( state, client->socket );
+		}
 	}
 	debug( "Control thread unlocking switch" );
 	flexnbd_unlock_switch( flexnbd );
