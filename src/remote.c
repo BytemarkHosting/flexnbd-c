@@ -15,12 +15,13 @@ void print_response( const char * response )
 	NULLCHECK( response );
 
 	exit_status = atoi(response);
-	response_text = strchr( response, ':' ) + 2;
+	response_text = strchr( response, ':' );
 
-	NULLCHECK( response_text );
+	FATAL_IF_NULL( response_text, 
+			"Error parsing server response: '%s'", response );
 
 	out = exit_status > 0 ? stderr : stdout;
-	fprintf(out, "%s\n", response_text );
+	fprintf(out, "%s\n", response_text + 2);
 }
 
 void do_remote_command(char* command, char* socket_name, int argc, char** argv)
