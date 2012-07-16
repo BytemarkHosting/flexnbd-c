@@ -8,7 +8,7 @@
 	dh $@ 
 
 override_dh_auto_build:
-	rake flexnbd
+	rake build
 
 override_dh_auto_clean:
 	rake clean

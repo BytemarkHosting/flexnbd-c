@@ -45,6 +45,7 @@ def check(m)
   "build/tests/check_#{m}"
 end
 
+file "README.txt"
 
 file "build/flexnbd.1.gz" => "README.txt" do
   FileUtils.mkdir_p( "build" )
@@ -265,7 +266,7 @@ end
 
 namespace :pkg do
   deb do |t|
-    t.code_files = ALL_SOURCES + ["Rakefile"]
+    t.code_files = ALL_SOURCES + ["Rakefile", "README.txt"]
     t.pkg_name = "flexnbd"
     t.generate_changelog!
   end
