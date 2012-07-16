@@ -412,6 +412,7 @@ int control_acl(struct control_client* client, int linesc, char** lines)
 	struct acl * new_acl = acl_create( linesc, lines, default_deny );
 
 	if (new_acl->len != linesc) {
+		warn("Bad ACL spec: %s", lines[new_acl->len] );
 		write(client->socket, "1: bad spec: ", 13);
 		write(client->socket, lines[new_acl->len], 
 				strlen(lines[new_acl->len]));
@@ -420,7 +421,8 @@ int control_acl(struct control_client* client, int linesc, char** lines)
 	}
 	else {
 		flexnbd_replace_acl( flexnbd, new_acl );
-		write( client->socket, "0: updated", 10);
+		info("ACL set");
+		write( client->socket, "0: updated\n", 11);
 	}
 
 	return 0;

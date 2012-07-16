@@ -494,7 +494,7 @@ void accept_nbd_client(
 		return;
 	}
 	
-	debug( "Client %s accepted.", s_client_address );
+	info( "Client %s accepted.", s_client_address );
 	client_params = client_create( params, client_fd );
 
 	params->nbd_client[slot].client = client_params;

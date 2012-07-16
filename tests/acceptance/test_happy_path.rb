@@ -92,4 +92,14 @@ class TestHappyPath < Test::Unit::TestCase
     assert_equal "12345678", @env.nbd1.read( 2**31+2**29, 8 )
   end
 
+
+  def test_set_acl
+    # Just check that we get sane feedback here
+    @env.writefile1( "f"*4 )
+    @env.serve1
+
+    _,stderr = @env.acl1("127.0.0.1")
+    assert_no_match( /^(F|E):/, stderr )
+  end
+
 end
