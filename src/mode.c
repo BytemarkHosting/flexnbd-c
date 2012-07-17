@@ -140,6 +140,22 @@ static char mirror_help_text[] =
 	VERBOSE_LINE
 	QUIET_LINE;
 
+static struct option break_options[] = {
+	GETOPT_HELP,
+	GETOPT_SOCK,
+	GETOPT_QUIET,
+	GETOPT_VERBOSE,
+	{0}
+};
+static char break_short_options[] = "hs:" SOPT_QUIET SOPT_VERBOSE;
+static char break_help_text[] = 
+	"Usage: flexnbd " CMD_BREAK " <options>\n\n"
+	"Stop mirroring from the server with control socket SOCK.\n\n"
+	HELP_LINE
+	SOCK_LINE
+	VERBOSE_LINE
+	QUIET_LINE;
+
 
 static struct option status_options[] = {
 	GETOPT_HELP,
@@ -354,6 +370,29 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port, char
 			break;
 	}
 }
+
+void read_break_param( int c, char **sock )
+{
+	switch( c ) {
+		case 'h':
+			fprintf( stdout, "%s\n", break_help_text );
+			exit( 0 );
+			break;
+		case 's':
+			*sock = optarg;
+			break;
+		case 'q':
+			log_level = 4;
+			break;
+		case 'v':
+			log_level = VERBOSE_LOG_LEVEL;
+			break;
+		default:
+			exit_err( break_help_text );
+			break;
+	}
+}
+
 
 void read_status_param( int c, char **sock )
 {
@@ -649,6 +688,27 @@ int mode_mirror( int argc, char *argv[] )
 }
 
 
+int mode_break( int argc, char *argv[] )
+{
+	int c;
+	char *sock = NULL;
+
+	while (1) {
+		c = getopt_long( argc, argv, break_short_options, break_options, NULL );
+		if ( -1 == c ) { break; }
+		read_break_param( c, &sock );
+	}
+
+	if ( NULL == sock ){
+		fprintf( stderr, "--sock is required.\n" );
+		exit_err( acl_help_text );
+	}
+
+	do_remote_command( "break", sock, argc - optind, argv + optind );
+
+	return 0;
+}
+
 int mode_status( int argc, char *argv[] )
 {
 	int c;
@@ -721,6 +781,9 @@ void mode(char* mode, int argc, char **argv)
 	}
 	else if ( IS_CMD( CMD_MIRROR, mode ) ) {
 		mode_mirror( argc, argv );
+	}
+       	else if ( IS_CMD( CMD_BREAK, mode ) ) {
+		mode_break( argc, argv );
 	}
        	else if ( IS_CMD( CMD_STATUS, mode ) ) {
 		mode_status( argc, argv );

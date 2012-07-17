@@ -271,6 +271,11 @@ class FlexNBD
       "#{@debug} "
   end
 
+  def break_cmd
+    "#{@bin} break "\
+      "--sock #{ctrl} "\
+      "#{@debug}"
+  end
 
   def status_cmd
     "#{@bin} status "\
@@ -416,6 +421,14 @@ class FlexNBD
   end
 
 
+  def break(timeout=nil)
+    cmd = break_cmd
+    debug( cmd )
+
+    maybe_timeout( cmd, timeout )
+  end
+
+
   def acl(*acl)
     cmd = acl_cmd( *acl )
     debug( cmd )
@@ -436,6 +449,14 @@ class FlexNBD
 
   def launched?
     !!@pid
+  end
+
+
+  def paused
+    Process.kill( "STOP", @pid )
+    yield
+  ensure
+    Process.kill( "CONT", @pid )
   end
 
 

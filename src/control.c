@@ -428,6 +428,51 @@ int control_acl(struct control_client* client, int linesc, char** lines)
 	return 0;
 }
 
+
+int control_break(
+		struct control_client* client, 
+		int linesc __attribute__ ((unused)), 
+		char** lines __attribute__((unused))
+		)
+{
+	NULLCHECK( client );
+	NULLCHECK( client->flexnbd );
+
+	int result = 0;
+	struct flexnbd* flexnbd = client->flexnbd;
+
+	flexnbd_lock_switch( flexnbd );
+	{
+		struct server * serve = flexnbd_server( flexnbd );
+		if ( server_is_mirroring( serve ) ) {
+
+			info( "Signaling to abandon mirror" );
+			server_abandon_mirror( serve );
+			debug( "Abandon signaled" );
+
+			if ( server_is_closed( serve ) ) {
+				info( "Mirror completed while canceling" );
+				write( client->socket, 
+						"1: mirror completed\n", 20 );
+			}
+			else {
+				info( "Mirror successfully stopped." );
+				write( client->socket,
+						"0: mirror stopped\n", 18 );
+				result = 1;
+			}
+
+		} else {
+			warn( "Not mirroring." );
+			write( client->socket, "1: not mirroring\n", 17 );
+		}
+	}
+	flexnbd_unlock_switch( flexnbd );
+
+	return result;
+}
+
+
 /** FIXME: add some useful statistics */
 int control_status(
 		struct control_client* client, 
@@ -484,6 +529,12 @@ void control_respond(struct control_client * client)
 		info("mirror command received" );
 		if (control_mirror(client, linesc-1, lines+1) < 0) {
 			debug("mirror command failed");
+		}
+	}
+	else if (strcmp(lines[0], "break") == 0) {
+		info( "break command received" );
+		if ( control_break( client, linesc-1, lines+1) < 0) {
+			debug( "break command failed" );
 		}
 	}
 	else if (strcmp(lines[0], "status") == 0) {

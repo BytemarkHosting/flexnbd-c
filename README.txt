@@ -133,6 +133,21 @@ Options
   The local address to bind to. You may need this if the remote server
   is using an access control list.
 
+break
+~~~~~
+
+  $ flexnbd mirror --sock SOCK [global option]*
+
+Stop a running migration.
+
+Options
+^^^^^^^
+
+*--sock, -s SOCK*:
+  The control socket of the local server whose emigration to stop.
+  Required.
+
+
 acl
 ~~~
 

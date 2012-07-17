@@ -28,6 +28,7 @@ void mode(char* mode, int argc, char **argv);
 #define CMD_WRITE  "write"
 #define CMD_ACL    "acl"
 #define CMD_MIRROR "mirror"
+#define CMD_BREAK  "break"
 #define CMD_STATUS "status"
 #define CMD_HELP   "help"
 #define LEN_CMD_MAX 7

@@ -42,6 +42,10 @@ class Environment
   end
 
 
+  def break1
+    @nbd1.break
+  end
+
   def acl1( *acl )
     @nbd1.acl( *acl )
   end
@@ -111,7 +115,7 @@ class Environment
   end
 
 
-  def run_fake( name, addr, port, rebind_addr = addr, rebind_port = port )
+  def run_fake( name, addr, port, rebind_addr = addr, rebind_port = port, sock=nil )
     fakedir = File.join( File.dirname( __FILE__ ), "fakes" )
     fake = Dir[File.join( fakedir, name ) + "*"].sort.find { |fn|
       File.executable?( fn )
@@ -124,7 +128,7 @@ class Environment
     raise "no rebind_port" unless rebind_port
 
     @fake_pid = fork do
-      exec [fake, addr, port, @nbd1.pid, rebind_addr, rebind_port].map{|x| x.to_s}.join(" ")
+      exec [fake, addr, port, @nbd1.pid, rebind_addr, rebind_port, sock].map{|x| x.to_s}.join(" ")
     end
     sleep(0.5)
   end

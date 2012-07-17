@@ -90,10 +90,14 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
+  def test_cancel_migration
+    run_fake( "dest/break_after_hello" )
+  end
+
 
   private
   def run_fake(name, opts = {})
-    @env.run_fake( name, @env.ip, @env.port2 )
+    @env.run_fake( name, @env.ip, @env.port2, @env.ip, @env.port2, @env.nbd1.ctrl )
     stdout, stderr = @env.mirror12_unchecked
     assert_success
     assert_match( opts[:err], stderr ) if opts[:err]

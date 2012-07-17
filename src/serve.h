@@ -96,6 +96,8 @@ int server_io_locked( struct server * serve );
 int server_acl_locked( struct server * serve );
 void server_lock_acl( struct server *serve );
 void server_unlock_acl( struct server *serve );
+int server_is_mirroring( struct server * serve );
+void server_abandon_mirror( struct server * serve );
 
 
 int do_serve( struct server * );

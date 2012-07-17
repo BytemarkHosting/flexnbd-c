@@ -722,11 +722,8 @@ void serve_cleanup(struct server* params,
 		free(params->allocation_map);
 	}
 	
-	if (params->mirror_super) {
-		/* AWOOGA!  RACE! */
-		pthread_t mirror_t = params->mirror_super->thread;
-		params->mirror->signal_abandon = 1;
-		pthread_join( mirror_t, NULL );
+	if ( server_is_mirroring( params ) ) {
+		server_abandon_mirror( params );
 	}
 	
 	for (i=0; i < params->max_nbd_clients; i++) {
@@ -751,6 +748,28 @@ int server_is_in_control( struct server *serve )
 {
 	NULLCHECK( serve );
 	return serve->has_control;
+}
+
+int server_is_mirroring( struct server * serve )
+{
+	NULLCHECK( serve );
+	return !!serve->mirror_super;
+}
+
+void server_abandon_mirror( struct server * serve )
+{
+	NULLCHECK( serve );
+	if ( serve->mirror_super ) {
+		/* FIXME: AWOOGA!  RACE! 
+		 * We can set signal_abandon after mirror_super has
+		 * checked it, but before the reset.  This would lead to
+		 * a hang.  However, mirror_reset doesn't change the
+		 * signal_abandon flag, so it'll just terminate early on
+		 * the next pass.
+		 * */
+		serve->mirror->signal_abandon = 1;
+		pthread_join( serve->mirror_super->thread, NULL );
+	}
 }
 
 int server_default_deny( struct server * serve )
