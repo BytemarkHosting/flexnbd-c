@@ -83,6 +83,7 @@ int do_listen( struct listen * listen )
 	flexnbd_lock_switch( listen->flexnbd );
 	{
 		flexnbd_set_server( listen->flexnbd, listen->init_serve );
+		flexnbd_mark_incomplete( listen->flexnbd );
 	}
 	flexnbd_unlock_switch( listen->flexnbd );
 
@@ -93,6 +94,8 @@ int do_listen( struct listen * listen )
 
 
 	if( have_control ) {
+		flexnbd_mark_complete( listen->flexnbd );
+
 		info( "Taking control.");
 		flexnbd_switch( listen->flexnbd, listen_switch );
 		/* WATCH FOR RACES HERE: the server hasn't been

@@ -81,6 +81,12 @@ the source in the interim.
 To support transparently replacing an existing server, flexnbd can
 switch addresses once it has received a successful migration. 
 
+When `flexnbd listen` is run, it will create a file named
+<FILE>.INCOMPLETE next to FILE.  This will be removed when a migration
+has successfully completed.  The .INCOMPLETE file will be created before
+the listening socket is opened.
+
+
 Options
 ^^^^^^^
 As for 'serve', with these additions:

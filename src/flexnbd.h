@@ -69,6 +69,9 @@ void flexnbd_set_server( struct flexnbd * flexnbd, struct server * serve );
 void flexnbd_switch( struct flexnbd * flexnbd, struct server *(listen_cb)(struct listen *) );
 int flexnbd_signal_fd( struct flexnbd * flexnbd );
 
+void flexnbd_mark_incomplete( struct flexnbd * flexnbd );
+void flexnbd_mark_complete( struct flexnbd * flexnbd );
+
 
 int flexnbd_serve( struct flexnbd * flexnbd );
 struct server * flexnbd_server( struct flexnbd * flexnbd );

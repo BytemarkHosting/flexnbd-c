@@ -283,6 +283,85 @@ int flexnbd_default_deny( struct flexnbd * flexnbd )
 }
 
 
+char * flexnbd_incomplete_filename( struct flexnbd * flexnbd )
+{
+	NULLCHECK( flexnbd );
+	struct server * serve = flexnbd_server( flexnbd );
+
+	return serve->filename_incomplete;
+}
+
+void make_writable( const char * filename )
+{
+	NULLCHECK( filename );
+	FATAL_IF_NEGATIVE( chmod( filename, S_IWUSR ),
+			"Couldn't chmod %s: %s",
+			filename,
+			strerror( errno ) );
+}
+
+/** Drops a marker file on the filesystem to show that the image we're
+ * serving hasn't yet finished its migration yet
+ */
+void flexnbd_mark_incomplete( struct flexnbd * flexnbd )
+{
+	char * filename = 
+		flexnbd_incomplete_filename( flexnbd );
+	int fd;
+
+	NULLCHECK( filename );
+
+	/* It's OK if the file already exists - it's perfectly possible
+	 * that a previous process died part-way through and left it
+	 * behind.  However, we might have left the file mode in a bad
+	 * state.
+	 */
+
+	struct stat ignored;
+	int exists = stat( filename, &ignored ) == 0;
+	if ( exists ) {
+		/* definitely there, need to chmod */
+		debug( "%s exists, making it writable", filename );
+		make_writable( filename );
+	}
+	else if ( ENOENT != errno ) {
+		/* Can't tell if it's there or not, weirdness. */
+		fatal( "Unable to stat %s", filename );
+	}
+	else { /* definitely not there. NOP. */ }
+
+	
+	fd = open( filename, O_CREAT|O_WRONLY, 0 );
+	FATAL_IF_NEGATIVE( fd, 
+			"Couldn't open %s: %s", 
+			filename,
+			strerror( errno ) );
+
+	/* Minor race here - in principle we could see the file
+	 * disappear before the chmod */
+	close( fd );
+}
+
+
+/** Removes the .INCOMPLETE marker file from the filesystem. Call this
+ * only when you know the migration has completed successfully.
+ */
+void flexnbd_mark_complete( struct flexnbd * flexnbd )
+{
+	char * filename = 
+		flexnbd_incomplete_filename( flexnbd );
+
+	NULLCHECK( filename );
+
+	make_writable( filename );
+
+	FATAL_IF_NEGATIVE( unlink( filename ),
+			"Couldn't unlink %s: %s",
+			filename,
+			strerror( errno ) );
+}
+
+
 int flexnbd_serve( struct flexnbd * flexnbd )
 {
 	NULLCHECK( flexnbd );
