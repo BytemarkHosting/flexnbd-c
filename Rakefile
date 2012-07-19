@@ -50,7 +50,7 @@ file "README.txt"
 file "build/flexnbd.1.gz" => "README.txt" do
   FileUtils.mkdir_p( "build" )
   sh "a2x --destination-dir build --format manpage README.txt"
-  sh "gzip build/flexnbd.1"
+  sh "gzip -f build/flexnbd.1"
 end
 
 desc "Build just the man page"
