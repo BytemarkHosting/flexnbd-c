@@ -326,7 +326,7 @@ void flexnbd_mark_incomplete( struct flexnbd * flexnbd )
 	}
 	else if ( ENOENT != errno ) {
 		/* Can't tell if it's there or not, weirdness. */
-		fatal( "Unable to stat %s", filename );
+		fatal( "Unable to stat %s: %s", filename, strerror( errno ) );
 	}
 	else { /* definitely not there. NOP. */ }
 
