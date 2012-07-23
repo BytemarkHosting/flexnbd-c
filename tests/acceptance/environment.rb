@@ -17,8 +17,8 @@ class Environment
     @rebind_port1 = @available_ports.shift
     @port2 = @available_ports.shift
     @rebind_port2 = @available_ports.shift
-    @nbd1 = FlexNBD.new("../../build/flexnbd", @ip, @port1, @ip, @rebind_port1)
-    @nbd2 = FlexNBD.new("../../build/flexnbd", @ip, @port2, @ip, @rebind_port2)
+    @nbd1 = FlexNBD.new("../../build/flexnbd", @ip, @port1)
+    @nbd2 = FlexNBD.new("../../build/flexnbd", @ip, @port2)
 
     @fake_pid = nil
   end
@@ -115,7 +115,7 @@ class Environment
   end
 
 
-  def run_fake( name, addr, port, rebind_addr = addr, rebind_port = port, sock=nil )
+  def run_fake( name, addr, port, sock=nil )
     fakedir = File.join( File.dirname( __FILE__ ), "fakes" )
     fake = Dir[File.join( fakedir, name ) + "*"].sort.find { |fn|
       File.executable?( fn )
@@ -124,11 +124,9 @@ class Environment
     raise "no fake executable" unless fake
     raise "no addr" unless addr
     raise "no port" unless port
-    raise "no rebind_addr" unless rebind_addr
-    raise "no rebind_port" unless rebind_port
 
     @fake_pid = fork do
-      exec [fake, addr, port, @nbd1.pid, rebind_addr, rebind_port, sock].map{|x| x.to_s}.join(" ")
+      exec [fake, addr, port, @nbd1.pid, sock].map{|x| x.to_s}.join(" ")
     end
     sleep(0.5)
   end

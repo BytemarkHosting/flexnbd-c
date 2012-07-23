@@ -1,10 +1,14 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
+/* We need this to avoid a complaint about struct server * in
+ * void accept_control_connection
+ */
+struct server;
 
 #include "parse.h"
 #include "mirror.h"
-#include "control.h"
+#include "serve.h"
 #include "flexnbd.h"
 #include "mbox.h"
 

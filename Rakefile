@@ -115,7 +115,6 @@ file check("client") =>
 %w{build/tests/check_client.o
   build/self_pipe.o
   build/nbdtypes.o
-  build/listen.o
   build/flexnbd.o
   build/flexthread.o
   build/control.o
@@ -160,7 +159,6 @@ file check("serve") =>
   build/flexnbd.o
   build/mirror.o
   build/status.o
-  build/listen.o
   build/acl.o
   build/mbox.o
   build/ioutil.o
@@ -181,7 +179,6 @@ file check("readwrite") =>
   build/flexnbd.o
   build/mirror.o
   build/status.o
-  build/listen.o
   build/nbdtypes.o
   build/mbox.o
   build/ioutil.o
@@ -189,26 +186,6 @@ file check("readwrite") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
-file check("listen") =>
-%w{build/tests/check_listen.o
-  build/listen.o
-  build/flexnbd.o
-  build/status.o
-  build/flexthread.o
-  build/mbox.o
-  build/mirror.o
-  build/self_pipe.o
-  build/nbdtypes.o
-  build/control.o
-  build/readwrite.o
-  build/parse.o
-  build/client.o
-  build/serve.o
-  build/acl.o
-  build/ioutil.o
-  build/util.o} do |t|
-  gcc_link t.name, t.prerequisites + [LIBCHECK]
-end
 
 file check("flexnbd") =>
 %w{build/tests/check_flexnbd.o
@@ -216,7 +193,6 @@ file check("flexnbd") =>
   build/ioutil.o
   build/util.o
   build/control.o
-  build/listen.o
   build/mbox.o
   build/flexthread.o
   build/status.o
@@ -236,7 +212,7 @@ file check("control") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
-(TEST_MODULES- %w{control flexnbd acl client serve readwrite listen util}).each do |m|
+(TEST_MODULES- %w{control flexnbd acl client serve readwrite util}).each do |m|
   tgt = "build/tests/check_#{m}.o"
   maybe_obj_name = "build/#{m}.o"
   # Take it out in case we're testing util.o or ioutil.o

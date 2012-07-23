@@ -97,7 +97,7 @@ class TestSourceErrorHandling < Test::Unit::TestCase
 
   private
   def run_fake(name, opts = {})
-    @env.run_fake( name, @env.ip, @env.port2, @env.ip, @env.port2, @env.nbd1.ctrl )
+    @env.run_fake( name, @env.ip, @env.port2, @env.nbd1.ctrl )
     stdout, stderr = @env.mirror12_unchecked
     assert_success
     assert_match( opts[:err], stderr ) if opts[:err]

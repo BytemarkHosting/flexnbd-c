@@ -3,8 +3,8 @@
 # Connect, send a migration, entrust then *immediately* disconnect.
 # This simulates a client which fails while the client is blocked.
 #
-# We attempt to reconnect immediately afterwards to prove that we can
-# retry the mirroring.
+# In this situation we expect the destination to quit with an error
+# status.
 
 require 'flexnbd/fake_source'
 include FlexNBD
@@ -28,7 +28,11 @@ system "kill -CONT #{srv_pid}"
 
 sleep(0.25)
 
-client2 = FakeSource.new( addr, port, "Timed out reconnecting" )
-client2.close
+begin
+  client2 = FakeSource.new( addr, port, "Expected timeout" )
+  fail "Unexpected reconnection"
+rescue Timeout::Error
+  # expected
+end
 
 exit(0)

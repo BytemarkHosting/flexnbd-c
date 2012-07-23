@@ -13,13 +13,13 @@ addr, port, srv_pid = *ARGV
 client = FakeSource.new( addr, port, "Timed out connecting" )
 client.read_hello
 
-Process.kill( "STOP", srv_pid.to_i )
+system "kill -STOP #{srv_pid}"
 
 client.write_write_request( 0, 8 )
 client.write_data( "12345678" )
 client.close
 
-Process.kill( "CONT", srv_pid.to_i )
+system "kill -CONT #{srv_pid}"
 
 # This sleep ensures that we don't return control to the test runner
 # too soon, giving the flexnbd process time to fall over if it's going

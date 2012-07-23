@@ -1,10 +1,9 @@
 #!/usr/bin/env ruby
 
-# Connect, send a migration, entrust then *immediately* disconnect.
+# Connect, send a migration, entrust, read the reply, then disconnect.
 # This simulates a client which fails while the client is blocked.
 #
-# We attempt to reconnect immediately afterwards to prove that we can
-# retry the mirroring.
+# We expect the destination to quit with an error status.
 
 require 'flexnbd/fake_source'
 include FlexNBD
@@ -22,11 +21,12 @@ client.close
 
 sleep(0.25)
 
-client2 = FakeSource.new( addr, port, "Timed out reconnecting to mirror" )
-client2.send_mirror
 
-sleep(1)
-client3 = FakeSource.new( rebind_addr, rebind_port, "Timed out reconnecting to read" )
-client3.close
+begin
+  client2 = FakeSource.new( addr, port, "Expected timeout" )
+  fail "Unexpected reconnection"
+rescue Timeout::Error
+  # expected
+end
 
 exit(0)

@@ -32,31 +32,15 @@ static char serve_help_text[] =
 	QUIET_LINE;
 
 
-static struct option listen_options[] = {
-	GETOPT_HELP,
-	GETOPT_ADDR,
-	GETOPT_REBIND_ADDR,
-	GETOPT_PORT,
-	GETOPT_REBIND_PORT,
-	GETOPT_FILE,
-	GETOPT_SOCK,
-	GETOPT_DENY,
-	GETOPT_QUIET,
-	GETOPT_VERBOSE,
-	{0}
-};
-static char listen_short_options[] = "hl:L:p:P:f:s:d" SOPT_QUIET SOPT_VERBOSE;
+static struct option * listen_options = serve_options;
+static char  * listen_short_options = serve_short_options;
 static char listen_help_text[] =
 	"Usage: flexnbd " CMD_LISTEN " <options> [<acl_address>*]\n\n"
-	"Listen for an incoming migration on ADDR:PORT, "
-	"then switch to REBIND_ADDR:REBIND_PORT on completion "
-	"to serve FILE.\n\n"
+	"Listen for an incoming migration on ADDR:PORT.\n\n"
 	HELP_LINE
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to listen on.\n"
-	"\t--" OPT_REBIND_ADDR ",-L <REBIND_ADDR>\tThe address to switch to, if given.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to listen on.\n"
-	"\t--" OPT_REBIND_PORT ",-P <REBIND_PORT>\tThe port to switch to, if given..\n"
-	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
+	"\t--" OPT_FILE ",-f <FILE>\tThe file to write to.\n"
 	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
 	SOCK_LINE
 	VERBOSE_LINE
@@ -234,9 +218,7 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 
 void read_listen_param( int c, 
 		char **ip_addr, 
-		char **rebind_ip_addr, 
 		char **ip_port, 
-		char **rebind_ip_port, 
 		char **file, 
 		char **sock, 
 		int *default_deny )
@@ -249,14 +231,8 @@ void read_listen_param( int c,
 		case 'l':
 			*ip_addr = optarg;
 			break;
-		case 'L':
-			*rebind_ip_addr = optarg;
-			break;
 		case 'p':
 			*ip_port = optarg;
-			break;
-		case 'P':
-			*rebind_ip_port = optarg;
 			break;
 		case 'f':
 			*file = optarg;
@@ -428,7 +404,15 @@ int mode_serve( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( serve_help_text ); }
 
-	flexnbd = flexnbd_create_serving( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
+	flexnbd = flexnbd_create_serving( 
+		ip_addr, 
+		ip_port, 
+		file, 
+		sock, 
+		default_deny, 
+		argc - optind, 
+		argv + optind,
+		MAX_NBD_CLIENTS );
 	flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
 
@@ -440,9 +424,7 @@ int mode_listen( int argc, char *argv[] )
 {
 	int c;
 	char *ip_addr = NULL;
-	char *rebind_ip_addr = NULL;
 	char *ip_port = NULL;
-	char *rebind_ip_port = NULL;
 	char *file    = NULL;
 	char *sock    = NULL;
 	int default_deny = 0; // not on by default
@@ -456,7 +438,7 @@ int mode_listen( int argc, char *argv[] )
 		c = getopt_long(argc, argv, listen_short_options, listen_options, NULL);
 		if ( c == -1 ) { break; }
 
-		read_listen_param( c, &ip_addr, &rebind_ip_addr, &ip_port, &rebind_ip_port, 
+		read_listen_param( c, &ip_addr, &ip_port, 
 				&file, &sock, &default_deny );
 	}
 
@@ -472,15 +454,12 @@ int mode_listen( int argc, char *argv[] )
 
 	flexnbd = flexnbd_create_listening( 
 		ip_addr, 
-		rebind_ip_addr, 
 		ip_port, 
-		rebind_ip_port, 
 		file,
 		sock,
 		default_deny, 
 		argc - optind, 
-		argv + optind, 
-		MAX_NBD_CLIENTS );
+		argv + optind );
 	success = flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
 

@@ -1,16 +1,13 @@
 #!/usr/bin/env ruby
 
-# Successfully send a migration, but squat on the IP and port which
-# the destination wants to rebind to.  The destination should retry
-# every second, so we give it up then attempt to connect to the new
-# server.
+# Successfully send a migration.  This test just makes sure that the
+# happy path is covered.  We expect the destination to quit with a
+# success status.
 
 require 'flexnbd/fake_source'
 include FlexNBD
 
 addr, port, srv_pid, newaddr, newport = *ARGV
-
-squatter = TCPServer.open( newaddr, newport.to_i )
 
 client  = FakeSource.new( addr, port, "Timed out connecting" )
 client.send_mirror()

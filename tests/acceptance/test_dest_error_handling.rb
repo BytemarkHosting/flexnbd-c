@@ -80,15 +80,15 @@ class TestDestErrorHandling  < Test::Unit::TestCase
   end
 
 
-  def test_cant_rebind_dies
-    @env.nbd1.can_die(6)
+  def test_straight_migration
+    @env.nbd1.can_die(0)
     run_fake( "source/successful_transfer" )
   end
 
 
   private
   def run_fake( name )
-    @env.run_fake( name, @env.ip, @env.port1, @env.ip, @env.rebind_port1 )
+    @env.run_fake( name, @env.ip, @env.port1 )
     assert @env.fake_reports_success, "#{name} failed."
   end
 

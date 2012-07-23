@@ -353,48 +353,38 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 		return -1;
 	}
 
-	/* In theory, we should never have to worry about the switch
-	 * lock here, since we should never be able to start more than
-	 * one mirror at a time.  This is enforced by only accepting a
-	 * single client at a time on the control socket.
-	 */
-	flexnbd_lock_switch( flexnbd );
-	{
-		struct server * serve = flexnbd_server(flexnbd);
+	struct server * serve = flexnbd_server(flexnbd);
 
-		if ( serve->mirror_super ) {
-			warn( "Tried to start a second mirror run" );
-			write_socket( "1: mirror already running" );
-		} else {
-			serve->mirror_super = mirror_super_create( 
-					serve->filename,
-					connect_to,
-					connect_from,
-					max_Bps ,
-					action_at_finish,
-					client->mirror_state_mbox );
-			serve->mirror = serve->mirror_super->mirror;
+	if ( serve->mirror_super ) {
+		warn( "Tried to start a second mirror run" );
+		write_socket( "1: mirror already running" );
+	} else {
+		serve->mirror_super = mirror_super_create( 
+				serve->filename,
+				connect_to,
+				connect_from,
+				max_Bps ,
+				action_at_finish,
+				client->mirror_state_mbox );
+		serve->mirror = serve->mirror_super->mirror;
 
-			FATAL_IF( 0 != pthread_create(
-						&serve->mirror_super->thread, 
-						NULL, 
-						mirror_super_runner, 
-						serve
-						),
-					"Failed to create mirror thread"
-				);
+		FATAL_IF( 0 != pthread_create(
+					&serve->mirror_super->thread, 
+					NULL, 
+					mirror_super_runner, 
+					serve
+					),
+				"Failed to create mirror thread"
+			);
 
-			debug("Control thread mirror super waiting");
-			enum mirror_state state =  
-				control_client_mirror_wait( client );
-			debug("Control thread writing response");
-			control_write_mirror_response( state, client->socket );
-		}
+		debug("Control thread mirror super waiting");
+		enum mirror_state state =  
+			control_client_mirror_wait( client );
+		debug("Control thread writing response");
+		control_write_mirror_response( state, client->socket );
 	}
-	debug( "Control thread unlocking switch" );
-	flexnbd_unlock_switch( flexnbd );
 	debug( "Control thread going away." );
-	
+
 	return 0;
 }
 
@@ -441,33 +431,29 @@ int control_break(
 	int result = 0;
 	struct flexnbd* flexnbd = client->flexnbd;
 
-	flexnbd_lock_switch( flexnbd );
-	{
-		struct server * serve = flexnbd_server( flexnbd );
-		if ( server_is_mirroring( serve ) ) {
+	struct server * serve = flexnbd_server( flexnbd );
+	if ( server_is_mirroring( serve ) ) {
 
-			info( "Signaling to abandon mirror" );
-			server_abandon_mirror( serve );
-			debug( "Abandon signaled" );
+		info( "Signaling to abandon mirror" );
+		server_abandon_mirror( serve );
+		debug( "Abandon signaled" );
 
-			if ( server_is_closed( serve ) ) {
-				info( "Mirror completed while canceling" );
-				write( client->socket, 
-						"1: mirror completed\n", 20 );
-			}
-			else {
-				info( "Mirror successfully stopped." );
-				write( client->socket,
-						"0: mirror stopped\n", 18 );
-				result = 1;
-			}
-
-		} else {
-			warn( "Not mirroring." );
-			write( client->socket, "1: not mirroring\n", 17 );
+		if ( server_is_closed( serve ) ) {
+			info( "Mirror completed while canceling" );
+			write( client->socket, 
+					"1: mirror completed\n", 20 );
 		}
+		else {
+			info( "Mirror successfully stopped." );
+			write( client->socket,
+					"0: mirror stopped\n", 18 );
+			result = 1;
+		}
+
+	} else {
+		warn( "Not mirroring." );
+		write( client->socket, "1: not mirroring\n", 17 );
 	}
-	flexnbd_unlock_switch( flexnbd );
 
 	return result;
 }
@@ -499,7 +485,6 @@ void control_client_cleanup(struct control_client* client,
 	/* This is wrongness */
 	if ( server_io_locked( client->flexnbd->serve ) ) { server_unlock_io( client->flexnbd->serve ); }
 	if ( server_acl_locked( client->flexnbd->serve ) ) { server_unlock_acl( client->flexnbd->serve ); }
-	if ( flexnbd_switch_locked( client->flexnbd ) ) { flexnbd_unlock_switch( client->flexnbd ); }
 
 	control_client_destroy( client );
 }

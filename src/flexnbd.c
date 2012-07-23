@@ -21,7 +21,6 @@
 
 #include "flexnbd.h"
 #include "serve.h"
-#include "listen.h"
 #include "util.h"
 #include "control.h"
 #include "status.h"
@@ -76,8 +75,6 @@ void flexnbd_create_shared(
 	}
 
 	flexnbd->signal_fd = flexnbd_build_signal_fd();
-
-	flexnbd->switch_mutex = flexthread_mutex_create();
 }
 
 
@@ -102,36 +99,31 @@ struct flexnbd * flexnbd_create_serving(
 			s_acl_entries,
 			max_nbd_clients, 
 			1);
-	flexnbd_create_shared( flexnbd, s_ctrl_sock );
+	flexnbd_create_shared( flexnbd, 
+			s_ctrl_sock );
 	return flexnbd;
 }
 
 
 struct flexnbd * flexnbd_create_listening(
 		char* s_ip_address, 
-		char* s_rebind_ip_address, 
 		char* s_port, 
-		char* s_rebind_port, 
 		char* s_file,
 		char *s_ctrl_sock, 
 		int default_deny,
 		int acl_entries, 
-		char** s_acl_entries,
-		int max_nbd_clients )
+		char** s_acl_entries )
 {
 	struct flexnbd * flexnbd = xmalloc( sizeof( struct flexnbd ) );
-	flexnbd->listen = listen_create(
+	flexnbd->serve = server_create( 
 			flexnbd,
 			s_ip_address,
-			s_rebind_ip_address,
 			s_port,
-			s_rebind_port,
-			s_file,
+			s_file, 
 			default_deny,
 			acl_entries,
 			s_acl_entries,
-			max_nbd_clients);
-	flexnbd->serve = flexnbd->listen->init_serve;
+			1, 0);
 	flexnbd_create_shared( flexnbd, s_ctrl_sock );
 	return flexnbd;
 }
@@ -175,36 +167,11 @@ void flexnbd_destroy( struct flexnbd * flexnbd )
 	if ( flexnbd->control ) {
 		control_destroy( flexnbd->control );
 	}
-	if ( flexnbd->listen ) {
-		listen_destroy( flexnbd->listen );
-	}
-
-	flexthread_mutex_destroy( flexnbd->switch_mutex );
 
 	close( flexnbd->signal_fd );
 	free( flexnbd );
 }
 
-
-/* THOU SHALT NOT DEREFERENCE flexnbd->serve OUTSIDE A SWITCH LOCK
- */
-void flexnbd_lock_switch( struct flexnbd * flexnbd )
-{
-	NULLCHECK( flexnbd );
-	flexthread_mutex_lock( flexnbd->switch_mutex );
-}
-
-void flexnbd_unlock_switch( struct flexnbd * flexnbd )
-{
-	NULLCHECK( flexnbd );
-	flexthread_mutex_unlock( flexnbd->switch_mutex );
-}
-
-int flexnbd_switch_locked( struct flexnbd * flexnbd )
-{
-	NULLCHECK( flexnbd );
-	return flexthread_mutex_held( flexnbd->switch_mutex );
-}
 
 struct server * flexnbd_server( struct flexnbd * flexnbd )
 {
@@ -216,11 +183,7 @@ struct server * flexnbd_server( struct flexnbd * flexnbd )
 void flexnbd_replace_acl( struct flexnbd * flexnbd, struct acl * acl )
 {
 	NULLCHECK( flexnbd );
-	flexnbd_lock_switch( flexnbd );
-	{
-		server_replace_acl( flexnbd_server(flexnbd), acl );
-	}
-	flexnbd_unlock_switch( flexnbd );
+	server_replace_acl( flexnbd_server(flexnbd), acl );
 }
 
 
@@ -229,16 +192,10 @@ struct status * flexnbd_status_create( struct flexnbd * flexnbd )
 	NULLCHECK( flexnbd );
 	struct status * status;
 	
-	flexnbd_lock_switch( flexnbd );
-	{
-		status = status_create( flexnbd_server( flexnbd ) );
-	}
-	flexnbd_unlock_switch( flexnbd );
+	status = status_create( flexnbd_server( flexnbd ) );
 	return status;
 }
 
-/** THOU SHALT *ONLY* CALL THIS FROM INSIDE A SWITCH LOCK
- */
 void flexnbd_set_server( struct flexnbd * flexnbd, struct server * serve )
 {
 	NULLCHECK( flexnbd );
@@ -246,40 +203,11 @@ void flexnbd_set_server( struct flexnbd * flexnbd, struct server * serve )
 }
 
 
-/* Calls the given callback to exchange server objects, then sets
- * flexnbd->server so everything else can see it. */
-void flexnbd_switch( struct flexnbd * flexnbd, struct server *(listen_cb)(struct listen *) )
-{
-	NULLCHECK( flexnbd );
-	NULLCHECK( flexnbd->listen );
-
-	flexnbd_lock_switch( flexnbd );
-	{
-		struct server * new_server = listen_cb( flexnbd->listen );
-		NULLCHECK( new_server );
-		flexnbd_set_server( flexnbd, new_server );
-	}
-	flexnbd_unlock_switch( flexnbd );
-
-}
-
-/* Get the default_deny of the current server object.  This takes the
- * switch_lock to avoid nastiness if the server switches and gets freed
- * in the dereference chain.
- * This means that this function must not be called if the switch lock
- * is already held.
- */
+/* Get the default_deny of the current server object. */
 int flexnbd_default_deny( struct flexnbd * flexnbd )
 {
-	int result;
-
 	NULLCHECK( flexnbd );
-	flexnbd_lock_switch( flexnbd );
-	{
-		result = server_default_deny( flexnbd->serve );
-	}
-	flexnbd_unlock_switch( flexnbd );
-	return result;
+	return server_default_deny( flexnbd->serve );
 }
 
 
@@ -300,67 +228,6 @@ void make_writable( const char * filename )
 			strerror( errno ) );
 }
 
-/** Drops a marker file on the filesystem to show that the image we're
- * serving hasn't yet finished its migration yet
- */
-void flexnbd_mark_incomplete( struct flexnbd * flexnbd )
-{
-	char * filename = 
-		flexnbd_incomplete_filename( flexnbd );
-	int fd;
-
-	NULLCHECK( filename );
-
-	/* It's OK if the file already exists - it's perfectly possible
-	 * that a previous process died part-way through and left it
-	 * behind.  However, we might have left the file mode in a bad
-	 * state.
-	 */
-
-	struct stat ignored;
-	int exists = stat( filename, &ignored ) == 0;
-	if ( exists ) {
-		/* definitely there, need to chmod */
-		debug( "%s exists, making it writable", filename );
-		make_writable( filename );
-	}
-	else if ( ENOENT != errno ) {
-		/* Can't tell if it's there or not, weirdness. */
-		fatal( "Unable to stat %s: %s", filename, strerror( errno ) );
-	}
-	else { /* definitely not there. NOP. */ }
-
-	
-	fd = open( filename, O_CREAT|O_WRONLY, 0 );
-	FATAL_IF_NEGATIVE( fd, 
-			"Couldn't open %s: %s", 
-			filename,
-			strerror( errno ) );
-
-	/* Minor race here - in principle we could see the file
-	 * disappear before the chmod */
-	close( fd );
-}
-
-
-/** Removes the .INCOMPLETE marker file from the filesystem. Call this
- * only when you know the migration has completed successfully.
- */
-void flexnbd_mark_complete( struct flexnbd * flexnbd )
-{
-	char * filename = 
-		flexnbd_incomplete_filename( flexnbd );
-
-	NULLCHECK( filename );
-
-	make_writable( filename );
-
-	FATAL_IF_NEGATIVE( unlink( filename ),
-			"Couldn't unlink %s: %s",
-			filename,
-			strerror( errno ) );
-}
-
 
 int flexnbd_serve( struct flexnbd * flexnbd )
 {
@@ -372,16 +239,7 @@ int flexnbd_serve( struct flexnbd * flexnbd )
 		flexnbd_spawn_control( flexnbd );
 	}
 
-	if ( flexnbd->listen ){
-		success = do_listen( flexnbd->listen );
-	}
-	else {
-		do_serve( flexnbd->serve );
-		/* We can't tell here what the intent was.  We can
-		 * legitimately exit either in control or not.
-		 */
-		success = 1;
-	}
+	success = do_serve( flexnbd->serve );
 
 	if ( flexnbd->control ) {
 		debug( "Stopping control thread" );
