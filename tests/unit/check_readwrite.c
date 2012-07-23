@@ -9,6 +9,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -56,6 +59,7 @@ void * responder( void *respond_uncast )
 		else {
 			fd_write_reply( sock_fd, resp->received.handle, 0 );
 		}
+		write( sock_fd, "12345678", 8 );
 	}
 	return NULL;
 }
@@ -85,14 +89,16 @@ void respond_destroy( struct respond * respond ){
 }
 
 
-void * entruster( void * nothing __attribute__((unused)))
+void * reader( void * nothing __attribute__((unused)))
 {
 	DECLARE_ERROR_CONTEXT( error_context );
 	error_set_handler( (cleanup_handler *)error_marker, error_context );
 
 	struct respond * respond = respond_create( 1 );
+	int devnull = open("/dev/null", O_WRONLY);
+	char outbuf[8] = {0};
 
-	socket_nbd_entrust( respond->sock_fds[0] );
+	socket_nbd_read( respond->sock_fds[0], 0, 8, devnull, outbuf, 1 );
 
 	return NULL;
 }
@@ -101,13 +107,14 @@ START_TEST( test_rejects_mismatched_handle )
 {
 
 	error_init();
-	pthread_t entruster_thread;
+	pthread_t reader_thread;
 
 	log_level=5;
 	
 	marker = 0;
-	pthread_create( &entruster_thread, NULL, entruster, NULL );
-	FATAL_UNLESS( 0 == pthread_join( entruster_thread, NULL ), "pthread_join failed");
+	pthread_create( &reader_thread, NULL, reader, NULL );
+	FATAL_UNLESS( 0 == pthread_join( reader_thread, NULL ),
+			"pthread_join failed");
 	
 	log_level=2;
 
@@ -120,19 +127,10 @@ START_TEST( test_accepts_matched_handle )
 {
 	struct respond * respond = respond_create( 0 );
 
-	socket_nbd_entrust( respond->sock_fds[0] );
+	int devnull = open("/dev/null", O_WRONLY);
+	char outbuf[8] = {0};
 
-	respond_destroy( respond );
-}
-END_TEST
-
-
-START_TEST( test_entrust_type_sent )
-{
-	struct respond * respond = respond_create( 0 );
-
-	socket_nbd_entrust( respond->sock_fds[0] );
-	fail_unless( respond->received.type == REQUEST_ENTRUST, "Wrong type sent." );
+	socket_nbd_read( respond->sock_fds[0], 0, 8, devnull, outbuf, 1 );
 
 	respond_destroy( respond );
 }
@@ -159,7 +157,6 @@ Suite* readwrite_suite(void)
 
 	tcase_add_test(tc_transfer, test_rejects_mismatched_handle);
 	tcase_add_exit_test(tc_transfer, test_accepts_matched_handle, 0);
-	tcase_add_test( tc_transfer, test_entrust_type_sent );
 
 	/* This test is a little funny.  We respond with a dodgy handle
 	 * and check that this *doesn't* cause a message rejection,

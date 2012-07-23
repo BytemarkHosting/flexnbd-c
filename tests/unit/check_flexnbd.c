@@ -7,15 +7,12 @@ START_TEST( test_listening_assigns_sock )
 {
 	struct flexnbd * flexnbd = flexnbd_create_listening(
 			"127.0.0.1",
-			NULL,
 			"4777",
-			NULL,
 			"fakefile",
 			"fakesock",
 			0,
 			0,
-			NULL,
-			1 );
+			NULL );
 	fail_if( NULL == flexnbd->control->socket_name, "No socket was copied" );
 }
 END_TEST
