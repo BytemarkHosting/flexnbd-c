@@ -476,7 +476,7 @@ int client_serve_request(struct client* client)
 	}
 	server_unlock_io( client->serve );
 
-	return failure;
+	return stop;
 }
 
 

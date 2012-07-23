@@ -324,22 +324,15 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	}
 	connect_to->v4.sin_port = htobe16(raw_port);
 
-	if (linesc > 2) {
-		connect_from = xmalloc( sizeof( union mysockaddr ) );
-		if (parse_ip_to_sockaddr(&connect_from->generic, lines[2]) == 0) {
-			write_socket("1: bad bind address");
-			return -1;
-		}
-	}
-
-	if (linesc > 3) { max_Bps = atoi(lines[2]); }
-	
 	action_at_finish = ACTION_EXIT;
-	if (linesc > 4) {
-		if (strcmp("exit", lines[3]) == 0) {
+	if (linesc > 2) {
+		if (strcmp("exit", lines[2]) == 0) {
 			action_at_finish = ACTION_EXIT;
 		}
-		else if (strcmp("nothing", lines[3]) == 0) {
+		else if (strcmp( "unlink", lines[2]) == 0 ) {
+			action_at_finish = ACTION_UNLINK;
+		}
+		else if (strcmp("nothing", lines[2]) == 0) {
 			action_at_finish = ACTION_NOTHING;
 		}
 		else {
@@ -347,6 +340,19 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 			return -1;
 		}
 	}
+
+	if (linesc > 3) {
+		connect_from = xmalloc( sizeof( union mysockaddr ) );
+		if (parse_ip_to_sockaddr(&connect_from->generic, lines[2]) == 0) {
+			write_socket("1: bad bind address");
+			return -1;
+		}
+	}
+
+	if (linesc > 4) { 
+		max_Bps = atoi(lines[2]); 
+	}
+	
 	
 	if (linesc > 5) {
 		write_socket("1: unrecognised parameters to mirror");
@@ -384,7 +390,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 		control_write_mirror_response( state, client->socket );
 	}
 	debug( "Control thread going away." );
-
+	
 	return 0;
 }
 

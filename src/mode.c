@@ -32,15 +32,25 @@ static char serve_help_text[] =
 	QUIET_LINE;
 
 
-static struct option * listen_options = serve_options;
-static char  * listen_short_options = serve_short_options;
+static struct option listen_options[] = {
+	GETOPT_HELP,
+	GETOPT_ADDR,
+	GETOPT_PORT,
+	GETOPT_FILE,
+	GETOPT_SOCK,
+	GETOPT_DENY,
+	GETOPT_QUIET,
+	GETOPT_VERBOSE,
+	{0}
+};
+static char listen_short_options[] = "hl:p:f:s:d" SOPT_QUIET SOPT_VERBOSE;
 static char listen_help_text[] =
 	"Usage: flexnbd " CMD_LISTEN " <options> [<acl_address>*]\n\n"
-	"Listen for an incoming migration on ADDR:PORT.\n\n"
+	"Listen for an incoming migration on ADDR:PORT."
 	HELP_LINE
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to listen on.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to listen on.\n"
-	"\t--" OPT_FILE ",-f <FILE>\tThe file to write to.\n"
+	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
 	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
 	SOCK_LINE
 	VERBOSE_LINE
@@ -107,12 +117,13 @@ static struct option mirror_options[] = {
 	GETOPT_SOCK,
 	GETOPT_ADDR,
 	GETOPT_PORT,
+	GETOPT_UNLINK,
 	GETOPT_BIND,
 	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char mirror_short_options[] = "hs:l:p:b:" SOPT_QUIET SOPT_VERBOSE;
+static char mirror_short_options[] = "hs:l:p:ub:" SOPT_QUIET SOPT_VERBOSE;
 static char mirror_help_text[] =
 	"Usage: flexnbd " CMD_MIRROR " <options>\n\n"
 	"Start mirroring from the server with control socket SOCK to one at ADDR:PORT.\n\n"
@@ -120,6 +131,7 @@ static char mirror_help_text[] =
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address to mirror to.\n"
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to mirror to.\n"
 	SOCK_LINE
+	"\t--" OPT_UNLINK ",-u\tUnlink the local file when done.\n"
 	BIND_LINE
 	VERBOSE_LINE
 	QUIET_LINE;
@@ -316,7 +328,13 @@ void read_acl_param( int c, char **sock )
 	read_sock_param( c, sock, acl_help_text );
 }
 
-void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port, char **bind_addr )
+void read_mirror_param( 
+		int c, 
+		char **sock,
+		char **ip_addr,
+		char **ip_port,
+		int  *unlink,
+		char **bind_addr )
 {
 	switch( c ){
 		case 'h':
@@ -331,6 +349,9 @@ void read_mirror_param( int c, char **sock, char **ip_addr, char **ip_port, char
 			break;
 		case 'p':
 			*ip_port = optarg;
+			break;
+		case 'u':
+			*unlink = 1;
 			break;
 		case 'b':
 			*bind_addr = optarg;
@@ -404,15 +425,7 @@ int mode_serve( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( serve_help_text ); }
 
-	flexnbd = flexnbd_create_serving( 
-		ip_addr, 
-		ip_port, 
-		file, 
-		sock, 
-		default_deny, 
-		argc - optind, 
-		argv + optind,
-		MAX_NBD_CLIENTS );
+	flexnbd = flexnbd_create_serving( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
 	flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
 
@@ -459,7 +472,7 @@ int mode_listen( int argc, char *argv[] )
 		sock,
 		default_deny, 
 		argc - optind, 
-		argv + optind );
+		argv + optind);
 	success = flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
 
@@ -639,11 +652,19 @@ int mode_mirror( int argc, char *argv[] )
 	char *sock = NULL;
 	char *remote_argv[4] = {0};
 	int err = 0;
+	int unlink = 0;
+
+	remote_argv[2] = "exit";
 
 	while (1) {
 		c = getopt_long( argc, argv, mirror_short_options, mirror_options, NULL);
 		if ( -1 == c ) { break; }
-		read_mirror_param( c, &sock, &remote_argv[0], &remote_argv[1], &remote_argv[2] );
+		read_mirror_param( c, 
+				&sock, 
+				&remote_argv[0], 
+				&remote_argv[1], 
+				&unlink, 
+				&remote_argv[3] );
 	}
 
 	if ( NULL == sock ){
@@ -655,12 +676,13 @@ int mode_mirror( int argc, char *argv[] )
 		err = 1;
 	}
 	if ( err ) { exit_err( mirror_help_text ); }
+	if ( unlink ) { remote_argv[2] = "unlink"; }
 	
-	if (remote_argv[2] == NULL) {
-		do_remote_command( "mirror", sock, 2, remote_argv );
+	if (remote_argv[3] == NULL) {
+		do_remote_command( "mirror", sock, 3, remote_argv );
 	}
 	else {
-		do_remote_command( "mirror", sock, 3, remote_argv );
+		do_remote_command( "mirror", sock, 4, remote_argv );
 	}
 
 	return 0;

@@ -89,7 +89,7 @@ mirror
 ~~~~~~
 
   $ flexnbd mirror --addr <ADDR> --port <PORT> --sock SOCK 
-      [--bind <BIND-ADDR>] [global option]*
+      [--unlink] [--bind <BIND-ADDR>] [global option]*
 
 Start a migration from the server with control socket SOCK to the server
 listening at ADDR:PORT.
@@ -106,7 +106,15 @@ again.  It is not safe to resume the migration from where it left off
 because the source can't see that the backing store behind the
 destination is intact, or even on the same machine.
 
-Note: files smaller than 4096 bytes cannot be migrated.
+If the `--unlink` option is given, the local file will be deleted
+immediately before the mirror connection is terminated.  This allows
+an otherwise-ambiguous situation to be resolved: if you don't unlink
+the file and the flexnbd process at either end is terminated, it's not
+possible to tell which copy of the data is canonical.  Since the
+unlink happens as soon as the sender knows that it has transmitted all
+the data, there can be no ambiguity.
+
+Note: files smaller than 4096 bytes cannot be mirrored.
 
 Options
 ^^^^^^^
@@ -119,6 +127,10 @@ Options
 
 *--sock, -s SOCK*:
   The control socket of the local server to migrate from. Required.
+
+*--unlink, -u*: 
+  Unlink the served file from the local filesystem after successfully 
+  mirroring.
 
 *--bind, -b BIND-ADDR*:
   The local address to bind to. You may need this if the remote server

@@ -21,6 +21,7 @@ void mode(char* mode, int argc, char **argv);
 #define OPT_FROM "from"
 #define OPT_SIZE "size"
 #define OPT_DENY "default-deny"
+#define OPT_UNLINK "unlink"
 
 #define CMD_SERVE  "serve"
 #define CMD_LISTEN "listen"
@@ -51,6 +52,7 @@ void mode(char* mode, int argc, char **argv);
 #define GETOPT_FROM GETOPT_ARG( OPT_FROM, 'F' )
 #define GETOPT_SIZE GETOPT_ARG( OPT_SIZE, 'S' )
 #define GETOPT_BIND GETOPT_ARG( OPT_BIND, 'b' )
+#define GETOPT_UNLINK GETOPT_ARG( OPT_UNLINK, 'u' )
 
 #define OPT_VERBOSE "verbose"
 #define SOPT_VERBOSE "v"

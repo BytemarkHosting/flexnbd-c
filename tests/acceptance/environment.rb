@@ -73,6 +73,10 @@ class Environment
     @nbd1.mirror_unchecked( @nbd2.ip, @nbd2.port, nil, nil, 10 )
   end
 
+  def mirror12_unlink
+    @nbd1.mirror_unlink( @nbd2.ip, @nbd2.port, 2 )
+  end
+
 
   def writefile1(data)
     @file1 = FileWriter.new(@filename1, @blocksize).write(data)

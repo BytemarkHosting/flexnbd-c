@@ -64,12 +64,17 @@ class TestHappyPath < Test::Unit::TestCase
   end
 
 
-  def test_mirror
+  def setup_to_mirror
     @env.writefile1( "f"*4 )
     @env.serve1
 
     @env.writefile2( "0"*4 )
     @env.listen2
+  end
+
+
+  def test_mirror
+    setup_to_mirror()
 
     @env.nbd1.can_die
     @env.nbd2.can_die(0)
@@ -78,9 +83,28 @@ class TestHappyPath < Test::Unit::TestCase
     @env.nbd1.join
     @env.nbd2.join
 
+    assert( File.file?( @env.filename1 ),
+           "The source file was incorrectly deleted")
     assert_equal(@env.file1.read_original( 0, @env.blocksize ),
                  @env.file2.read( 0, @env.blocksize ) )
   end
+
+
+  def test_mirror_unlink
+    setup_to_mirror()
+    assert File.file?( @env.filename1 )
+
+    stdout, stderr = @env.mirror12_unlink
+
+    assert_no_match( /unrecognized/, stderr )
+    @env.nbd1.can_die(0)
+    @env.nbd2.can_die(0)
+
+    Timeout.timeout(2) do @env.nbd1.join end
+
+    assert !File.file?( @env.filename1 )
+  end
+
 
 
   def test_write_to_high_block

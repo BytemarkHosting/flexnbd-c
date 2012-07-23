@@ -236,7 +236,7 @@ void mirror_on_exit( struct server * serve )
 
 	debug("Unlinking %s", serve->filename );
 	if ( ACTION_UNLINK == serve->mirror->action_at_finish ) {
-		server_unlink( serve->mirror );
+		server_unlink( serve );
 	}
 
 	debug("Sending disconnect");

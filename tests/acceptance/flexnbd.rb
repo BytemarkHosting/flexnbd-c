@@ -195,7 +195,7 @@ class FlexNBD
     end
   end
 
-  def initialize(bin, ip, port)
+  def initialize( bin, ip, port )
     @bin  = bin
     @do_debug = ENV['DEBUG']
     @debug = build_debug_opt
@@ -259,12 +259,29 @@ class FlexNBD
   end
 
 
-  def mirror_cmd(dest_ip, dest_port)
-    "#{@bin} mirror "\
-      "--addr #{dest_ip} "\
+  def base_mirror_opts( dest_ip, dest_port )
+    "--addr #{dest_ip} "\
       "--port #{dest_port} "\
       "--sock #{ctrl} "\
-      "#{@debug} "
+  end
+
+  def unlink_mirror_opts( dest_ip, dest_port )
+    "#{base_mirror_opts( dest_ip, dest_port )} "\
+      "--unlink "
+  end
+
+  def base_mirror_cmd( opts )
+    "#{@bin} mirror "\
+      "#{opts} "\
+      "#{@debug}"
+  end
+
+  def mirror_cmd(dest_ip, dest_port)
+    base_mirror_cmd( base_mirror_opts( dest_ip, dest_port ) )
+  end
+
+  def mirror_unlink_cmd( dest_ip, dest_port )
+    base_mirror_cmd( unlink_mirror_opts( dest_ip, dest_port ) )
   end
 
   def break_cmd
@@ -389,6 +406,14 @@ class FlexNBD
   end
 
 
+  def mirror_unlink( dest_ip, dest_port, timeout=nil )
+    cmd = mirror_unlink_cmd( dest_ip, dest_port )
+    debug( cmd )
+
+    maybe_timeout( cmd, timeout )
+  end
+
+
   def maybe_timeout(cmd, timeout=nil )
     stdout, stderr = "",""
     run = Proc.new do
@@ -415,6 +440,7 @@ class FlexNBD
 
     stdout
   end
+
 
 
   def break(timeout=nil)
