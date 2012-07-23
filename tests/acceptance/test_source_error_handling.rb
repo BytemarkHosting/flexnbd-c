@@ -79,17 +79,6 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
-  def test_post_entrust_disconnect_causes_retry
-    @env.nbd1.can_die(0)
-    run_fake( "dest/close_after_entrust" )
-  end
-
-
-  def test_entrust_error_causes_retry
-    run_fake( "dest/error_on_entrust" )
-  end
-
-
   def test_cancel_migration
     run_fake( "dest/break_after_hello" )
   end

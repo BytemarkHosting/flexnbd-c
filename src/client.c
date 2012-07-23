@@ -32,8 +32,6 @@ struct client *client_create( struct server *serve, int socket )
 
 	c->stop_signal = self_pipe_create();
 
-	c->entrusted = 0;
-
 	debug( "Alloced client %p (%d, %d)", c, c->stop_signal->read_fd, c->stop_signal->write_fd );
 	return c;
 }
@@ -341,8 +339,6 @@ void client_flush( struct client * client, size_t len )
  * Returns 1 if we do, 0 otherwise.
  * request_err is set to 0 if the client sent a bad request, in which
  * case we drop the connection.
- * FIXME: after an ENTRUST, there's no way to distinguish between a
- * DISCONNECT and any bad request.
  */
 int client_request_needs_reply( struct client * client, 
 		struct nbd_request request )
@@ -356,14 +352,8 @@ int client_request_needs_reply( struct client * client,
 	switch (request.type)
 	{
 	case REQUEST_READ:
-		ERROR_IF( client->entrusted,
-				"Received a read request "
-				"after an entrust message.");
 		break;
 	case REQUEST_WRITE:
-		ERROR_IF( client->entrusted,
-				"Received a write request "
-				"after an entrust message.");
 		/* check it's not out of range */
 		if ( request.from+request.len > client->serve->size) {
 			warn("write request %d+%d out of range",
@@ -377,11 +367,6 @@ int client_request_needs_reply( struct client * client,
 		}
 		break;
 		
-	case REQUEST_ENTRUST:
-		/* Yes, we need to reply to an entrust, but we take no
-		 * further action */
-		debug("request entrust");
-		break;
 	case REQUEST_DISCONNECT:
 		debug("request disconnect");
 		client->disconnect = 1;
@@ -391,19 +376,6 @@ int client_request_needs_reply( struct client * client,
 		fatal("Unknown request %08x", request.type);
 	}
 	return 1;
-}
-
-
-void client_reply_to_entrust( struct client * client, struct nbd_request request )
-{
-	/* An entrust needs a response, but has no data. */
-	debug( "request entrust" );
-
-	client_write_reply( client, &request, 0 );
-	/* We set this after trying to send the reply, so we know the
-	 * reply got away safely.
-	 */
-	client->entrusted = 1;
 }
 
 
@@ -478,9 +450,6 @@ void client_reply( struct client* client, struct nbd_request request )
 	case REQUEST_WRITE:
 		client_reply_to_write( client, request );
 		break;
-	case REQUEST_ENTRUST:
-		client_reply_to_entrust( client, request );
-		break;
 	}
 }
 
@@ -489,11 +458,11 @@ void client_reply( struct client* client, struct nbd_request request )
 int client_serve_request(struct client* client)
 {
 	struct nbd_request    request = {0};
-	int                   failure = 1;
+	int                   stop = 1;
 	int                   disconnected = 0;
 
-	if ( !client_read_request( client, &request, &disconnected ) ) { return failure; }
-	if ( disconnected ) { return failure; }
+	if ( !client_read_request( client, &request, &disconnected ) ) { return stop; }
+	if ( disconnected ) { return stop; }
 	if ( !client_request_needs_reply( client, request ) )  {
 		return client->disconnect;
 	} 
@@ -502,7 +471,7 @@ int client_serve_request(struct client* client)
 	{
 		if ( !server_is_closed( client->serve ) ) {
 			client_reply( client, request );
-			failure = 0;
+			stop = 0;
 		}
 	}
 	server_unlock_io( client->serve );
@@ -557,14 +526,12 @@ void* client_serve(void* client_uncast)
 	debug("client: stopped serving requests");
 	client->stopped = 1;
 		
-	if ( client->entrusted ) {
-		if ( client->disconnect ){
-			debug("client: control arrived" );
-			server_control_arrived( client->serve );
-		}
-		else {
-			warn( "client: control transfer failed." );
-		}
+	if ( client->disconnect ){
+		debug("client: control arrived" );
+		server_control_arrived( client->serve );
+	}
+	else {
+		warn( "client: control transfer failed." );
 	}
 
 	FATAL_IF_NEGATIVE(

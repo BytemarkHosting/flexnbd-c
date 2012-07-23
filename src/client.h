@@ -28,9 +28,6 @@ struct client {
 	
 	struct server* serve; /* FIXME: remove above duplication */
 
-	/* Have we seen a REQUEST_ENTRUST message? */
-	int     entrusted;
-
 	/* Have we seen a REQUEST_DISCONNECT message? */
 	int     disconnect;
 };

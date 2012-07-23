@@ -44,6 +44,7 @@ enum mirror_state;
 
 enum mirror_finish_action {
 	ACTION_EXIT,
+	ACTION_UNLINK,
 	ACTION_NOTHING
 };
 

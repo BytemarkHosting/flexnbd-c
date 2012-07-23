@@ -152,18 +152,6 @@ void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf, in
 }
 
 
-void socket_nbd_entrust( int fd )
-{
-	struct nbd_request request;
-	struct nbd_reply   reply;
-
-	fill_request( &request, REQUEST_ENTRUST, 0, 0 );
-	FATAL_IF_NEGATIVE( writeloop( fd, &request, sizeof( request ) ),
-			"Couldn't write request");
-	read_reply( fd, &request, &reply );
-}
-
-
 int socket_nbd_disconnect( int fd )
 {
 	int success = 1;

@@ -93,8 +93,6 @@ module FlexNBD
       write_write_request( 0, 8 )
       write_data( "12345678" )
       read_response()
-      write_entrust_request()
-      read_response()
       write_disconnect_request()
       close()
     end

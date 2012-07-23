@@ -10,7 +10,6 @@
 #define REQUEST_READ 0 
 #define REQUEST_WRITE 1 
 #define REQUEST_DISCONNECT 2 
-#define REQUEST_ENTRUST (1<<16)
 
 #include <linux/types.h>
 #include <inttypes.h>

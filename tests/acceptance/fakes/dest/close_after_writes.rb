@@ -3,7 +3,8 @@
 
 # Open a server, accept a client, then we expect a single write
 # followed by an entrust.  However, we disconnect after the write so
-# the entrust will fail.  We expect a reconnection.
+# the entrust will fail.  We don't expect a reconnection: the sender
+# can't reliably spot a failed send.
 
 require 'flexnbd/fake_dest'
 include FlexNBD
@@ -20,8 +21,5 @@ Process.kill("STOP", src_pid.to_i)
 client.write_reply( req[:handle], 0 )
 client.close
 Process.kill("CONT", src_pid.to_i)
-
-client2 = server.accept
-client2.close
 
 exit(0)

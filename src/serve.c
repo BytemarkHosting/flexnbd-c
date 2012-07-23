@@ -115,6 +115,19 @@ void server_destroy( struct server * serve )
 }
 
 
+void server_unlink( struct server * serve )
+{
+	NULLCHECK( serve );
+	NULLCHECK( serve->filename );
+
+	FATAL_IF_NEGATIVE( unlink( serve->filename ),
+			"Failed to unlink %s: %s",
+			serve->filename,
+			strerror( errno ) );
+
+}
+
+
 void server_dirty(struct server *serve, off64_t from, int len)
 {
 	NULLCHECK( serve );
@@ -694,15 +707,17 @@ void serve_wait_for_close( struct server * serve )
 	}
 }
 
-/* We've just had an ENTRUST/DISCONNECT pair, so we need to shut down
+/* We've just had an DISCONNECT pair, so we need to shut down
  * and signal our listener that we can safely take over.
  */
 void server_control_arrived( struct server *serve )
 {
 	NULLCHECK( serve );
 
-	serve->has_control = 1;
-	serve_signal_close( serve );
+	if ( !serve->has_control ) {
+		serve->has_control = 1;
+		serve_signal_close( serve );
+	}
 }
 
 

@@ -213,64 +213,10 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 }
 
 
-void mirror_give_control( struct mirror * mirror )
-{
-	debug( "mirror: entrusting and disconnecting" );
-	/* TODO: set up an error handler to clean up properly on ERROR.
-	 */
-
-	/* A transfer of control is expressed as a 3-way handshake.
-	 * First, We send a REQUEST_ENTRUST. If this fails to be
-	 * received, this thread will simply block until the server is
-	 * restarted. If the remote end doesn't understand it, it'll
-	 * disconnect us, and an ERROR *should* bomb this thread.
-	 * FIXME: make the ERROR work.
-	 * If we get an explicit error back from the remote end, then
-	 * again, this thread will bomb out.
-	 * On receiving a valid response, we send a REQUEST_DISCONNECT,
-	 * and we quit without checking for a response.  This is the
-	 * remote server's signal to assume control of the file.  The
-	 * reason we don't check for a response is the state we end up
-	 * in if the final message goes astray: if we lose the
-	 * REQUEST_DISCONNECT, the sender has quit and the receiver
-	 * hasn't had a signal to take over yet, so the data is safe.
-	 * If we were to wait for a response to the REQUEST_DISCONNECT,
-	 * the sender and receiver would *both* be servicing write
-	 * requests while the response was in flight, and if the
-	 * response went astray we'd have two servers claiming
-	 * responsibility for the same data.
-	 *
-	 * The meaning of these is as follows:
-	 * The entrust signifies that all the data has been sent, and
-	 * the client is currently paused but not disconnected.
-	 * The disconnect signifies that the client has been
-	 * safely prevented from making any more writes.
-	 *
-	 * Since we lock io and close the server it in mirror_on_exit before
-	 * releasing, we don't actually need to take any action between the
-	 * two here.
-	 */
-	socket_nbd_entrust( mirror->client );
-	socket_nbd_disconnect( mirror->client );
-}
-
-
 /* THIS FUNCTION MUST ONLY BE CALLED WITH THE SERVER'S IO LOCKED. */
 void mirror_on_exit( struct server * serve )
 {
-	/* Send an explicit entrust and disconnect. After this
-	 * point we cannot allow any reads or writes to the local file.
-	 * We do this *before* trying to shut down the server so that if
-	 * the transfer of control fails, we haven't stopped the server
-	 * and already-connected clients don't get needlessly
-	 * disconnected.
-	 */
-	debug( "mirror_give_control");
-	mirror_give_control( serve->mirror );
-
-	/* If we're still here, the transfer of control went ok, and the
-	 * remote is listening (or will be shortly).  We can shut the
-	 * server down.
+	/* If we're still here, we can shut the server down.
 	 *
 	 * It doesn't matter if we get new client connections before
 	 * now, the IO lock will stop them from doing anything.
@@ -287,6 +233,14 @@ void mirror_on_exit( struct server * serve )
 	 */
 	debug("serve_wait_for_close");
 	serve_wait_for_close( serve );
+
+	debug("Unlinking %s", serve->filename );
+	if ( ACTION_UNLINK == serve->mirror->action_at_finish ) {
+		server_unlink( serve->mirror );
+	}
+
+	debug("Sending disconnect");
+	socket_nbd_disconnect( serve->mirror->client );
 	info("Mirror sent.");
 }
 
@@ -364,6 +318,16 @@ int mirror_connect( struct mirror * mirror, off64_t local_size )
 }
 
 
+int mirror_should_quit( struct mirror * mirror )
+{
+	switch( mirror->action_at_finish ) {
+		case ACTION_EXIT:
+		case ACTION_UNLINK:
+			return 1;
+		default:
+			return 0;
+	}
+}
 
 void mirror_run( struct server *serve )
 {
@@ -389,7 +353,7 @@ void mirror_run( struct server *serve )
 	server_lock_io( serve );
 	{
 		if ( mirror_pass( serve, 0, &written ) &&
-				ACTION_EXIT == serve->mirror->action_at_finish) {
+				mirror_should_quit( serve->mirror ) ) {
 			debug("exit!");
 			mirror_on_exit( serve );
 			info("Server closed, quitting "

@@ -72,13 +72,14 @@ class TestHappyPath < Test::Unit::TestCase
     @env.listen2
 
     @env.nbd1.can_die
+    @env.nbd2.can_die(0)
     stdout, stderr = @env.mirror12
 
     @env.nbd1.join
+    @env.nbd2.join
 
     assert_equal(@env.file1.read_original( 0, @env.blocksize ),
                  @env.file2.read( 0, @env.blocksize ) )
-    assert @env.status2['has_control'], "destination didn't take control"
   end
 
 
