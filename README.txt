@@ -59,46 +59,31 @@ listen
 ~~~~~~
 
   $ flexnbd listen --addr <ADDR> --port <PORT> --file <FILE> 
-    [--rebind-addr <REBIND-ADDR>] [--rebind-port <REBIND-PORT>]
     [--sock <SOCK>] [--default-deny] [global option]* [acl entry]*
 
-Listen for an inbound migration, then serve it as normal once it has
-completed.
+Listen for an inbound migration, and quit with a status of 0 on
+completion.
 
-flexnbd will wait for a successful migration, and then switch into
-'serve' mode. The file to write the inbound migration data to must
-already exist before you run 'flexnbd listen'.
+flexnbd will wait for a successful migration, and then quit. The file
+to write the inbound migration data to must already exist before you
+run 'flexnbd listen'.
 
-Only one sender may connect to send data, and the server is not
-available to clients while the migration is taking place.
-
-If the sender disconnects part-way through the migration, the
-destination will expect it to reconnect and retry the whole migration.
-It isn't safe to assume that a partial migration can be resumed because
-the destination has no knowledge of whether a client has made a write to
+Only one sender may connect to send data, and if the sender
+disconnects part-way through the migration, the destination will
+expect it to reconnect and retry the whole migration.  It isn't safe
+to assume that a partial migration can be resumed because the
+destination has no knowledge of whether a client has made a write to
 the source in the interim.
 
-To support transparently replacing an existing server, flexnbd can
-switch addresses once it has received a successful migration. 
-
-When `flexnbd listen` is run, it will create a file named
-<FILE>.INCOMPLETE next to FILE.  This will be removed when a migration
-has successfully completed.  The .INCOMPLETE file will be created before
-the listening socket is opened.
-
+If the migration fails for a reason which the `flexnbd listen` process
+can't fix (say, a failed local write), it will exit with an error
+status.  In this case, the sender will continually retry the migration
+until it succeeds, and you will need to restart the `flexnbd listen`
+process to allow that to happen.
 
 Options
 ^^^^^^^
-As for 'serve', with these additions:
-
-*--rebind-addr, -L REBIND_ADDR*:
-  The address to rebind to once migration has completed.
-
-*--rebind-port, -P REBIND_PORT*:
-  The port to rebind to once migration has completed.
-
-Either, both, or neither of --rebind-port and rebind-addr may be given.
-If rebinding fails, flexnbd will retry every second until it succeeds.
+As for 'serve'.
 
 mirror
 ~~~~~~
@@ -181,12 +166,14 @@ The status will be printed to STDOUT.  It is a space-separated list of
 key=value pairs.  The space character will never appear in a key or
 value.  Currently reported values are:
 
+*pid*:
+  The process id of the server listening on SOCK.
+
 *is_mirroring*:
   'true' if this server is sending migration data, 'false' otherwise.
 
 *has_control*:
-  'false' if this server was started in 'listen' mode and has not yet
-  received a successful migration. 'true' otherwise.
+  'false' if this server was started in 'listen' mode. 'true' otherwise.
 
 read
 ~~~~
@@ -326,7 +313,7 @@ In order to read a server's status, we need it to open a control socket.
   $ flexnbd serve --file /tmp/passwd --addr 0.0.0.0 --port 4777 \
     --sock /tmp/flexnbd.sock
   $ flexnbd status --sock /tmp/flexnbd.sock
-  is_mirroring=false has_control=true
+  pid=9635 is_mirroring=false has_control=true
 
   $
 
@@ -337,7 +324,7 @@ Migrating
 
 To migrate, we need to provide a destination file of the right size.
 
-  $ dd if=/dev/random of=/tmp/data bs=1M count=1
+  $ dd if=/dev/urandom of=/tmp/data bs=1024 count=1K
   $ truncate -s 1M /tmp/data.copy
   $ flexnbd serve --file /tmp/data --addr 0.0.0.0 --port 4778 \
       --sock /tmp/flex-source.sock &
@@ -349,9 +336,9 @@ Now we check the status of each server, to check that they are both in
 the right state:
  
   $ flexnbd status --sock /tmp/flex-source.sock
-  is_mirroring=false has_control=true
+  pid=9648 is_mirroring=false has_control=true
   $ flexnbd status --sock /tmp/flex-dest.sock
-  is_mirroring=false has_control=false 
+  pid=9651 is_mirroring=false has_control=false 
   $
 
 With this knowledge in hand, we can start the migration:
@@ -360,16 +347,12 @@ With this knowledge in hand, we can start the migration:
       --sock /tmp/flex-source.sock
   Migration started
   [1]  + 9648 done       build/flexnbd serve --addr 0.0.0.0 --port 4778
+  [2]  + 9651 done       build/flexnbd listen --addr 0.0.0.0 --port 4779
   $
 
 Note that because the file is so small in this case, we see the source
-server quit soon after we start the migration.
-
-We can check the status of the destination server, to ensure that it
-took control:
-
-  $ flexnbd status --sock /tmp/flex-dest.sock
-  is_mirroring=false has_control=true
+server quit soon after we start the migration, and the destination
+exited at roughly the same time.
 
 BUGS
 ----
