@@ -343,7 +343,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 
 	if (linesc > 3) {
 		connect_from = xmalloc( sizeof( union mysockaddr ) );
-		if (parse_ip_to_sockaddr(&connect_from->generic, lines[2]) == 0) {
+		if (parse_ip_to_sockaddr(&connect_from->generic, lines[3]) == 0) {
 			write_socket("1: bad bind address");
 			return -1;
 		}
