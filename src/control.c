@@ -350,7 +350,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	}
 
 	if (linesc > 4) { 
-		max_Bps = atoi(lines[2]); 
+		max_Bps = atoi(lines[4]); 
 	}
 	
 	
