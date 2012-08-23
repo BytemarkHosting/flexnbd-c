@@ -490,11 +490,19 @@ void client_cleanup(struct client* client,
 {
 	info("client cleanup for client %p", client);
 	
-	if (client->socket) { close(client->socket); }
+	if (client->socket) { 
+		close(client->socket); 
+		client->socket = -1;
+		debug("Closed client socket fd %d", client->socket);
+	}
 	if (client->mapped) {
 		munmap(client->mapped, client->serve->size);
 	}
-	if (client->fileno) { close(client->fileno); }
+	if (client->fileno) { 
+		close(client->fileno); 
+		client->fileno = -1;
+		debug("Closed client file fd %d", client->fileno );
+	}
 
 	if ( server_io_locked( client->serve ) ) { server_unlock_io( client->serve ); }
 	if ( server_acl_locked( client->serve ) ) { server_unlock_acl( client->serve ); }
@@ -517,6 +525,7 @@ void* client_serve(void* client_uncast)
 		),
 		"Couldn't open/mmap file %s: %s", client->serve->filename, strerror( errno )
 	);
+	debug( "Opened client file fd %d", client->fileno);
 	debug("client: sending hello");
 	client_send_hello(client);
 	
@@ -530,16 +539,7 @@ void* client_serve(void* client_uncast)
 		debug("client: control arrived" );
 		server_control_arrived( client->serve );
 	}
-	else {
-		warn( "client: control transfer failed." );
-	}
 
-	FATAL_IF_NEGATIVE(
-		close(client->socket),
-		"Couldn't close socket %d", 
-		client->socket
-	);
-	
 	debug("Cleaning client %p up normally in thread %p", client, pthread_self());
 	client_cleanup(client, 0);
 	debug("Client thread done" );

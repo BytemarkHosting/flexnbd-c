@@ -426,6 +426,7 @@ int mode_serve( int argc, char *argv[] )
 	if ( err ) { exit_err( serve_help_text ); }
 
 	flexnbd = flexnbd_create_serving( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
+	info( "Serving file %s", file );
 	flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
 

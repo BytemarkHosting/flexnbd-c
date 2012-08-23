@@ -505,6 +505,7 @@ void accept_nbd_client(
 
 	if ( !server_should_accept_client( params, client_address, s_client_address, 64 ) ) {
 		close( client_fd );
+		debug("Closed client socket fd %d", client_fd);
 		return;
 	}
 
@@ -512,6 +513,7 @@ void accept_nbd_client(
 	if (slot < 0) {
 		warn("too many clients to accept connection");
 		close(client_fd);
+		debug("Closed client socket fd %d", client_fd);
 		return;
 	}
 	
@@ -528,6 +530,7 @@ void accept_nbd_client(
 		debug( "Thread creation problem." );
 		client_destroy( client_params );
 		close(client_fd);
+		debug("Closed client socket fd %d", client_fd);
 		return;
 	}
 	
@@ -655,7 +658,7 @@ int server_accept( struct server * params )
 
 	if ( FD_ISSET( params->server_fd, &fds ) ){
 		client_fd = accept( params->server_fd, &client_address.generic, &socklen );
-		debug("Accepted nbd client socket");
+		debug("Accepted nbd client socket fd %d", client_fd);
 		accept_nbd_client(params, client_fd, &client_address);
 	} 
 
