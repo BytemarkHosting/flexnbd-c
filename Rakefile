@@ -23,14 +23,13 @@ CCFLAGS = %w(
              -Wno-missing-field-initializers
             ) + # Added -Wno-missing-field-initializers to shut GCC up over {0} struct initialisers
             [ENV['CFLAGS']]
-LDFLAGS = []
 LIBCHECK = "/usr/lib/libcheck.a"
 
 TEST_MODULES = Dir["tests/unit/check_*.c"].map { |n|
   File.basename( n )[%r{check_(.+)\.c},1] }
 
 if DEBUG
-  LDFLAGS << ["-g"]
+  LDFLAGS << ["-g", "-lefence"]
   CCFLAGS << ["-g -DDEBUG"]
 end
 

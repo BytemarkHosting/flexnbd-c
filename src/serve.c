@@ -342,12 +342,13 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 		/* join_errno can legitimately be ESRCH if the thread is
 		 * already dead, but the client still needs tidying up. */
 		if (join_errno != 0 && !entry->client->stopped ) {
+			debug( "join_errno was %s, stopped was %d", strerror( join_errno ), entry->client->stopped );
 			FATAL_UNLESS( join_errno == EBUSY,  
 					"Problem with joining thread %p: %s", 
 					entry->thread,
 					strerror(join_errno) );
 		}
-		else {
+		else if ( join_errno == 0 ) {
 			debug("nbd thread %016x exited (%s) with status %ld", 
 					entry->thread, 
 					s_client_address, 
@@ -504,7 +505,8 @@ void accept_nbd_client(
 
 
 	if ( !server_should_accept_client( params, client_address, s_client_address, 64 ) ) {
-		close( client_fd );
+		FATAL_IF_NEGATIVE( close( client_fd ),
+			"Error closing client socket fd %d", client_fd );
 		debug("Closed client socket fd %d", client_fd);
 		return;
 	}
@@ -512,12 +514,13 @@ void accept_nbd_client(
 	slot = cleanup_and_find_client_slot(params); 
 	if (slot < 0) {
 		warn("too many clients to accept connection");
-		close(client_fd);
+		FATAL_IF_NEGATIVE( close( client_fd ),
+			"Error closing client socket fd %d", client_fd );
 		debug("Closed client socket fd %d", client_fd);
 		return;
 	}
 	
-	info( "Client %s accepted.", s_client_address );
+	info( "Client %s accepted on fd %d.", s_client_address, client_fd );
 	client_params = client_create( params, client_fd );
 
 	params->nbd_client[slot].client = client_params;
@@ -529,7 +532,8 @@ void accept_nbd_client(
 	if ( 0 != spawn_client_thread( client_params, thread ) ) {
 		debug( "Thread creation problem." );
 		client_destroy( client_params );
-		close(client_fd);
+		FATAL_IF_NEGATIVE( close(client_fd),
+			"Error closing client socket fd %d", client_fd );
 		debug("Closed client socket fd %d", client_fd);
 		return;
 	}

@@ -32,7 +32,7 @@ struct client *client_create( struct server *serve, int socket )
 
 	c->stop_signal = self_pipe_create();
 
-	debug( "Alloced client %p (%d, %d)", c, c->stop_signal->read_fd, c->stop_signal->write_fd );
+	debug( "Alloced client %p with socket %d", c, socket );
 	return c;
 }
 
@@ -51,6 +51,7 @@ void client_destroy( struct client *client )
 
 	debug( "Destroying stop signal for client %p", client );
 	self_pipe_destroy( client->stop_signal );
+	debug( "Freeing client %p", client );
 	free( client );
 }
 
@@ -491,17 +492,21 @@ void client_cleanup(struct client* client,
 	info("client cleanup for client %p", client);
 	
 	if (client->socket) { 
-		close(client->socket); 
-		client->socket = -1;
+		FATAL_IF_NEGATIVE( close(client->socket),
+			"Error closing client socket %d",
+			client->socket );
 		debug("Closed client socket fd %d", client->socket);
+		client->socket = -1;
 	}
 	if (client->mapped) {
 		munmap(client->mapped, client->serve->size);
 	}
 	if (client->fileno) { 
-		close(client->fileno); 
-		client->fileno = -1;
+		FATAL_IF_NEGATIVE( close(client->fileno),
+			"Error closing file %d",
+			client->fileno );
 		debug("Closed client file fd %d", client->fileno );
+		client->fileno = -1;
 	}
 
 	if ( server_io_locked( client->serve ) ) { server_unlock_io( client->serve ); }
