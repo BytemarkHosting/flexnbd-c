@@ -74,10 +74,10 @@ class TestHappyPath < Test::Unit::TestCase
 
 
   def test_mirror
-    setup_to_mirror()
-
     @env.nbd1.can_die
     @env.nbd2.can_die(0)
+    setup_to_mirror()
+
     stdout, stderr = @env.mirror12
 
     @env.nbd1.join
@@ -91,14 +91,16 @@ class TestHappyPath < Test::Unit::TestCase
 
 
   def test_mirror_unlink
+    @env.nbd1.can_die(0)
+    @env.nbd2.can_die(0)
     setup_to_mirror()
+
     assert File.file?( @env.filename1 )
 
     stdout, stderr = @env.mirror12_unlink
 
     assert_no_match( /unrecognized/, stderr )
-    @env.nbd1.can_die(0)
-    @env.nbd2.can_die(0)
+
 
     Timeout.timeout(2) do @env.nbd1.join end
 
@@ -128,3 +130,4 @@ class TestHappyPath < Test::Unit::TestCase
   end
 
 end
+

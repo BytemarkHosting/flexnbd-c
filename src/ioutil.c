@@ -21,7 +21,7 @@ struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolutio
 
 	fiemap_count->fm_start = 0;
 	fiemap_count->fm_length = size;
-	fiemap_count->fm_flags = 0;
+	fiemap_count->fm_flags = FIEMAP_FLAG_SYNC;
 	fiemap_count->fm_extent_count = 0;
 	fiemap_count->fm_mapped_extents = 0;
 
