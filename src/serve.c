@@ -579,7 +579,7 @@ void server_close_clients( struct server *params )
 	
 	info("closing all clients");
 
-	int i, j;
+	int i; /* , j; */
 	struct client_tbl_entry *entry;
 
 	for( i = 0; i < params->max_nbd_clients; i++ ) {
@@ -590,9 +590,17 @@ void server_close_clients( struct server *params )
 			client_signal_stop( entry->client );	
 		}
 	}
-	for( j = 0; j < params->max_nbd_clients; j++ ) {
-		join_client_thread( &params->nbd_client[j] );
-	}
+	/* We don't join the clients here.  When we enter the final
+	 * mirror pass, we get the IO lock, then wait for the server_fd
+	 * to close before sending the data, to be sure that no new
+	 * clients can be accepted which might think they've written
+	 * to the disc.  However, an existing client thread can be
+	 * waiting for the IO lock already, so if we try to join it
+	 * here, we deadlock.
+	 *
+	 * The client threads will be joined in serve_cleanup.
+	 *
+	*/
 }
 
 

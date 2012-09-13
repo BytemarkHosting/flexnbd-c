@@ -90,11 +90,16 @@ module FlexNBD
 
     def send_mirror
       read_hello()
-      write_write_request( 0, 8 )
-      write_data( "12345678" )
+      write( 0, "12345678" )
       read_response()
       write_disconnect_request()
       close()
+    end
+
+
+    def write( from, data )
+      write_write_request( from, data.length )
+      write_data( data )
     end
 
 
