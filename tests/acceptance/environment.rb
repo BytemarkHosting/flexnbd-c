@@ -17,8 +17,8 @@ class Environment
     @rebind_port1 = @available_ports.shift
     @port2 = @available_ports.shift
     @rebind_port2 = @available_ports.shift
-    @nbd1 = FlexNBD.new("../../build/flexnbd", @ip, @port1)
-    @nbd2 = FlexNBD.new("../../build/flexnbd", @ip, @port2)
+    @nbd1 = FlexNBD::FlexNBD.new("../../build/flexnbd", @ip, @port1)
+    @nbd2 = FlexNBD::FlexNBD.new("../../build/flexnbd", @ip, @port2)
 
     @fake_pid = nil
   end
