@@ -14,7 +14,6 @@ class TestWriteDuringMigration < Test::Unit::TestCase
     @flexnbd = File.expand_path("../../build/flexnbd")
 
     raise "No binary!" unless File.executable?( @flexnbd )
-    raise "No trickle!" unless system "which trickle > /dev/null"
 
 
     @size = 20*1024*1024 # 20MB
