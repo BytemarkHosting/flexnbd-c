@@ -26,7 +26,7 @@ static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
 
 	struct sockaddr_in*  in  = (struct sockaddr_in*) sockaddr;
 	struct sockaddr_in6* in6 = (struct sockaddr_in6*) sockaddr;
-	
+
 	if (sockaddr->sa_family == AF_INET) {
 		return &in->sin_addr;
 	}
@@ -64,7 +64,7 @@ struct server * server_create (
 	FATAL_IF_ZERO(
 		parse_ip_to_sockaddr(&out->bind_to.generic, s_ip_address),
 		"Couldn't parse server address '%s' (use 0 if "
-		"you want to bind to all IPs)", 
+		"you want to bind to all IPs)",
 		s_ip_address
 	);
 
@@ -103,7 +103,7 @@ void server_destroy( struct server * serve )
 	flexthread_mutex_destroy( serve->l_acl );
 	flexthread_mutex_destroy( serve->l_io );
 
-	if ( serve->acl ) { 
+	if ( serve->acl ) {
 		acl_destroy( serve->acl );
 		serve->acl = NULL;
 	}
@@ -220,20 +220,20 @@ void serve_bind( struct server * serve )
 
 	do {
 		bind_result = bind(
-				serve->server_fd, 
+				serve->server_fd,
 				&serve->bind_to.generic,
 				sizeof(serve->bind_to));
 
 		if ( 0 == bind_result ) {
-			info( "Bound to %s port %d", 
-					s_address, 
+			info( "Bound to %s port %d",
+					s_address,
 					ntohs(serve->bind_to.v4.sin_port));
 			break;
 		}
 		else {
 
-			warn( "Couldn't bind to %s port %d: %s", 
-					s_address, 
+			warn( "Couldn't bind to %s port %d: %s",
+					s_address,
 					ntohs(serve->bind_to.v4.sin_port),
 					strerror( errno ) );
 
@@ -242,10 +242,10 @@ void serve_bind( struct server * serve )
 				 * EADDRINUSE, EADDRNOTAVAIL, EBADF,
 				 * EINVAL or ENOTSOCK.
 				 *
-				 * Any of these other than EACCES, 
+				 * Any of these other than EACCES,
 				 * EADDRINUSE or EADDRNOTAVAIL signify
 				 * that there's a logic error somewhere.
-				 * 
+				 *
 				 * EADDRINUSE is fatal: if there's
 				 * something already where we want to be
 				 * listening, we have no guarantees that
@@ -258,7 +258,7 @@ void serve_bind( struct server * serve )
 					continue;
 				case EADDRINUSE:
 					fatal( "%s port %d in use, giving up.",
-							s_address, 
+							s_address,
 							ntohs(serve->bind_to.v4.sin_port));
 				default:
 					fatal( "Giving up" );
@@ -275,11 +275,11 @@ void serve_open_server_socket(struct server* params)
 	NULLCHECK( params );
 
 	int optval=1;
-	
-	params->server_fd= socket(params->bind_to.generic.sa_family == AF_INET ? 
+
+	params->server_fd= socket(params->bind_to.generic.sa_family == AF_INET ?
 	  PF_INET : PF_INET6, SOCK_STREAM, 0);
-	
-	FATAL_IF_NEGATIVE(params->server_fd, 
+
+	FATAL_IF_NEGATIVE(params->server_fd,
 	  "Couldn't create server socket");
 
 	/* We need SO_REUSEADDR so that when we switch from listening to
@@ -308,7 +308,7 @@ void serve_open_server_socket(struct server* params)
 	 * squatting on our ip/port combo, or the ip isn't yet
 	 * configured. Ideally we want to retry this. */
 	serve_bind(params);
-	
+
 	FATAL_IF_NEGATIVE(
 		listen(params->server_fd, params->tcp_backlog),
 		"Couldn't listen on server socket"
@@ -332,9 +332,9 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 
 		memset(s_client_address, 0, 64);
 		strcpy(s_client_address, "???");
-		inet_ntop( entry->address.generic.sa_family, 
-				sockaddr_address_data(&entry->address.generic), 
-				s_client_address, 
+		inet_ntop( entry->address.generic.sa_family,
+				sockaddr_address_data(&entry->address.generic),
+				s_client_address,
 				64 );
 
 		debug( "%s(%p,...)", joinfunc == pthread_join ? "joining" : "tryjoining", entry->thread );
@@ -343,15 +343,15 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 		 * already dead, but the client still needs tidying up. */
 		if (join_errno != 0 && !entry->client->stopped ) {
 			debug( "join_errno was %s, stopped was %d", strerror( join_errno ), entry->client->stopped );
-			FATAL_UNLESS( join_errno == EBUSY,  
-					"Problem with joining thread %p: %s", 
+			FATAL_UNLESS( join_errno == EBUSY,
+					"Problem with joining thread %p: %s",
 					entry->thread,
 					strerror(join_errno) );
 		}
 		else if ( join_errno == 0 ) {
-			debug("nbd thread %016x exited (%s) with status %ld", 
-					entry->thread, 
-					s_client_address, 
+			debug("nbd thread %016x exited (%s) with status %ld",
+					entry->thread,
+					s_client_address,
 					(uint64_t)status);
 			client_destroy( entry->client );
 			entry->client = NULL;
@@ -447,8 +447,8 @@ int server_acl_accepts( struct server *params, union mysockaddr * client_address
 }
 
 
-int server_should_accept_client( 
-		struct server * params, 
+int server_should_accept_client(
+		struct server * params,
 		union mysockaddr * client_address,
 		char *s_client_address,
 		size_t s_client_address_len )
@@ -466,7 +466,7 @@ int server_should_accept_client(
 
 	if ( !server_acl_accepts( params, client_address ) ) {
 		warn( "Rejecting client %s: Access control error", s_client_address );
-		debug( "We %s have an acl, and default_deny is %s", 
+		debug( "We %s have an acl, and default_deny is %s",
 				(params->acl ? "do" : "do not"),
 				(params->acl->default_deny ? "true" : "false") );
  		return 0;
@@ -477,8 +477,8 @@ int server_should_accept_client(
 
 
 
-int spawn_client_thread( 
-	struct client * client_params, 
+int spawn_client_thread(
+	struct client * client_params,
 	pthread_t *out_thread)
 {
 	int result = pthread_create(out_thread, NULL, client_serve, client_params);
@@ -492,8 +492,8 @@ int spawn_client_thread(
   * address doesn't match, or if there are too many clients already connected.
   */
 void accept_nbd_client(
-		struct server* params, 
-		int client_fd, 
+		struct server* params,
+		int client_fd,
 		union mysockaddr* client_address)
 {
 	NULLCHECK(params);
@@ -511,7 +511,7 @@ void accept_nbd_client(
 		return;
 	}
 
-	slot = cleanup_and_find_client_slot(params); 
+	slot = cleanup_and_find_client_slot(params);
 	if (slot < 0) {
 		warn("too many clients to accept connection");
 		FATAL_IF_NEGATIVE( close( client_fd ),
@@ -519,14 +519,14 @@ void accept_nbd_client(
 		debug("Closed client socket fd %d", client_fd);
 		return;
 	}
-	
+
 	info( "Client %s accepted on fd %d.", s_client_address, client_fd );
 	client_params = client_create( params, client_fd );
 
 	params->nbd_client[slot].client = client_params;
-	memcpy(&params->nbd_client[slot].address, client_address, 
+	memcpy(&params->nbd_client[slot].address, client_address,
 	  sizeof(union mysockaddr));
-	
+
 	pthread_t * thread = &params->nbd_client[slot].thread;
 
 	if ( 0 != spawn_client_thread( client_params, thread ) ) {
@@ -537,7 +537,7 @@ void accept_nbd_client(
 		debug("Closed client socket fd %d", client_fd);
 		return;
 	}
-	
+
 	debug("nbd thread %p started (%s)", params->nbd_client[slot].thread, s_client_address);
 }
 
@@ -576,7 +576,7 @@ int server_is_closed(struct server* serve)
 void server_close_clients( struct server *params )
 {
 	NULLCHECK(params);
-	
+
 	info("closing all clients");
 
 	int i; /* , j; */
@@ -587,7 +587,7 @@ void server_close_clients( struct server *params )
 
 		if ( entry->thread != 0 ) {
 			debug( "Stop signaling client %p", entry->client );
-			client_signal_stop( entry->client );	
+			client_signal_stop( entry->client );
 		}
 	}
 	/* We don't join the clients here.  When we enter the final
@@ -648,7 +648,7 @@ int server_accept( struct server * params )
 	self_pipe_fd_set( params->close_signal, &fds );
 	self_pipe_fd_set( params->acl_updated_signal, &fds );
 
-	FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds, 
+	FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds,
 				NULL, NULL, NULL), "select() failed");
 
 	if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
@@ -672,13 +672,13 @@ int server_accept( struct server * params )
 		client_fd = accept( params->server_fd, &client_address.generic, &socklen );
 		debug("Accepted nbd client socket fd %d", client_fd);
 		accept_nbd_client(params, client_fd, &client_address);
-	} 
+	}
 
 	return 1;
 }
 
 
-void serve_accept_loop(struct server* params) 
+void serve_accept_loop(struct server* params)
 {
 	NULLCHECK( params );
 	while( server_accept( params ) );
@@ -697,9 +697,9 @@ void serve_init_allocation_map(struct server* params)
 	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", params->filename);
 	size = lseek64(fd, 0, SEEK_END);
 	params->size = size;
-	FATAL_IF_NEGATIVE(size, "Couldn't find size of %s", 
+	FATAL_IF_NEGATIVE(size, "Couldn't find size of %s",
 			params->filename);
-	params->allocation_map = 
+	params->allocation_map =
 		build_allocation_map(fd, size, block_allocation_resolution);
 	close(fd);
 }
@@ -737,29 +737,29 @@ void server_control_arrived( struct server *serve )
 
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
-void serve_cleanup(struct server* params, 
+void serve_cleanup(struct server* params,
 		int fatal __attribute__ ((unused)) )
 {
 	NULLCHECK( params );
-	
+
 	info("cleaning up");
 
 	int i;
-	
+
 	if (params->server_fd){ close(params->server_fd); }
 
 	if (params->allocation_map) {
 		free(params->allocation_map);
 	}
-	
+
 	if ( server_is_mirroring( params ) ) {
 		server_abandon_mirror( params );
 	}
-	
+
 	for (i=0; i < params->max_nbd_clients; i++) {
 		void* status;
 		pthread_t thread_id = params->nbd_client[i].thread;
-		
+
 		if (thread_id != 0) {
 			debug("joining thread %p", thread_id);
 			pthread_join(thread_id, &status);
@@ -790,7 +790,7 @@ void server_abandon_mirror( struct server * serve )
 {
 	NULLCHECK( serve );
 	if ( serve->mirror_super ) {
-		/* FIXME: AWOOGA!  RACE! 
+		/* FIXME: AWOOGA!  RACE!
 		 * We can set signal_abandon after mirror_super has
 		 * checked it, but before the reset.  This would lead to
 		 * a hang.  However, mirror_reset doesn't change the
@@ -814,7 +814,7 @@ int do_serve(struct server* params)
 	NULLCHECK( params );
 
 	int has_control;
-	
+
 	error_set_handler((cleanup_handler*) serve_cleanup, params);
 	serve_open_server_socket(params);
 	serve_init_allocation_map(params);

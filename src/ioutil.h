@@ -4,7 +4,7 @@
 #include "serve.h"
 struct bitset_mapping; /* don't need whole of bitset.h here */
 
-/** Returns a bit field representing which blocks are allocated in file 
+/** Returns a bit field representing which blocks are allocated in file
   * descriptor ''fd''.  You must supply the size, and the resolution at which
   * you want the bits to represent allocated blocks.  If the OS represents
   * allocated blocks at a finer resolution than you've asked for, any block
@@ -43,15 +43,15 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len);
 int read_until_newline(int fd, char* buf, int bufsize);
 
 /** Read a number of lines using read_until_newline, until an empty line is
-  * received (i.e. the sequence LF LF).  The data is read from ''fd'' and 
+  * received (i.e. the sequence LF LF).  The data is read from ''fd'' and
   * lines must be a maximum of ''max_line_length''.  The set of lines is
   * returned as an array of zero-terminated strings; you must pass an address
   * ''lines'' in which you want the address of this array returned.
   */
 int read_lines_until_blankline(int fd, int max_line_length, char ***lines);
 
-/** Open the given ''filename'', determine its size, and mmap it in its 
-  * entirety.  The file descriptor is stored in ''out_fd'', the size in 
+/** Open the given ''filename'', determine its size, and mmap it in its
+  * entirety.  The file descriptor is stored in ''out_fd'', the size in
   * ''out_size'' and the address of the mmap in ''out_map''.  If anything goes
   * wrong, returns -1 setting errno, otherwise 0.
   */

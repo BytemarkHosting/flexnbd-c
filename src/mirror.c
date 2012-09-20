@@ -79,15 +79,15 @@ void mirror_init( struct mirror * mirror, const char * filename )
 
 	FATAL_IF_NEGATIVE(
 		open_and_mmap(
-			filename, 
+			filename,
 			&map_fd,
-			&size, 
+			&size,
 			(void**) &mirror->mapped
 		),
 		"Failed to open and mmap %s",
 		filename
 	);
-	
+
 	mirror->dirty_map = bitset_alloc(size, 4096);
 
 }
@@ -119,7 +119,7 @@ struct mirror * mirror_create(
 			max_Bps,
 			action_at_finish,
 			commit_signal);
-	
+
 	mirror_init( mirror, filename );
 	mirror_reset( mirror );
 
@@ -146,7 +146,7 @@ static const int mirror_longest_write = 8<<20;
  */
 static const unsigned int mirror_last_pass_after_bytes_written = 100<<20;
 
-/** The largest number of full passes we'll do - the last one will always 
+/** The largest number of full passes we'll do - the last one will always
  *  cause the I/O to freeze, however many bytes are left to copy.
  */
 static const int mirror_maximum_passes = 7;
@@ -166,15 +166,15 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 
 		debug("mirror current=%ld, run=%d", current, run);
 
-		/* FIXME: we could avoid sending sparse areas of the 
+		/* FIXME: we could avoid sending sparse areas of the
 		 * disc here, and probably save a lot of bandwidth and
 		 * time (if we know the destination starts off zeroed).
-		 */ 
+		 */
 		if (bitset_is_set_at(map, current)) {
 			/* We've found a dirty area, send it */
 			debug("^^^ writing");
 
-			/* We need to stop the main thread from working 
+			/* We need to stop the main thread from working
 			 * because it might corrupt the dirty map.  This
 			 * is likely to slow things down but will be
 			 * safe.
@@ -185,7 +185,7 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 				/** FIXME: do something useful with bytes/second */
 
 				/** FIXME: error handling code here won't unlock */
-				socket_nbd_write( serve->mirror->client, 
+				socket_nbd_write( serve->mirror->client,
 						current,
 						run,
 						0,
@@ -292,7 +292,7 @@ int mirror_connect( struct mirror * mirror, off64_t local_size )
 					mirror_set_state( mirror, MS_GO );
 				}
 				else {
-					warn("Remote size (%d) doesn't match local (%d)", 
+					warn("Remote size (%d) doesn't match local (%d)",
 							remote_size, local_size );
 					mirror_set_state( mirror, MS_FAIL_SIZE_MISMATCH );
 				}
@@ -341,11 +341,11 @@ void mirror_run( struct server *serve )
 	for (pass=0; pass < mirror_maximum_passes-1; pass++) {
 
 		debug("mirror start pass=%d", pass);
-		if ( !mirror_pass( serve, 1, &written ) ){ 
+		if ( !mirror_pass( serve, 1, &written ) ){
 			debug("Failed mirror pass state is %d", mirror_get_state( serve->mirror ) );
 			debug("pass failed, giving up");
 			return; }
-		
+
 		/* if we've not written anything */
 		if (written < mirror_last_pass_after_bytes_written) { break; }
 	}
@@ -358,7 +358,7 @@ void mirror_run( struct server *serve )
 			mirror_on_exit( serve );
 			info("Server closed, quitting "
 					"after successful migration");
-		} 
+		}
 	}
 	server_unlock_io( serve );
 }
@@ -379,11 +379,11 @@ void mirror_signal_commit( struct mirror * mirror )
 {
 	NULLCHECK( mirror );
 
-	mbox_post_mirror_state( mirror->commit_signal, 
+	mbox_post_mirror_state( mirror->commit_signal,
 			mirror_get_state( mirror ) );
 }
 
-/** Thread launched to drive mirror process 
+/** Thread launched to drive mirror process
  * This is needed for two reasons: firstly, it decouples the mirroring
  * from the control thread (although that's less valid with mboxes
  * passing state back and forth) and to provide an error context so that
@@ -408,7 +408,7 @@ void* mirror_runner(void* serve_params_uncast)
 	error_set_handler( (cleanup_handler *) mirror_cleanup, serve );
 
 	info( "Connecting to mirror" );
-	
+
 	time_t start_time = time(NULL);
 	int connected = mirror_connect( mirror, serve->size );
 	mirror_signal_commit( mirror );
@@ -418,8 +418,8 @@ void* mirror_runner(void* serve_params_uncast)
 	 * and retry everything from mirror_set_state(_, MS_INIT), but
 	 * *without* signaling the commit or abandoning the mirror.
 	 * */
-	
-	if ( (time(NULL) - start_time) > MS_CONNECT_TIME_SECS ){ 
+
+	if ( (time(NULL) - start_time) > MS_CONNECT_TIME_SECS ){
 		/* If we get here, then we managed to connect but the
 		 * control thread feeding status back to the user will
 		 * have gone away, leaving the user without meaningful
@@ -449,11 +449,11 @@ struct mirror_super * mirror_super_create(
 		struct mbox * state_mbox)
 {
 	struct mirror_super * super = xmalloc( sizeof( struct mirror_super) );
-	super->mirror = mirror_create( 
-			filename, 
-			connect_to, 
-			connect_from, 
-			max_Bps, 
+	super->mirror = mirror_create(
+			filename,
+			connect_to,
+			connect_from,
+			max_Bps,
 			action_at_finish,
 			mbox_create() ) ;
 	super->state_mbox = state_mbox;
@@ -462,15 +462,15 @@ struct mirror_super * mirror_super_create(
 
 
 /* Post the current state of the mirror into super->state_mbox.*/
-void mirror_super_signal_committed( 
+void mirror_super_signal_committed(
 		struct mirror_super * super ,
 		enum mirror_state commit_state )
 {
 	NULLCHECK( super );
 	NULLCHECK( super->state_mbox );
 
-	mbox_post_mirror_state( 
-			super->state_mbox, 
+	mbox_post_mirror_state(
+			super->state_mbox,
 			commit_state );
 }
 
@@ -506,14 +506,14 @@ void * mirror_super_runner( void * serve_uncast )
 
 	do {
 		FATAL_IF( 0 != pthread_create(
-					&mirror->thread, 
-					NULL, 
-					mirror_runner, 
+					&mirror->thread,
+					NULL,
+					mirror_runner,
 					serve),
 				"Failed to create mirror thread");
 
 		debug("Supervisor waiting for commit signal");
-		enum mirror_state * commit_state = 
+		enum mirror_state * commit_state =
 			mbox_receive( mirror->commit_signal );
 
 		debug( "Supervisor got commit signal" );
@@ -526,7 +526,7 @@ void * mirror_super_runner( void * serve_uncast )
 			should_retry = *commit_state == MS_GO;
 			/* Only send this signal the first time */
 			mirror_super_signal_committed(
-					super, 
+					super,
 					*commit_state);
 			debug("Mirror supervisor committed");
 		}
@@ -540,7 +540,7 @@ void * mirror_super_runner( void * serve_uncast )
 
 		success = MS_DONE == mirror_get_state( mirror );
 
-		if( success ){ 
+		if( success ){
 			info( "Mirror supervisor success, exiting" ); }
 		else if ( mirror->signal_abandon ) {
 			info( "Mirror abandoned" );
@@ -553,7 +553,7 @@ void * mirror_super_runner( void * serve_uncast )
 
 		first_pass = 0;
 
-		if ( should_retry ) { 
+		if ( should_retry ) {
 			/* We don't want to hammer the destination too
 			 * hard, so if this is a retry, insert a delay. */
 			sleep( MS_RETRY_DELAY_SECS );
@@ -563,7 +563,7 @@ void * mirror_super_runner( void * serve_uncast )
 			mirror_reset( mirror );
 		}
 
-	} 
+	}
 	while ( should_retry && !success );
 
 	serve->mirror = NULL;
@@ -574,5 +574,4 @@ void * mirror_super_runner( void * serve_uncast )
 
 	return NULL;
 }
-
 
