@@ -61,13 +61,13 @@ void client_destroy( struct client *client )
  * So waiting on client->socket is len bytes of data, and we must write it all
  * to client->mapped.  However while doing do we must consult the bitmap
  * client->block_allocation_map, which is a bitmap where one bit represents
- * block_allocation_resolution bytes.  Where a bit isn't set, there are no 
+ * block_allocation_resolution bytes.  Where a bit isn't set, there are no
  * disc blocks allocated for that portion of the file, and we'd like to keep
- * it that way.  
+ * it that way.
  *
  * If the bitmap shows that every block in our prospective write is already
- * allocated, we can proceed as normal and make one call to writeloop.  
- * 
+ * allocated, we can proceed as normal and make one call to writeloop.
+ *
  */
 void write_not_zeroes(struct client* client, uint64_t from, int len)
 {
@@ -83,30 +83,30 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 		 * how many blocks our write covers, then cut off the start
 		 * and end to get the exact number of bytes.
 		 */
-		 
+
 		int run = bitset_run_count(map, from, len);
-		
+
 		debug("write_not_zeroes: from=%ld, len=%d, run=%d", from, len, run);
-		
+
 		if (run > len) {
 			run = len;
 			debug("(run adjusted to %d)", run);
 		}
-		
+
 		if (0) /* useful but expensive */
 		{
 			uint64_t i;
 			fprintf(stderr, "full map resolution=%d: ", map->resolution);
 			for (i=0; i<client->serve->size; i+=map->resolution) {
 				int here = (from >= i && from < i+map->resolution);
-				
+
 				if (here) { fprintf(stderr, ">"); }
 				fprintf(stderr, bitset_is_set_at(map, i) ? "1" : "0");
 				if (here) { fprintf(stderr, "<"); }
 			}
 			fprintf(stderr, "\n");
 		}
-		
+
 		#define DO_READ(dst, len) ERROR_IF_NEGATIVE( \
 			readloop( \
 				client->socket, \
@@ -115,7 +115,7 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 			), \
 			"read failed %ld+%d", from, (len) \
 		)
-		
+
 		if (bitset_is_set_at(map, from)) {
 			debug("writing the lot: from=%ld, run=%d", from, run);
 			/* already allocated, just write it all */
@@ -128,19 +128,19 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 			char zerobuffer[block_allocation_resolution];
 			/* not allocated, read in block_allocation_resoution */
 			while (run > 0) {
-				int blockrun = block_allocation_resolution - 
+				int blockrun = block_allocation_resolution -
 				  (from % block_allocation_resolution);
 				if (blockrun > run)
 					blockrun = run;
-				
+
 				DO_READ(zerobuffer, blockrun);
-				
-				/* This reads the buffer twice in the worst case 
+
+				/* This reads the buffer twice in the worst case
 				 * but we're leaning on memcmp failing early
 				 * and memcpy being fast, rather than try to
 				 * hand-optimized something specific.
 				 */
-				if (zerobuffer[0] != 0 || 
+				if (zerobuffer[0] != 0 ||
 				    memcmp(zerobuffer, zerobuffer + 1, blockrun - 1)) {
 					memcpy(client->mapped+from, zerobuffer, blockrun);
 					bitset_set_range(map, from, blockrun);
@@ -148,7 +148,7 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 					/* at this point we could choose to
 					 * short-cut the rest of the write for
 					 * faster I/O but by continuing to do it
-					 * the slow way we preserve as much 
+					 * the slow way we preserve as much
 					 * sparseness as possible.
 					 */
 				}
@@ -185,18 +185,18 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	 * otherwise
 	 */
 	ptv = server_is_in_control( client->serve ) ? NULL : &tv;
-	
+
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);
 	self_pipe_fd_set( client->stop_signal, &fds );
 	fd_count = select(FD_SETSIZE, &fds, NULL, NULL, ptv);
 	if ( fd_count == 0 ) {
 		/* This "can't ever happen" */
-		if ( NULL == ptv ) { fatal( "No FDs selected, and no timeout!" ); } 
+		if ( NULL == ptv ) { fatal( "No FDs selected, and no timeout!" ); }
 		else { error("Timed out waiting for I/O"); }
 	}
 	else if ( fd_count < 0 ) { fatal( "Select failed" ); }
-	
+
 	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
 		debug("Client received stop signal.");
 		return 0;
@@ -220,9 +220,9 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 				 * again.  It should *probably* be an
 				 * error() call, but I want to be sure.
 				 * */
-				fatal("Error reading request: %d, %s", 
-						errno, 
-						strerror( errno )); 
+				fatal("Error reading request: %d, %s",
+						errno,
+						strerror( errno ));
 		}
 	}
 
@@ -299,7 +299,7 @@ void client_write_init( struct client * client, uint64_t size )
 void client_flush( struct client * client, size_t len )
 {
 	int devnull = open("/dev/null", O_WRONLY);
-	FATAL_IF_NEGATIVE( devnull, 
+	FATAL_IF_NEGATIVE( devnull,
 			"Couldn't open /dev/null: %s", strerror(errno));
 	int pipes[2];
 	pipe( pipes );
@@ -308,9 +308,9 @@ void client_flush( struct client * client, size_t len )
 	size_t spliced = 0;
 
 	while ( spliced < len ) {
-		ssize_t received = splice( 
+		ssize_t received = splice(
 				client->socket, NULL,
-				pipes[1], NULL, 
+				pipes[1], NULL,
 				len-spliced, flags );
 		FATAL_IF_NEGATIVE( received,
 				"splice error: %s",
@@ -318,9 +318,9 @@ void client_flush( struct client * client, size_t len )
 		ssize_t junked = 0;
 		while( junked < received ) {
 			ssize_t junk;
-			junk = splice( 
+			junk = splice(
 				pipes[0], NULL,
-				devnull, NULL, 
+				devnull, NULL,
 				received, flags );
 			FATAL_IF_NEGATIVE( junk,
 				"splice error: %s",
@@ -341,15 +341,15 @@ void client_flush( struct client * client, size_t len )
  * request_err is set to 0 if the client sent a bad request, in which
  * case we drop the connection.
  */
-int client_request_needs_reply( struct client * client, 
+int client_request_needs_reply( struct client * client,
 		struct nbd_request request )
 {
 	debug("request type %d", request.type);
-	
+
 	if (request.magic != REQUEST_MAGIC) {
 		fatal("Bad magic %08x", request.magic);
 	}
-		
+
 	switch (request.type)
 	{
 	case REQUEST_READ:
@@ -358,7 +358,7 @@ int client_request_needs_reply( struct client * client,
 		/* check it's not out of range */
 		if ( request.from+request.len > client->serve->size) {
 			warn("write request %d+%d out of range",
-			  request.from, 
+			  request.from,
 			  request.len
 			);
 			client_write_reply( client, &request, 1 );
@@ -367,12 +367,12 @@ int client_request_needs_reply( struct client * client,
 			return 0;
 		}
 		break;
-		
+
 	case REQUEST_DISCONNECT:
 		debug("request disconnect");
 		client->disconnect = 1;
 		return 0;
-		
+
 	default:
 		fatal("Unknown request %08x", request.type);
 	}
@@ -394,9 +394,9 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 	 */
 	ERROR_IF_NEGATIVE(
 			sendfileloop(
-				client->socket, 
-				client->fileno, 
-				&offset, 
+				client->socket,
+				client->fileno,
+				&offset,
 				request.len),
 			"sendfile failed from=%ld, len=%d",
 			offset,
@@ -420,7 +420,7 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 				request.len),
 			"reading write data failed from=%ld, len=%d",
 			request.from,
-			request.len 
+			request.len
 		);
 		server_dirty(client->serve, request.from, request.len);
 	}
@@ -432,8 +432,8 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		uint64_t len_rounded = request.len + (request.from - from_rounded);
 
 		FATAL_IF_NEGATIVE(
-			msync( client->mapped + from_rounded, 
-				len_rounded, 
+			msync( client->mapped + from_rounded,
+				len_rounded,
 				MS_SYNC),
 			"msync failed %ld %ld", request.from, request.len
 		);
@@ -466,7 +466,7 @@ int client_serve_request(struct client* client)
 	if ( disconnected ) { return stop; }
 	if ( !client_request_needs_reply( client, request ) )  {
 		return client->disconnect;
-	} 
+	}
 
 	server_lock_io( client->serve );
 	{
@@ -486,12 +486,12 @@ void client_send_hello(struct client* client)
 	client_write_init( client, client->serve->size );
 }
 
-void client_cleanup(struct client* client, 
+void client_cleanup(struct client* client,
 		int fatal __attribute__ ((unused)) )
 {
 	info("client cleanup for client %p", client);
-	
-	if (client->socket) { 
+
+	if (client->socket) {
 		FATAL_IF_NEGATIVE( close(client->socket),
 			"Error closing client socket %d",
 			client->socket );
@@ -501,7 +501,7 @@ void client_cleanup(struct client* client,
 	if (client->mapped) {
 		munmap(client->mapped, client->serve->size);
 	}
-	if (client->fileno) { 
+	if (client->fileno) {
 		FATAL_IF_NEGATIVE( close(client->fileno),
 			"Error closing file %d",
 			client->fileno );
@@ -517,15 +517,15 @@ void client_cleanup(struct client* client,
 void* client_serve(void* client_uncast)
 {
 	struct client* client = (struct client*) client_uncast;
-	
+
 	error_set_handler((cleanup_handler*) client_cleanup, client);
-	
+
 	info("client: mmaping file");
 	FATAL_IF_NEGATIVE(
 		open_and_mmap(
 			client->serve->filename,
 			&client->fileno,
-			NULL, 
+			NULL,
 			(void**) &client->mapped
 		),
 		"Couldn't open/mmap file %s: %s", client->serve->filename, strerror( errno )
@@ -533,13 +533,13 @@ void* client_serve(void* client_uncast)
 	debug( "Opened client file fd %d", client->fileno);
 	debug("client: sending hello");
 	client_send_hello(client);
-	
+
 	debug("client: serving requests");
 	while (client_serve_request(client) == 0)
 		;
 	debug("client: stopped serving requests");
 	client->stopped = 1;
-		
+
 	if ( client->disconnect ){
 		debug("client: control arrived" );
 		server_control_arrived( client->serve );
@@ -548,6 +548,7 @@ void* client_serve(void* client_uncast)
 	debug("Cleaning client %p up normally in thread %p", client, pthread_self());
 	client_cleanup(client, 0);
 	debug("Client thread done" );
-	
+
 	return NULL;
 }
+
