@@ -28,6 +28,11 @@ class TestDestErrorHandling  < Test::Unit::TestCase
   end
 
 
+  def test_sigterm_has_bad_exit_status
+    @env.nbd1.can_die(1)
+    run_fake( "source/sigterm_after_hello" )
+  end
+
   def test_disconnect_after_hello_causes_error_not_fatal
     run_fake( "source/close_after_hello" )
     assert_no_control

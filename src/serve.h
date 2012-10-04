@@ -53,8 +53,16 @@ struct server {
 	/* Claimed around any updates to the ACL. */
 	struct flexthread_mutex *   l_acl;
 
+	/* Claimed around starting a mirror so that it doesn't race with
+	 * shutting down on a SIGTERM. */
+	struct flexthread_mutex *   l_start_mirror;
+
 	struct mirror* mirror;
 	struct mirror_super * mirror_super; 
+	/* This is used to stop the mirror from starting after we
+	 * receive a SIGTERM */
+	int mirror_can_start;
+
 	int                  server_fd;
 	int                  control_fd;
 	
@@ -96,8 +104,13 @@ int server_io_locked( struct server * serve );
 int server_acl_locked( struct server * serve );
 void server_lock_acl( struct server *serve );
 void server_unlock_acl( struct server *serve );
+void server_lock_start_mirror( struct server *serve );
+void server_unlock_start_mirror( struct server *serve );
 int server_is_mirroring( struct server * serve );
 void server_abandon_mirror( struct server * serve );
+void server_prevent_mirror_start( struct server *serve );
+void server_allow_mirror_start( struct server *serve );
+int server_mirror_can_start( struct server *serve );
 
 void server_unlink( struct server * serve );
 

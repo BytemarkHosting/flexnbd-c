@@ -361,19 +361,35 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 
 	struct server * serve = flexnbd_server(flexnbd);
 
-	if ( serve->mirror_super ) {
-		warn( "Tried to start a second mirror run" );
-		write_socket( "1: mirror already running" );
-	} else {
-		serve->mirror_super = mirror_super_create( 
-				serve->filename,
-				connect_to,
-				connect_from,
-				max_Bps ,
-				action_at_finish,
-				client->mirror_state_mbox );
-		serve->mirror = serve->mirror_super->mirror;
+	server_lock_start_mirror( serve );
+	{
+		if ( server_mirror_can_start( serve ) ) {
+			serve->mirror_super = mirror_super_create( 
+					serve->filename,
+					connect_to,
+					connect_from,
+					max_Bps ,
+					action_at_finish,
+					client->mirror_state_mbox );
+			serve->mirror = serve->mirror_super->mirror;
+			server_prevent_mirror_start( serve );
+		} else {
+			if ( serve->mirror_super ) {
+				warn( "Tried to start a second mirror run" );
+				write_socket( "1: mirror already running" );
+			} else {
+				warn( "Cannot start mirroring, shutting down" );
+				write_socket( "1: shutting down" );
+			}
+		}
 
+	}
+	server_unlock_start_mirror( serve );
+
+	/* Do this outside the lock to minimise the length of time the
+	 * sighandler can block the serve thread
+	 */
+	if ( serve->mirror_super ) {
 		FATAL_IF( 0 != pthread_create(
 					&serve->mirror_super->thread, 
 					NULL, 
@@ -389,6 +405,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 		debug("Control thread writing response");
 		control_write_mirror_response( state, client->socket );
 	}
+
 	debug( "Control thread going away." );
 	
 	return 0;
@@ -438,28 +455,33 @@ int control_break(
 	struct flexnbd* flexnbd = client->flexnbd;
 
 	struct server * serve = flexnbd_server( flexnbd );
-	if ( server_is_mirroring( serve ) ) {
 
-		info( "Signaling to abandon mirror" );
-		server_abandon_mirror( serve );
-		debug( "Abandon signaled" );
+	server_lock_start_mirror( serve );
+	{
+		if ( server_is_mirroring( serve ) ) {
 
-		if ( server_is_closed( serve ) ) {
-			info( "Mirror completed while canceling" );
-			write( client->socket, 
-					"1: mirror completed\n", 20 );
+			info( "Signaling to abandon mirror" );
+			server_abandon_mirror( serve );
+			debug( "Abandon signaled" );
+
+			if ( server_is_closed( serve ) ) {
+				info( "Mirror completed while canceling" );
+				write( client->socket, 
+						"1: mirror completed\n", 20 );
+			}
+			else {
+				info( "Mirror successfully stopped." );
+				write( client->socket,
+						"0: mirror stopped\n", 18 );
+				result = 1;
+			}
+
+		} else {
+			warn( "Not mirroring." );
+			write( client->socket, "1: not mirroring\n", 17 );
 		}
-		else {
-			info( "Mirror successfully stopped." );
-			write( client->socket,
-					"0: mirror stopped\n", 18 );
-			result = 1;
-		}
-
-	} else {
-		warn( "Not mirroring." );
-		write( client->socket, "1: not mirroring\n", 17 );
 	}
+	server_unlock_start_mirror( serve );
 
 	return result;
 }

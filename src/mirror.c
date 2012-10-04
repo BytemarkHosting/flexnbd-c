@@ -568,6 +568,7 @@ void * mirror_super_runner( void * serve_uncast )
 
 	serve->mirror = NULL;
 	serve->mirror_super = NULL;
+	server_allow_mirror_start( serve );
 
 	mirror_super_destroy( super );
 	debug( "Mirror supervisor done." );

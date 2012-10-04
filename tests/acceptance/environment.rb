@@ -121,11 +121,12 @@ class Environment
 
   def run_fake( name, addr, port, sock=nil )
     fakedir = File.join( File.dirname( __FILE__ ), "fakes" )
-    fake = Dir[File.join( fakedir, name ) + "*"].sort.find { |fn|
+    fakeglob = File.join( fakedir, name ) + "*"
+    fake = Dir[fakeglob].sort.find { |fn|
       File.executable?( fn )
     }
 
-    raise "no fake executable" unless fake
+    raise "no fake executable at #{fakeglob}" unless fake
     raise "no addr" unless addr
     raise "no port" unless port
 

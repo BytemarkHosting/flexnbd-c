@@ -19,9 +19,21 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   end
 
 
+  def expect_term_during_migration
+    @env.nbd1.can_die(6,9)
+  end
+
+
   def test_failure_to_connect_reported_in_mirror_cmd_response
     stdout, stderr = @env.mirror12_unchecked
+    expect_term_during_migration
     assert_match( /failed to connect/, stderr )
+  end
+
+
+  def test_sigterm_after_hello_quits_with_status_of_1
+    expect_term_during_migration
+    run_fake( "dest/sigterm_after_hello" )
   end
 
 
@@ -36,6 +48,7 @@ class TestSourceErrorHandling < Test::Unit::TestCase
               :err => /Mirror was rejected/ )
   end
 
+
   def test_wrong_size_causes_disconnect
     run_fake( "dest/hello_wrong_size",
               :err => /Remote size does not match local size/ )
@@ -43,38 +56,45 @@ class TestSourceErrorHandling < Test::Unit::TestCase
 
 
   def test_wrong_magic_causes_disconnect
+    expect_term_during_migration
     run_fake( "dest/hello_wrong_magic",
               :err => /Mirror was rejected/ )
   end
 
 
   def test_disconnect_after_hello_causes_retry
+    expect_term_during_migration
     run_fake( "dest/close_after_hello",
               :out => /Mirror started/ )
   end
 
 
   def test_write_times_out_causes_retry
+    expect_term_during_migration
     run_fake( "dest/hang_after_write" )
   end
 
 
   def test_rejected_write_causes_retry
+    expect_term_during_migration
     run_fake( "dest/error_on_write" )
   end
 
 
   def test_disconnect_before_write_reply_causes_retry
+    expect_term_during_migration
     run_fake( "dest/close_after_write" )
   end
 
 
   def test_bad_write_reply_causes_retry
+    expect_term_during_migration
     run_fake( "dest/write_wrong_magic" )
   end
 
 
   def test_pre_entrust_disconnect_causes_retry
+    expect_term_during_migration
     run_fake( "dest/close_after_writes" )
   end
 

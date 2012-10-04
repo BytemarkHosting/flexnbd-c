@@ -136,11 +136,11 @@ class ValgrindKillingExecutor
 
 
   def call( err )
-    Process.kill( "KILL", @pid )
     $stderr.puts "*"*72
     $stderr.puts "* Valgrind error spotted:"
     $stderr.puts err.to_s.split("\n").map{|s| "  #{s}"}
     $stderr.puts "*"*72
+    Process.kill( "KILL", @pid )
     exit(1)
   end
 
@@ -323,7 +323,8 @@ module FlexNBD
 
 
     def serve( file, *acl)
-      run_serve_cmd( serve_cmd( file, acl ) )
+      cmd = serve_cmd( file, acl )
+      run_serve_cmd( cmd )
     end
 
     def listen(file, *acl)

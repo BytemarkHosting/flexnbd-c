@@ -83,6 +83,9 @@ struct server * server_create (
 
 	out->l_io = flexthread_mutex_create();
 	out->l_acl= flexthread_mutex_create();
+	out->l_start_mirror = flexthread_mutex_create();
+
+	out->mirror_can_start = 1;
 
 	out->close_signal = self_pipe_create();
 	out->acl_updated_signal = self_pipe_create();
@@ -100,6 +103,7 @@ void server_destroy( struct server * serve )
 	self_pipe_destroy( serve->close_signal );
 	serve->close_signal = NULL;
 
+	flexthread_mutex_destroy( serve->l_start_mirror );
 	flexthread_mutex_destroy( serve->l_acl );
 	flexthread_mutex_destroy( serve->l_io );
 
@@ -177,6 +181,8 @@ void server_lock_acl( struct server *serve )
 
 void server_unlock_acl( struct server *serve )
 {
+	debug( "ACL unlocking" );
+
 	SERVER_UNLOCK( serve, l_acl, "Problem with ACL unlock" );
 }
 
@@ -187,6 +193,26 @@ int server_acl_locked( struct server * serve )
 	return flexthread_mutex_held( serve->l_acl );
 }
 
+
+void server_lock_start_mirror( struct server *serve )
+{
+	debug("Mirror start locking");
+
+	SERVER_LOCK( serve, l_start_mirror, "Problem with start mirror lock" );
+}
+
+void server_unlock_start_mirror( struct server *serve )
+{
+	debug("Mirror start unlocking");
+
+	SERVER_UNLOCK( serve, l_start_mirror, "Problem with start mirror unlock" );
+}
+
+int server_start_mirror_locked( struct server * serve )
+{
+	NULLCHECK( serve );
+	return flexthread_mutex_held( serve->l_start_mirror );
+}
 
 /** Return the actual port the server bound to.  This is used because we
  * are allowed to pass "0" on the command-line.
@@ -628,6 +654,49 @@ void server_replace_acl( struct server *serve, struct acl * new_acl )
 }
 
 
+void server_prevent_mirror_start( struct server *serve )
+{
+	NULLCHECK( serve );
+
+	serve->mirror_can_start = 0;
+}
+
+void server_allow_mirror_start( struct server *serve )
+{
+	NULLCHECK( serve );
+
+	serve->mirror_can_start = 1;
+}
+
+
+/* Only call this with the mirror start lock held */
+int server_mirror_can_start( struct server *serve )
+{
+	NULLCHECK( serve );
+
+	return serve->mirror_can_start;
+}
+
+
+void serve_handle_signal( struct server *params )
+{
+	int should_die = 0;
+	server_lock_start_mirror( params );
+	{
+		if ( server_is_mirroring( params ) ) {
+			should_die = 1;
+			server_prevent_mirror_start( params );
+		}
+	}
+	server_unlock_start_mirror( params );
+
+	if ( should_die ){
+		fatal( "Stop signal received while mirroring." );
+	} else {
+		server_close_clients( params );
+	}
+}
+
 
 /** Accept either an NBD or control socket connection, dispatch appropriately */
 int server_accept( struct server * params )
@@ -658,7 +727,11 @@ int server_accept( struct server * params )
 
 	if ( 0 < signal_fd && FD_ISSET( signal_fd, &fds ) ){
 		debug( "Stop signal received." );
-		server_close_clients( params );
+		serve_handle_signal( params );
+
+		/* serve_handle_signal will fatal() if it has to, so it
+		 * might not return at all.
+		 */
 		return 0;
 	}
 
@@ -752,9 +825,18 @@ void serve_cleanup(struct server* params,
 		free(params->allocation_map);
 	}
 	
-	if ( server_is_mirroring( params ) ) {
-		server_abandon_mirror( params );
+	int need_mirror_lock;
+	need_mirror_lock = !server_start_mirror_locked( params );
+
+	if ( need_mirror_lock ) { server_lock_start_mirror( params ); }
+	{
+		if ( server_is_mirroring( params ) ) {
+			server_abandon_mirror( params );
+		}
+		server_prevent_mirror_start( params );
 	}
+	if ( need_mirror_lock ) { server_unlock_start_mirror( params ); }
+
 	
 	for (i=0; i < params->max_nbd_clients; i++) {
 		void* status;
@@ -764,6 +846,10 @@ void serve_cleanup(struct server* params,
 			debug("joining thread %p", thread_id);
 			pthread_join(thread_id, &status);
 		}
+	}
+
+	if ( server_start_mirror_locked( params ) ) {
+		server_unlock_start_mirror( params );
 	}
 
 	if ( server_acl_locked( params ) ) {
@@ -786,6 +872,7 @@ int server_is_mirroring( struct server * serve )
 	return !!serve->mirror_super;
 }
 
+/* This must only be called with the start_mirror lock held */
 void server_abandon_mirror( struct server * serve )
 {
 	NULLCHECK( serve );
