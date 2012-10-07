@@ -757,6 +757,25 @@ void serve_accept_loop(struct server* params)
 	while( server_accept( params ) );
 }
 
+void* build_allocation_map_thread(void* params1)
+{
+	struct server* params = (struct server*) params1;
+	int fd = open(params->filename, O_RDONLY);
+	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", params->filename);
+	NULLCHECK(params);
+
+	params->allocation_map = bitset_alloc(params->size, 
+		block_allocation_resolution);
+
+	if (build_allocation_map(params->allocation_map, fd))
+		params->allocation_map_built = 1;
+	else
+		warn("Didn't build allocation map for %s", params->filename);
+
+	close(fd);
+	return NULL;
+}
+
 /** Initialisation function that sets up the initial allocation map, i.e. so
   * we know which blocks of the file are allocated.
   */
@@ -772,9 +791,9 @@ void serve_init_allocation_map(struct server* params)
 	params->size = size;
 	FATAL_IF_NEGATIVE(size, "Couldn't find size of %s",
 			params->filename);
-	params->allocation_map =
-		build_allocation_map(fd, size, block_allocation_resolution);
-	close(fd);
+	FATAL_IF_NEGATIVE(pthread_create(&params->allocation_map_builder_thread, 
+			NULL, build_allocation_map_thread, params), 
+			"Couldn't create thread");
 }
 
 
@@ -818,9 +837,13 @@ void serve_cleanup(struct server* params,
 	info("cleaning up");
 
 	int i;
+	void* status;
 
 	if (params->server_fd){ close(params->server_fd); }
 
+	/* need to stop background build if we're killed very early on */
+	pthread_cancel(params->allocation_map_builder_thread);
+	pthread_join(params->allocation_map_builder_thread, &status);
 	if (params->allocation_map) {
 		free(params->allocation_map);
 	}
@@ -839,7 +862,6 @@ void serve_cleanup(struct server* params,
 
 
 	for (i=0; i < params->max_nbd_clients; i++) {
-		void* status;
 		pthread_t thread_id = params->nbd_client[i].thread;
 
 		if (thread_id != 0) {

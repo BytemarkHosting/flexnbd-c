@@ -407,13 +407,11 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 void client_reply_to_write( struct client* client, struct nbd_request request )
 {
 	debug("request write %ld+%d", request.from, request.len);
-	if (client->serve->allocation_map) {
+	if (client->serve->allocation_map_built) {
 		write_not_zeroes( client, request.from, request.len );
 	}
 	else {
 		debug("No allocation map, writing directly.");
-		/* If we get cut off partway through reading this data
-		 * */
 		ERROR_IF_NEGATIVE(
 			readloop( client->socket,
 				client->mapped + request.from,
@@ -423,6 +421,14 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 			request.len
 		);
 		server_dirty(client->serve, request.from, request.len);
+		/* the allocation_map is shared between client threads, and may be
+		 * being built.  But AFAICT this is safe, to accurately reflect the
+		 * fact that we've caused block allocation to occur, though we will
+		 * never consult the allocation_map until the builder thread has
+		 * finished.
+		 */
+		bitset_set_range(client->serve->allocation_map, 
+			request.from, request.len);
 	}
 
 	if (1) /* not sure whether this is necessary... */

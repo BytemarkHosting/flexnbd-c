@@ -11,83 +11,51 @@
 #include "util.h"
 #include "bitset.h"
 
-struct bitset_mapping* build_allocation_map(int fd, uint64_t size, int resolution)
+int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 {
-	unsigned int i;
-	struct bitset_mapping* allocation_map = bitset_alloc(size, resolution);
-	struct fiemap *fiemap_count = NULL, *fiemap = NULL;
+	/* break blocking ioctls down */
+	const unsigned long max_length  = 100*1024*1024;
+	const unsigned int  max_extents = 1000;
 
-	fiemap_count = (struct fiemap*) xmalloc(sizeof(struct fiemap));
+	unsigned long offset = 0;
 
-	fiemap_count->fm_start = 0;
-	fiemap_count->fm_length = size;
-	fiemap_count->fm_flags = FIEMAP_FLAG_SYNC;
-	fiemap_count->fm_extent_count = 0;
-	fiemap_count->fm_mapped_extents = 0;
+	struct { 
+		struct fiemap fiemap; 
+		struct fiemap_extent extents[max_extents];
+	} fiemap_static;
+	struct fiemap* fiemap = (struct fiemap*) &fiemap_static;
 
-	/* Find out how many extents there are */
-	if (ioctl(fd, FS_IOC_FIEMAP, fiemap_count) < 0) {
-		debug( "Couldn't get fiemap_count, returning no allocation_map" );
-		goto no_map;
-	}
+	memset(&fiemap_static, 0, sizeof(fiemap_static));
 
-	/* Resize fiemap to allow us to read in the extents */
-	fiemap = (struct fiemap*)xmalloc(
-			sizeof(struct fiemap) + (
-				sizeof(struct fiemap_extent) *
-				fiemap_count->fm_mapped_extents
-				)
+	for (offset = 0; offset < allocation_map->size; offset += fiemap->fm_length) {
+		unsigned int i;
+
+		fiemap->fm_start = offset;
+		fiemap->fm_length = max_length;
+		if (offset + max_length > allocation_map->size)
+			fiemap->fm_length = allocation_map->size-offset;
+		fiemap->fm_flags = FIEMAP_FLAG_SYNC;
+		fiemap->fm_extent_count = max_extents;
+		fiemap->fm_mapped_extents = 0;
+
+		if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0) {
+			debug( "Couldn't get fiemap, returning no allocation_map" );
+			free(allocation_map);
+			return NULL;
+		}
+
+		for (i=0;i<fiemap->fm_mapped_extents;i++) {
+			bitset_set_range(
+				allocation_map,
+				fiemap->fm_extents[i].fe_logical,
+				fiemap->fm_extents[i].fe_length
 			);
-
-	/* realloc makes valgrind complain a lot */
-	memcpy(fiemap, fiemap_count, sizeof(struct fiemap));
-	free( fiemap_count );
-
-	fiemap->fm_extent_count = fiemap->fm_mapped_extents;
-	fiemap->fm_mapped_extents = 0;
-
-	if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0) {
-		debug( "Couldn't get fiemap, returning no allocation_map" );
-		goto no_map;
-	}
-
-	for (i=0;i<fiemap->fm_mapped_extents;i++) {
-		bitset_set_range(
-			allocation_map,
-			fiemap->fm_extents[i].fe_logical,
-			fiemap->fm_extents[i].fe_length
-		);
-	}
-
-	/* This is pointlessly verbose for real discs, it's here as a
-	 * reference for pulling data out of the allocation map */
-	if ( 0 ) {
-		for (i=0; i<(size/resolution); i++) {
-			debug("map[%d] = %d%d%d%d%d%d%d%d",
-					i,
-					(allocation_map->bits[i] & 1) == 1,
-					(allocation_map->bits[i] & 2) == 2,
-					(allocation_map->bits[i] & 4) == 4,
-					(allocation_map->bits[i] & 8) == 8,
-					(allocation_map->bits[i] & 16) == 16,
-					(allocation_map->bits[i] & 32) == 32,
-					(allocation_map->bits[i] & 64) == 64,
-					(allocation_map->bits[i] & 128) == 128
-			     );
+			//debug("range from %ld + %ld", fiemap->fm_extents[i].fe_logical, fiemap->fm_extents[i].fe_length);
 		}
 	}
 
-
-	free(fiemap);
-
 	debug("Successfully built allocation map");
 	return allocation_map;
-
-no_map:
-	free( allocation_map );
-	if ( NULL != fiemap ) { free( fiemap ); }
-	if ( NULL != fiemap_count ) { free( fiemap_count ); }
-	return NULL;
 }
 
 

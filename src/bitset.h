@@ -78,9 +78,11 @@ static inline int bit_run_count(char* b, int from, int len) {
 
 /** An application of a bitset - a bitset mapping represents a file of ''size'' 
   * broken down into ''resolution''-sized chunks.  The bit set is assumed to
-  * represent one bit per chunk.
+  * represent one bit per chunk.  We also bundle a lock so that the set can be
+  * written reliably by multiple threads.
   */
 struct bitset_mapping {
+	pthread_mutex_t lock;
 	uint64_t size;
 	int resolution;
 	char bits[];
@@ -100,6 +102,8 @@ static inline struct bitset_mapping* bitset_alloc(
 	);
 	bitset->size = size;
 	bitset->resolution = resolution;
+	/* don't actually need to call pthread_mutex_destroy '*/
+	pthread_mutex_init(&bitset->lock, NULL);
 	return bitset;
 }
 
@@ -107,6 +111,13 @@ static inline struct bitset_mapping* bitset_alloc(
   int first = from/set->resolution, \
       last = (from+len-1)/set->resolution, \
       bitlen = last-first+1
+
+#define BITSET_LOCK \
+  FATAL_IF_NEGATIVE(pthread_mutex_lock(&set->lock), "Error locking bitset")
+
+#define BITSET_UNLOCK \
+  FATAL_IF_NEGATIVE(pthread_mutex_unlock(&set->lock), "Error unlocking bitset")
+
 
 /** Set the bits in a bitset which correspond to the given bytes in the larger
   * file.
@@ -117,7 +128,9 @@ static inline void bitset_set_range(
 	uint64_t len)
 {
 	INT_FIRST_AND_LAST;
+	BITSET_LOCK;
 	bit_set_range(set->bits, first, bitlen);
+	BITSET_UNLOCK;
 }
 
 
@@ -140,7 +153,9 @@ static inline void bitset_clear_range(
 	uint64_t len)
 {
 	INT_FIRST_AND_LAST;
+	BITSET_LOCK;
 	bit_clear_range(set->bits, first, bitlen);
+	BITSET_UNLOCK;
 }
 
 
@@ -163,10 +178,14 @@ static inline int bitset_run_count(
 {
 	/* now fix in case len goes past the end of the memory we have
 	 * control of */
+	int run;
 	len = len+from>set->size ? set->size-from : len;
 	INT_FIRST_AND_LAST;
-	return (bit_run_count(set->bits, first, bitlen) * set->resolution) -
+	BITSET_LOCK;
+	run = (bit_run_count(set->bits, first, bitlen) * set->resolution) -
 	  (from % set->resolution);
+	BITSET_UNLOCK;
+	return run;
 }
 
 /** Tests whether the bit field is clear for the given file offset.

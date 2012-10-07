@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h> /* for sig_atomic_t */
 
 #include "flexnbd.h"
 #include "parse.h"
@@ -66,7 +67,22 @@ struct server {
 	int                  server_fd;
 	int                  control_fd;
 	
+	/* the allocation_map keeps track of which blocks in the backing file 
+	 * have been allocated, or part-allocated on disc, with unallocated
+	 * blocks presumed to contain zeroes (i.e. represented as sparse files
+	 * by the filesystem).  We can use this information when receiving
+	 * incoming writes, and avoid writing zeroes to unallocated sections
+	 * of the file which would needlessly increase disc usage.  This 
+	 * bitmap will start at all-zeroes for an empty file, and tend towards
+	 * all-ones as the file is written to (i.e. we assume that allocated
+	 * blocks can never become unallocated again, as is the case with ext3
+	 * at least).
+	 */
 	struct bitset_mapping* allocation_map;
+	/* when starting up, this thread builds the allocation_map */
+	pthread_t               allocation_map_builder_thread;
+	/* when the thread has finished, it sets this to 1 */
+	volatile sig_atomic_t  allocation_map_built;
 	
 	int                  max_nbd_clients;
 	struct client_tbl_entry *nbd_client;
