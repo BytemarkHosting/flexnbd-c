@@ -816,8 +816,8 @@ int do_serve(struct server* params)
 	int has_control;
 
 	error_set_handler((cleanup_handler*) serve_cleanup, params);
-	serve_init_allocation_map(params);
 	serve_open_server_socket(params);
+	serve_init_allocation_map(params);
 	serve_accept_loop(params);
 	has_control = params->has_control;
 	serve_cleanup(params, 0);

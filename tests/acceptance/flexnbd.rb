@@ -314,16 +314,9 @@ module FlexNBD
 
       while !File.socket?(ctrl)
         pid, status = Process.wait2(@pid, Process::WNOHANG)
-        raise "server did not start (#{cmd}) - UNIX socket didn't appear" if pid
+        raise "server did not start (#{cmd})" if pid
         sleep 0.1
       end
-
-      while !socket_open?
-        pid, status = Process.wait2(@pid, Process::WNOHANG)
-        raise "server did not start (#{cmd}) - TCP socket didn't appear" if pid
-        sleep 0.1
-      end
-
       at_exit { kill }
     end
     private :run_serve_cmd
@@ -518,15 +511,7 @@ module FlexNBD
       hsh
     end
 
-    def socket_open?
-      sock = (TCPSocket.new(@ip, @port) rescue nil)
-      !!sock
-    ensure
-      sock.close rescue nil if sock
-    end
-
 
   end
 
 end
-
