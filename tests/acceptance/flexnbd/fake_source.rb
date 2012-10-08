@@ -8,33 +8,14 @@ module FlexNBD
   class FakeSource
 
     def initialize( addr, port, err_msg, source_addr=nil, source_port=0 )
-      timing_out( 10, err_msg ) {
-        @sock = wait_for_server_socket( addr, port, source_addr, source_port )
-      }
-    end
-
-
-    def wait_for_server_socket(addr, port, saddr = nil, sport = 0)
-      sock = nil
-
-      loop do
-        sock = try_get_server_socket( addr, port, saddr, sport )
-        break if sock
-        sleep 0.1
-      end
-
-      sock
-    end
-
-    def try_get_server_socket(addr, port, saddr = nil, sport = 0)
-      if saddr
-        TCPSocket.new( addr, port, saddr, sport ) rescue nil
-      else
-        TCPSocket.new( addr, port ) rescue nil
+      timing_out( 2, err_msg ) do
+        @sock = if source_addr
+          TCPSocket.new( addr, port, source_addr, source_port )
+        else 
+          TCPSocket.new( addr, port )
+        end
       end
     end
-
-
 
 
     def close
@@ -156,4 +137,3 @@ module FlexNBD
 
   end # class FakeSource
 end # module FlexNBD
-
