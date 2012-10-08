@@ -412,6 +412,8 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 	}
 	else {
 		debug("No allocation map, writing directly.");
+		/* If we get cut off partway through reading this data:
+		 * */
 		ERROR_IF_NEGATIVE(
 			readloop( client->socket,
 				client->mapped + request.from,

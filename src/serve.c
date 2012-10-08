@@ -757,20 +757,23 @@ void serve_accept_loop(struct server* params)
 	while( server_accept( params ) );
 }
 
-void* build_allocation_map_thread(void* params1)
+void* build_allocation_map_thread(void* serve_uncast)
 {
-	struct server* params = (struct server*) params1;
-	int fd = open(params->filename, O_RDONLY);
-	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", params->filename);
-	NULLCHECK(params);
+	NULLCHECK(serve_uncast);
 
-	params->allocation_map = bitset_alloc(params->size, 
-		block_allocation_resolution);
+	struct server* serve = (struct server*) serve_uncast;
+	int fd = open(serve->filename, O_RDONLY);
+	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", serve->filename);
 
-	if (build_allocation_map(params->allocation_map, fd))
-		params->allocation_map_built = 1;
-	else
-		warn("Didn't build allocation map for %s", params->filename);
+	serve->allocation_map = 
+		bitset_alloc(serve->size, block_allocation_resolution);
+
+	if (build_allocation_map(serve->allocation_map, fd)) {
+		serve->allocation_map_built = 1;
+	}
+	else {
+		warn("Didn't build allocation map for %s", serve->filename);
+	}
 
 	close(fd);
 	return NULL;
@@ -804,6 +807,7 @@ void serve_signal_close( struct server * serve )
 	info("signalling close");
 	self_pipe_signal( serve->close_signal );
 }
+
 
 /* Block until the server closes the server_fd.
  */
