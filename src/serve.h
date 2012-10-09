@@ -40,7 +40,7 @@ struct server {
 
 	/** Claims around any I/O to this file */
 	struct flexthread_mutex * l_io;
-	
+
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
 	struct self_pipe *   close_signal;
 
@@ -59,20 +59,20 @@ struct server {
 	struct flexthread_mutex *   l_start_mirror;
 
 	struct mirror* mirror;
-	struct mirror_super * mirror_super; 
+	struct mirror_super * mirror_super;
 	/* This is used to stop the mirror from starting after we
 	 * receive a SIGTERM */
 	int mirror_can_start;
 
 	int                  server_fd;
 	int                  control_fd;
-	
-	/* the allocation_map keeps track of which blocks in the backing file 
+
+	/* the allocation_map keeps track of which blocks in the backing file
 	 * have been allocated, or part-allocated on disc, with unallocated
 	 * blocks presumed to contain zeroes (i.e. represented as sparse files
 	 * by the filesystem).  We can use this information when receiving
 	 * incoming writes, and avoid writing zeroes to unallocated sections
-	 * of the file which would needlessly increase disc usage.  This 
+	 * of the file which would needlessly increase disc usage.  This
 	 * bitmap will start at all-zeroes for an empty file, and tend towards
 	 * all-ones as the file is written to (i.e. we assume that allocated
 	 * blocks can never become unallocated again, as is the case with ext3
@@ -83,7 +83,7 @@ struct server {
 	pthread_t               allocation_map_builder_thread;
 	/* when the thread has finished, it sets this to 1 */
 	volatile sig_atomic_t  allocation_map_built;
-	
+
 	int                  max_nbd_clients;
 	struct client_tbl_entry *nbd_client;
 
@@ -91,20 +91,23 @@ struct server {
 	/* Marker for whether this server has control over the data in
 	 * the file, or if we're waiting to receive it from an inbound
 	 * migration which hasn't yet finished.
+	 *
+	 * It's the value which controls the exit status of a serve or
+	 * listen process.
 	 */
-	int has_control;
+	int success;
 };
 
-struct server * server_create( 
+struct server * server_create(
 		struct flexnbd * flexnbd,
-		char* s_ip_address, 
-		char* s_port, 
+		char* s_ip_address,
+		char* s_port,
 		char* s_file,
 		int default_deny,
-		int acl_entries, 
+		int acl_entries,
 		char** s_acl_entries,
 		int max_nbd_clients,
-		int has_control );
+		int success );
 void server_destroy( struct server * );
 int server_is_closed(struct server* serve);
 void server_dirty(struct server *serve, off64_t from, int len);

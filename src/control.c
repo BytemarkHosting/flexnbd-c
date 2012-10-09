@@ -235,7 +235,7 @@ void * control_runner( void * control_uncast )
 	control_serve( control );
 
 	control_cleanup( control, 0 );
-	return NULL;
+	pthread_exit( NULL );
 }
 
 

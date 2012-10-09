@@ -11,6 +11,7 @@
 #include "util.h"
 #include "bitset.h"
 
+
 int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 {
 	/* break blocking ioctls down */
@@ -19,8 +20,8 @@ int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 
 	unsigned long offset = 0;
 
-	struct { 
-		struct fiemap fiemap; 
+	struct {
+		struct fiemap fiemap;
 		struct fiemap_extent extents[max_extents];
 	} fiemap_static;
 	struct fiemap* fiemap = (struct fiemap*) &fiemap_static;
@@ -31,31 +32,33 @@ int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 		unsigned int i;
 
 		fiemap->fm_start = offset;
+
 		fiemap->fm_length = max_length;
-		if (offset + max_length > allocation_map->size)
+		if ( offset + max_length > allocation_map->size ) {
 			fiemap->fm_length = allocation_map->size-offset;
+		}
+
 		fiemap->fm_flags = FIEMAP_FLAG_SYNC;
 		fiemap->fm_extent_count = max_extents;
 		fiemap->fm_mapped_extents = 0;
 
-		if (ioctl(fd, FS_IOC_FIEMAP, fiemap) < 0) {
+		if ( ioctl( fd, FS_IOC_FIEMAP, fiemap ) < 0 ) {
 			debug( "Couldn't get fiemap, returning no allocation_map" );
 			free(allocation_map);
-			return NULL;
+			allocation_map = NULL;
+			break;
 		}
-
-		for (i=0;i<fiemap->fm_mapped_extents;i++) {
-			bitset_set_range(
-				allocation_map,
-				fiemap->fm_extents[i].fe_logical,
-				fiemap->fm_extents[i].fe_length
-			);
-			//debug("range from %ld + %ld", fiemap->fm_extents[i].fe_logical, fiemap->fm_extents[i].fe_length);
+		else {
+			for ( i = 0; i < fiemap->fm_mapped_extents; i++ ) {
+				bitset_set_range( allocation_map,
+						  fiemap->fm_extents[i].fe_logical,
+						  fiemap->fm_extents[i].fe_length );
+			}
 		}
 	}
 
 	debug("Successfully built allocation map");
-	return allocation_map;
+	return NULL != allocation_map;
 }
 
 

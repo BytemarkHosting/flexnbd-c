@@ -144,7 +144,7 @@ static struct option break_options[] = {
 	{0}
 };
 static char break_short_options[] = "hs:" SOPT_QUIET SOPT_VERBOSE;
-static char break_help_text[] = 
+static char break_help_text[] =
 	"Usage: flexnbd " CMD_BREAK " <options>\n\n"
 	"Stop mirroring from the server with control socket SOCK.\n\n"
 	HELP_LINE
@@ -228,11 +228,11 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 }
 
 
-void read_listen_param( int c, 
-		char **ip_addr, 
-		char **ip_port, 
-		char **file, 
-		char **sock, 
+void read_listen_param( int c,
+		char **ip_addr,
+		char **ip_port,
+		char **file,
+		char **sock,
 		int *default_deny )
 {
 	switch(c){
@@ -328,8 +328,8 @@ void read_acl_param( int c, char **sock )
 	read_sock_param( c, sock, acl_help_text );
 }
 
-void read_mirror_param( 
-		int c, 
+void read_mirror_param(
+		int c,
 		char **sock,
 		char **ip_addr,
 		char **ip_port,
@@ -406,6 +406,8 @@ int mode_serve( int argc, char *argv[] )
 	int default_deny = 0; // not on by default
 	int err = 0;
 
+	int success;
+
 	struct flexnbd * flexnbd;
 
 	while (1) {
@@ -427,10 +429,10 @@ int mode_serve( int argc, char *argv[] )
 
 	flexnbd = flexnbd_create_serving( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
 	info( "Serving file %s", file );
-	flexnbd_serve( flexnbd );
+	success = flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
 
-	return 0;
+	return success ? 0 : 1;
 }
 
 
@@ -452,7 +454,7 @@ int mode_listen( int argc, char *argv[] )
 		c = getopt_long(argc, argv, listen_short_options, listen_options, NULL);
 		if ( c == -1 ) { break; }
 
-		read_listen_param( c, &ip_addr, &ip_port, 
+		read_listen_param( c, &ip_addr, &ip_port,
 				&file, &sock, &default_deny );
 	}
 
@@ -466,13 +468,13 @@ int mode_listen( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( listen_help_text ); }
 
-	flexnbd = flexnbd_create_listening( 
-		ip_addr, 
-		ip_port, 
+	flexnbd = flexnbd_create_listening(
+		ip_addr,
+		ip_port,
 		file,
 		sock,
-		default_deny, 
-		argc - optind, 
+		default_deny,
+		argc - optind,
 		argv + optind);
 	success = flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );
@@ -516,7 +518,7 @@ void params_readwrite(
 		s_ip_address
 	);
 
-	if (s_bind_address != NULL && 
+	if (s_bind_address != NULL &&
 			parse_ip_to_sockaddr(&out->connect_from.generic, s_bind_address) == 0) {
 		fatal("Couldn't parse bind address '%s'", s_bind_address);
 	}
@@ -660,11 +662,11 @@ int mode_mirror( int argc, char *argv[] )
 	while (1) {
 		c = getopt_long( argc, argv, mirror_short_options, mirror_options, NULL);
 		if ( -1 == c ) { break; }
-		read_mirror_param( c, 
-				&sock, 
-				&remote_argv[0], 
-				&remote_argv[1], 
-				&unlink, 
+		read_mirror_param( c,
+				&sock,
+				&remote_argv[0],
+				&remote_argv[1],
+				&unlink,
 				&remote_argv[3] );
 	}
 
@@ -678,7 +680,7 @@ int mode_mirror( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( mirror_help_text ); }
 	if ( unlink ) { remote_argv[2] = "unlink"; }
-	
+
 	if (remote_argv[3] == NULL) {
 		do_remote_command( "mirror", sock, 3, remote_argv );
 	}

@@ -20,7 +20,7 @@ class TestSourceErrorHandling < Test::Unit::TestCase
 
 
   def expect_term_during_migration
-    @env.nbd1.can_die(6,9)
+    @env.nbd1.can_die(1,9)
   end
 
 

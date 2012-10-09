@@ -310,13 +310,14 @@ module FlexNBD
       debug( cmd )
 
       @pid = @executor.run( cmd )
-      start_wait_thread( @pid )
 
       while !File.socket?(ctrl)
         pid, status = Process.wait2(@pid, Process::WNOHANG)
         raise "server did not start (#{cmd})" if pid
         sleep 0.1
       end
+
+      start_wait_thread( @pid )
       at_exit { kill }
     end
     private :run_serve_cmd

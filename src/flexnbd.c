@@ -51,7 +51,7 @@ int flexnbd_build_signal_fd(void)
 	sigaddset( &mask, SIGQUIT );
 	sigaddset( &mask, SIGINT );
 
-	FATAL_UNLESS( 0 == pthread_sigmask( SIG_BLOCK, &mask, NULL ), 
+	FATAL_UNLESS( 0 == pthread_sigmask( SIG_BLOCK, &mask, NULL ),
 			"Signal blocking failed" );
 
 	sfd = signalfd( -1, &mask, 0 );
@@ -62,12 +62,12 @@ int flexnbd_build_signal_fd(void)
 
 
 void flexnbd_create_shared(
-	struct flexnbd * flexnbd, 
+	struct flexnbd * flexnbd,
 	const char * s_ctrl_sock)
 {
 	NULLCHECK( flexnbd );
 	if ( s_ctrl_sock ){
-		flexnbd->control = 
+		flexnbd->control =
 			control_create( flexnbd, s_ctrl_sock );
 	}
 	else {
@@ -89,37 +89,37 @@ struct flexnbd * flexnbd_create_serving(
 	int max_nbd_clients)
 {
 	struct flexnbd * flexnbd = xmalloc( sizeof( struct flexnbd ) );
-	flexnbd->serve = server_create( 
+	flexnbd->serve = server_create(
 			flexnbd,
 			s_ip_address,
 			s_port,
-			s_file, 
+			s_file,
 			default_deny,
 			acl_entries,
 			s_acl_entries,
-			max_nbd_clients, 
+			max_nbd_clients,
 			1);
-	flexnbd_create_shared( flexnbd, 
+	flexnbd_create_shared( flexnbd,
 			s_ctrl_sock );
 	return flexnbd;
 }
 
 
 struct flexnbd * flexnbd_create_listening(
-		char* s_ip_address, 
-		char* s_port, 
+		char* s_ip_address,
+		char* s_port,
 		char* s_file,
-		char *s_ctrl_sock, 
+		char *s_ctrl_sock,
 		int default_deny,
-		int acl_entries, 
+		int acl_entries,
 		char** s_acl_entries )
 {
 	struct flexnbd * flexnbd = xmalloc( sizeof( struct flexnbd ) );
-	flexnbd->serve = server_create( 
+	flexnbd->serve = server_create(
 			flexnbd,
 			s_ip_address,
 			s_port,
-			s_file, 
+			s_file,
 			default_deny,
 			acl_entries,
 			s_acl_entries,
@@ -136,10 +136,10 @@ void flexnbd_spawn_control(struct flexnbd * flexnbd )
 
 	pthread_t * control_thread = &flexnbd->control->thread;
 
-	FATAL_UNLESS( 0 == pthread_create( 
-				control_thread, 
-				NULL, 
-				control_runner, 
+	FATAL_UNLESS( 0 == pthread_create(
+				control_thread,
+				NULL,
+				control_runner,
 				flexnbd->control ),
 			"Couldn't create the control thread" );
 }
@@ -150,8 +150,10 @@ void flexnbd_stop_control( struct flexnbd * flexnbd )
 	NULLCHECK( flexnbd->control );
 
 	control_signal_close( flexnbd->control );
-	FATAL_UNLESS( 0 == pthread_join( flexnbd->control->thread, NULL ),
-			"Failed joining the control thread" );
+	pthread_t tid = flexnbd->control->thread;
+	FATAL_UNLESS( 0 == pthread_join( tid, NULL ),
+		      "Failed joining the control thread" );
+	debug( "Control thread %p pthread_join returned", tid );
 }
 
 
@@ -191,7 +193,7 @@ struct status * flexnbd_status_create( struct flexnbd * flexnbd )
 {
 	NULLCHECK( flexnbd );
 	struct status * status;
-	
+
 	status = status_create( flexnbd_server( flexnbd ) );
 	return status;
 }
@@ -240,6 +242,7 @@ int flexnbd_serve( struct flexnbd * flexnbd )
 	}
 
 	success = do_serve( flexnbd->serve );
+	debug("do_serve success is %d", success );
 
 	if ( flexnbd->control ) {
 		debug( "Stopping control thread" );

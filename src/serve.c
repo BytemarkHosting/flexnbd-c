@@ -45,13 +45,13 @@ struct server * server_create (
 	int acl_entries,
 	char** s_acl_entries,
 	int max_nbd_clients,
-	int has_control)
+	int success)
 {
 	NULLCHECK( flexnbd );
 	struct server * out;
 	out = xmalloc( sizeof( struct server ) );
 	out->flexnbd = flexnbd;
-	out->has_control = has_control;
+	out->success = success;
 	out->max_nbd_clients = max_nbd_clients;
 	out->nbd_client = xmalloc( max_nbd_clients * sizeof( struct client_tbl_entry ) );
 
@@ -678,23 +678,24 @@ int server_mirror_can_start( struct server *serve )
 }
 
 
-void serve_handle_signal( struct server *params )
+/* Queries to see if we are currently mirroring.  If we are, we need
+ * to communicate that via the process exit status. because otherwise
+ * the supervisor will assume the migration completed.
+ */
+int serve_shutdown_is_graceful( struct server *params )
 {
-	int should_die = 0;
+	int is_mirroring = 0;
 	server_lock_start_mirror( params );
 	{
 		if ( server_is_mirroring( params ) ) {
-			should_die = 1;
+			is_mirroring = 1;
+			warn( "Stop signal received while mirroring." );
 			server_prevent_mirror_start( params );
 		}
 	}
 	server_unlock_start_mirror( params );
 
-	if ( should_die ){
-		fatal( "Stop signal received while mirroring." );
-	} else {
-		server_close_clients( params );
-	}
+	return !is_mirroring;
 }
 
 
@@ -710,6 +711,7 @@ int server_accept( struct server * params )
 	/* We select on this fd to receive OS signals (only a few of
 	 * which we're interested in, see flexnbd.c */
 	int              signal_fd = flexnbd_signal_fd( params->flexnbd );
+	int              should_continue = 1;
 
 	FD_ZERO(&fds);
 	FD_SET(params->server_fd, &fds);
@@ -722,17 +724,15 @@ int server_accept( struct server * params )
 
 	if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
 		server_close_clients( params );
-		return 0;
+		should_continue = 0;
 	}
+
 
 	if ( 0 < signal_fd && FD_ISSET( signal_fd, &fds ) ){
 		debug( "Stop signal received." );
-		serve_handle_signal( params );
-
-		/* serve_handle_signal will fatal() if it has to, so it
-		 * might not return at all.
-		 */
-		return 0;
+		server_close_clients( params );
+		params->success = serve_shutdown_is_graceful( params );
+		should_continue = 0;
 	}
 
 
@@ -747,7 +747,7 @@ int server_accept( struct server * params )
 		accept_nbd_client(params, client_fd, &client_address);
 	}
 
-	return 1;
+	return should_continue;
 }
 
 
@@ -765,7 +765,7 @@ void* build_allocation_map_thread(void* serve_uncast)
 	int fd = open(serve->filename, O_RDONLY);
 	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", serve->filename);
 
-	serve->allocation_map = 
+	serve->allocation_map =
 		bitset_alloc(serve->size, block_allocation_resolution);
 
 	if (build_allocation_map(serve->allocation_map, fd)) {
@@ -794,8 +794,8 @@ void serve_init_allocation_map(struct server* params)
 	params->size = size;
 	FATAL_IF_NEGATIVE(size, "Couldn't find size of %s",
 			params->filename);
-	FATAL_IF_NEGATIVE(pthread_create(&params->allocation_map_builder_thread, 
-			NULL, build_allocation_map_thread, params), 
+	FATAL_IF_NEGATIVE(pthread_create(&params->allocation_map_builder_thread,
+			NULL, build_allocation_map_thread, params),
 			"Couldn't create thread");
 }
 
@@ -825,12 +825,14 @@ void server_control_arrived( struct server *serve )
 {
 	NULLCHECK( serve );
 
-	if ( !serve->has_control ) {
-		serve->has_control = 1;
+	if ( !serve->success ) {
+		serve->success = 1;
 		serve_signal_close( serve );
 	}
 }
 
+
+void flexnbd_stop_control( struct flexnbd * flexnbd );
 
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server* params,
@@ -851,7 +853,7 @@ void serve_cleanup(struct server* params,
 	if (params->allocation_map) {
 		free(params->allocation_map);
 	}
-	
+
 	int need_mirror_lock;
 	need_mirror_lock = !server_start_mirror_locked( params );
 
@@ -863,7 +865,6 @@ void serve_cleanup(struct server* params,
 		server_prevent_mirror_start( params );
 	}
 	if ( need_mirror_lock ) { server_unlock_start_mirror( params ); }
-
 
 	for (i=0; i < params->max_nbd_clients; i++) {
 		pthread_t thread_id = params->nbd_client[i].thread;
@@ -882,6 +883,15 @@ void serve_cleanup(struct server* params,
 		server_unlock_acl( params );
 	}
 
+	/* if( params->flexnbd ) { */
+	/* 	if ( params->flexnbd->control ) { */
+	/* 		flexnbd_stop_control( params->flexnbd ); */
+	/* 	} */
+	/* 	flexnbd_destroy( params->flexnbd ); */
+	/* } */
+
+	/* server_destroy( params ); */
+
 	debug( "Cleanup done");
 }
 
@@ -889,7 +899,7 @@ void serve_cleanup(struct server* params,
 int server_is_in_control( struct server *serve )
 {
 	NULLCHECK( serve );
-	return serve->has_control;
+	return serve->success;
 }
 
 int server_is_mirroring( struct server * serve )
@@ -911,7 +921,9 @@ void server_abandon_mirror( struct server * serve )
 		 * the next pass.
 		 * */
 		serve->mirror->signal_abandon = 1;
-		pthread_join( serve->mirror_super->thread, NULL );
+		pthread_t tid = serve->mirror_super->thread;
+		pthread_join( tid, NULL );
+		debug( "Mirror thread %p pthread_join returned", tid );
 	}
 }
 
@@ -926,15 +938,15 @@ int do_serve(struct server* params)
 {
 	NULLCHECK( params );
 
-	int has_control;
+	int success;
 
 	error_set_handler((cleanup_handler*) serve_cleanup, params);
 	serve_open_server_socket(params);
 	serve_init_allocation_map(params);
 	serve_accept_loop(params);
-	has_control = params->has_control;
+	success = params->success;
 	serve_cleanup(params, 0);
 
-	return has_control;
+	return success;
 }
 
