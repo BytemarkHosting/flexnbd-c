@@ -759,23 +759,24 @@ void serve_accept_loop(struct server* params)
 
 void* build_allocation_map_thread(void* serve_uncast)
 {
-	NULLCHECK(serve_uncast);
+	NULLCHECK( serve_uncast );
 
 	struct server* serve = (struct server*) serve_uncast;
-	int fd = open(serve->filename, O_RDONLY);
-	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", serve->filename);
 
-	serve->allocation_map =
-		bitset_alloc(serve->size, block_allocation_resolution);
+	NULLCHECK( serve->filename );
+	NULLCHECK( serve->allocation_map );
 
-	if (build_allocation_map(serve->allocation_map, fd)) {
+	int fd = open( serve->filename, O_RDONLY );
+	FATAL_IF_NEGATIVE( fd, "Couldn't open %s", serve->filename );
+
+	if ( build_allocation_map( serve->allocation_map, fd ) ) {
 		serve->allocation_map_built = 1;
 	}
 	else {
-		warn("Didn't build allocation map for %s", serve->filename);
+		warn( "Didn't build allocation map for %s", serve->filename );
 	}
 
-	close(fd);
+	close( fd );
 	return NULL;
 }
 
@@ -785,18 +786,26 @@ void* build_allocation_map_thread(void* serve_uncast)
 void serve_init_allocation_map(struct server* params)
 {
 	NULLCHECK( params );
+	NULLCHECK( params->filename );
 
-	int fd = open(params->filename, O_RDONLY);
+	int fd = open( params->filename, O_RDONLY );
 	off64_t size;
 
-	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", params->filename);
-	size = lseek64(fd, 0, SEEK_END);
+	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", params->filename );
+	size = lseek64( fd, 0, SEEK_END );
 	params->size = size;
-	FATAL_IF_NEGATIVE(size, "Couldn't find size of %s",
-			params->filename);
-	FATAL_IF_NEGATIVE(pthread_create(&params->allocation_map_builder_thread,
-			NULL, build_allocation_map_thread, params),
-			"Couldn't create thread");
+	FATAL_IF_NEGATIVE( size, "Couldn't find size of %s",
+			   params->filename );
+
+	params->allocation_map =
+		bitset_alloc( params->size, block_allocation_resolution );
+
+	int ok = pthread_create( &params->allocation_map_builder_thread,
+				 NULL,
+				 build_allocation_map_thread,
+				 params );
+
+	FATAL_IF_NEGATIVE( ok, "Couldn't create thread" );
 }
 
 
