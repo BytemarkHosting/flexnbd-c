@@ -9,10 +9,16 @@ module FlexNBD
 
     def initialize( addr, port, err_msg, source_addr=nil, source_port=0 )
       timing_out( 2, err_msg ) do
-        @sock = if source_addr
-          TCPSocket.new( addr, port, source_addr, source_port )
-        else 
-          TCPSocket.new( addr, port )
+        begin
+          @sock = if source_addr
+                    TCPSocket.new( addr, port, source_addr, source_port )
+                  else
+                    TCPSocket.new( addr, port )
+                  end
+        rescue Errno::ECONNREFUSED
+          $stderr.puts "Connection refused, retrying"
+          sleep(0.2)
+          retry
         end
       end
     end

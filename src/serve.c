@@ -731,7 +731,7 @@ int server_accept( struct server * params )
 	if ( 0 < signal_fd && FD_ISSET( signal_fd, &fds ) ){
 		debug( "Stop signal received." );
 		server_close_clients( params );
-		params->success = serve_shutdown_is_graceful( params );
+		params->success = params->success && serve_shutdown_is_graceful( params );
 		should_continue = 0;
 	}
 
@@ -823,6 +823,7 @@ void serve_wait_for_close( struct server * serve )
  */
 void server_control_arrived( struct server *serve )
 {
+	debug( "server_control_arrived" );
 	NULLCHECK( serve );
 
 	if ( !serve->success ) {
@@ -908,6 +909,9 @@ int server_is_mirroring( struct server * serve )
 	return !!serve->mirror_super;
 }
 
+
+void mirror_super_destroy( struct mirror_super * super );
+
 /* This must only be called with the start_mirror lock held */
 void server_abandon_mirror( struct server * serve )
 {
@@ -924,6 +928,14 @@ void server_abandon_mirror( struct server * serve )
 		pthread_t tid = serve->mirror_super->thread;
 		pthread_join( tid, NULL );
 		debug( "Mirror thread %p pthread_join returned", tid );
+
+		server_allow_mirror_start( serve );
+		mirror_super_destroy( serve->mirror_super );
+
+		serve->mirror = NULL;
+		serve->mirror_super = NULL;
+
+		debug( "Mirror supervisor done." );
 	}
 }
 
@@ -934,7 +946,7 @@ int server_default_deny( struct server * serve )
 }
 
 /** Full lifecycle of the server */
-int do_serve(struct server* params)
+int do_serve( struct server* params, struct self_pipe * open_signal )
 {
 	NULLCHECK( params );
 
@@ -942,6 +954,11 @@ int do_serve(struct server* params)
 
 	error_set_handler((cleanup_handler*) serve_cleanup, params);
 	serve_open_server_socket(params);
+
+	/* Only signal that we are open for business once the server
+	   socket is open */
+	if ( NULL != open_signal ) { self_pipe_signal( open_signal ); }
+
 	serve_init_allocation_map(params);
 	serve_accept_loop(params);
 	success = params->success;

@@ -187,7 +187,6 @@ char * help_help_text = help_help_text_arr;
 
 
 
-int do_serve(struct server* params);
 void do_read(struct mode_readwrite_params* params);
 void do_write(struct mode_readwrite_params* params);
 void do_remote_command(char* command, char* mode, int argc, char** argv);

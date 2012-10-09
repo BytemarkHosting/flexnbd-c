@@ -22,7 +22,7 @@ START_TEST( test_gets_has_control )
 	struct server server;
 	struct status * status;
 
-	server.has_control = 1;
+	server.success = 1;
 	status = status_create( &server );
 
 	fail_unless( status->has_control == 1, "has_control wasn't copied" );
@@ -162,7 +162,7 @@ Suite *status_suite(void)
 int main(void)
 {
 	int number_failed;
-	
+
 	Suite *s = status_suite();
 	SRunner *sr = srunner_create(s);
 	srunner_run_all(sr, CK_NORMAL);

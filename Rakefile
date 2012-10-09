@@ -24,8 +24,8 @@ CCFLAGS = %w(
              -Wno-missing-field-initializers
             ) + # Added -Wno-missing-field-initializers to shut GCC up over {0} struct initialisers
             [ENV['CFLAGS']]
-            
-LIBCHECK = File.exists?("/usr/lib/libcheck.a") ? 
+
+LIBCHECK = File.exists?("/usr/lib/libcheck.a") ?
   "/usr/lib/libcheck.a" :
   "/usr/local/lib/libcheck.a"
 
@@ -210,10 +210,12 @@ file check("flexnbd") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
+
 file check("control") =>
   %w{build/tests/check_control.o} + OBJECTS - ["build/main.o"] do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
+
 
 (TEST_MODULES- %w{control flexnbd acl client serve readwrite util}).each do |m|
   tgt = "build/tests/check_#{m}.o"

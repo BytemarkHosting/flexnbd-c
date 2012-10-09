@@ -235,13 +235,15 @@ int flexnbd_serve( struct flexnbd * flexnbd )
 {
 	NULLCHECK( flexnbd );
 	int success;
+	struct self_pipe * open_signal = NULL;
 
 	if ( flexnbd->control ){
 		debug( "Spawning control thread" );
 		flexnbd_spawn_control( flexnbd );
+		open_signal = flexnbd->control->open_signal;
 	}
 
-	success = do_serve( flexnbd->serve );
+	success = do_serve( flexnbd->serve, open_signal );
 	debug("do_serve success is %d", success );
 
 	if ( flexnbd->control ) {

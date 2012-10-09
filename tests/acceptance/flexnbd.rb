@@ -97,7 +97,9 @@ class ValgrindKillingExecutor
       when "line"
         @error.add_line( @text ) if @found
       when "error", "stack"
-        @killer.call( @error )
+        if @found
+          @killer.call( @error )
+        end
       when "pid"
         @error.pid=@text
       end
@@ -326,7 +328,9 @@ module FlexNBD
     def serve( file, *acl)
       cmd = serve_cmd( file, acl )
       run_serve_cmd( cmd )
+      sleep( 0.2 ) until File.exists?( ctrl )
     end
+
 
     def listen(file, *acl)
       run_serve_cmd( listen_cmd( file, acl ) )

@@ -21,7 +21,7 @@
  *  by a blank line (i.e. double LF).  The first line is taken to be the command
  *  name to invoke, and the lines before the double LF are its arguments.
  *
- *  These commands can be invoked remotely from the command line, with the 
+ *  These commands can be invoked remotely from the command line, with the
  *  client code to be found in remote.c
  */
 
@@ -45,7 +45,7 @@
 
 
 struct control * control_create(
-		struct flexnbd * flexnbd, 
+		struct flexnbd * flexnbd,
 		const char * csn)
 {
 	struct control * control = xmalloc( sizeof( struct control ) );
@@ -54,9 +54,10 @@ struct control * control_create(
 
 	control->flexnbd = flexnbd;
 	control->socket_name = csn;
+	control->open_signal = self_pipe_create();
 	control->close_signal = self_pipe_create();
 	control->mirror_state_mbox = mbox_create();
-	
+
 	return control;
 }
 
@@ -75,21 +76,22 @@ void control_destroy( struct control * control )
 
 	mbox_destroy( control->mirror_state_mbox );
 	self_pipe_destroy( control->close_signal );
+	self_pipe_destroy( control->open_signal );
 	free( control );
 }
 
-struct control_client * control_client_create( 
-		struct flexnbd * flexnbd, 
+struct control_client * control_client_create(
+		struct flexnbd * flexnbd,
 		int client_fd ,
 		struct mbox * state_mbox )
 {
 	NULLCHECK( flexnbd );
 
-	struct control_client * control_client = 
+	struct control_client * control_client =
 		xmalloc( sizeof( struct control_client ) );
 
 	control_client->socket = client_fd;
-	control_client->flexnbd = flexnbd; 
+	control_client->flexnbd = flexnbd;
 	control_client->mirror_state_mbox = state_mbox;
 	return control_client;
 }
@@ -110,7 +112,7 @@ void control_handle_client( struct control * control, int client_fd )
 	NULLCHECK( control );
 	NULLCHECK( control->flexnbd );
 	struct control_client * control_client =
-		control_client_create( 
+		control_client_create(
 				control->flexnbd,
 				client_fd ,
 				control->mirror_state_mbox);
@@ -152,7 +154,7 @@ int control_accept( struct control * control )
 	if ( self_pipe_fd_isset( control->close_signal, &fds ) ){
 		return 0;
 	}
-	
+
 	if ( FD_ISSET( control->control_fd, &fds ) ) {
 		control_accept_client( control );
 	}
@@ -170,27 +172,27 @@ int open_control_socket( const char * socket_name )
 {
 	struct sockaddr_un bind_address;
 	int control_fd;
-	
-	if (!socket_name) { 
+
+	if (!socket_name) {
 		fatal( "Tried to open a control socket without a socket name" );
 	}
 
 	control_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	FATAL_IF_NEGATIVE(control_fd ,
 	  "Couldn't create control socket");
-	
+
 	memset(&bind_address, 0, sizeof(struct sockaddr_un));
 	bind_address.sun_family = AF_UNIX;
 	strncpy(bind_address.sun_path, socket_name, sizeof(bind_address.sun_path)-1);
-	
+
 	//unlink(socket_name); /* ignore failure */
-	
+
 	FATAL_IF_NEGATIVE(
 		bind(control_fd , &bind_address, sizeof(bind_address)),
 		"Couldn't bind control socket to %s: %s",
 		socket_name, strerror( errno )
 	);
-	
+
 	FATAL_IF_NEGATIVE(
 		listen(control_fd , 5),
 		"Couldn't listen on control socket"
@@ -205,17 +207,30 @@ void control_listen(struct control* control)
 	control->control_fd = open_control_socket( control->socket_name );
 }
 
+void control_wait_for_open_signal( struct control * control )
+{
+	fd_set fds;
+	FD_ZERO( &fds );
+	self_pipe_fd_set( control->open_signal, &fds );
+	FATAL_IF_NEGATIVE( select( FD_SETSIZE, &fds, NULL, NULL, NULL ),
+			   "select() failed" );
+
+	self_pipe_signal_clear( control->open_signal );
+}
+
 
 void control_serve( struct control * control )
 {
 	NULLCHECK( control );
+
+	control_wait_for_open_signal( control );
 	control_listen( control );
 	while( control_accept( control ) );
 }
 
 
-void control_cleanup( 
-		struct control * control, 
+void control_cleanup(
+		struct control * control,
 		int fatal __attribute__((unused)) )
 {
 	NULLCHECK( control );
@@ -272,7 +287,7 @@ void control_write_mirror_response( enum mirror_state mirror_state, int client_f
 
 
 /* Call this in the thread where you want to receive the mirror state */
-enum mirror_state control_client_mirror_wait( 
+enum mirror_state control_client_mirror_wait(
 		struct control_client* client)
 {
 	NULLCHECK( client );
@@ -281,14 +296,14 @@ enum mirror_state control_client_mirror_wait(
 	struct mbox * mbox = client->mirror_state_mbox;
 	enum mirror_state mirror_state;
 	enum mirror_state * contents;
-	
+
 	contents = (enum mirror_state*)mbox_receive( mbox );
 	NULLCHECK( contents );
-	
+
 	mirror_state = *contents;
-	
+
 	free( contents );
-	
+
 	return mirror_state;
 }
 
@@ -305,8 +320,8 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	uint64_t max_Bps = 0;
 	int action_at_finish;
 	int raw_port;
-	
-	
+
+
 	if (linesc < 2) {
 		write_socket("1: mirror takes at least two parameters");
 		return -1;
@@ -316,7 +331,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 		write_socket("1: bad IP address");
 		return -1;
 	}
-	
+
 	raw_port = atoi(lines[1]);
 	if (raw_port < 0 || raw_port > 65535) {
 		write_socket("1: bad IP port number");
@@ -349,11 +364,11 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 		}
 	}
 
-	if (linesc > 4) { 
-		max_Bps = atoi(lines[4]); 
+	if (linesc > 4) {
+		max_Bps = atoi(lines[4]);
 	}
-	
-	
+
+
 	if (linesc > 5) {
 		write_socket("1: unrecognised parameters to mirror");
 		return -1;
@@ -364,7 +379,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	server_lock_start_mirror( serve );
 	{
 		if ( server_mirror_can_start( serve ) ) {
-			serve->mirror_super = mirror_super_create( 
+			serve->mirror_super = mirror_super_create(
 					serve->filename,
 					connect_to,
 					connect_from,
@@ -391,23 +406,23 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	 */
 	if ( serve->mirror_super ) {
 		FATAL_IF( 0 != pthread_create(
-					&serve->mirror_super->thread, 
-					NULL, 
-					mirror_super_runner, 
+					&serve->mirror_super->thread,
+					NULL,
+					mirror_super_runner,
 					serve
 					),
 				"Failed to create mirror thread"
 			);
 
 		debug("Control thread mirror super waiting");
-		enum mirror_state state =  
+		enum mirror_state state =
 			control_client_mirror_wait( client );
 		debug("Control thread writing response");
 		control_write_mirror_response( state, client->socket );
 	}
 
 	debug( "Control thread going away." );
-	
+
 	return 0;
 }
 
@@ -427,7 +442,7 @@ int control_acl(struct control_client* client, int linesc, char** lines)
 	if (new_acl->len != linesc) {
 		warn("Bad ACL spec: %s", lines[new_acl->len] );
 		write(client->socket, "1: bad spec: ", 13);
-		write(client->socket, lines[new_acl->len], 
+		write(client->socket, lines[new_acl->len],
 				strlen(lines[new_acl->len]));
 		write(client->socket, "\n", 1);
 		acl_destroy( new_acl );
@@ -443,8 +458,8 @@ int control_acl(struct control_client* client, int linesc, char** lines)
 
 
 int control_break(
-		struct control_client* client, 
-		int linesc __attribute__ ((unused)), 
+		struct control_client* client,
+		int linesc __attribute__ ((unused)),
 		char** lines __attribute__((unused))
 		)
 {
@@ -466,7 +481,7 @@ int control_break(
 
 			if ( server_is_closed( serve ) ) {
 				info( "Mirror completed while canceling" );
-				write( client->socket, 
+				write( client->socket,
 						"1: mirror completed\n", 20 );
 			}
 			else {
@@ -489,15 +504,15 @@ int control_break(
 
 /** FIXME: add some useful statistics */
 int control_status(
-		struct control_client* client, 
-		int linesc __attribute__ ((unused)), 
+		struct control_client* client,
+		int linesc __attribute__ ((unused)),
 		char** lines __attribute__((unused))
 		)
 {
 	NULLCHECK( client );
 	NULLCHECK( client->flexnbd );
 	struct status * status = flexnbd_status_create( client->flexnbd );
-	
+
 	write( client->socket, "0: ", 3 );
 	status_write( status, client->socket );
 	status_destroy( status );
@@ -505,7 +520,7 @@ int control_status(
 	return 0;
 }
 
-void control_client_cleanup(struct control_client* client, 
+void control_client_cleanup(struct control_client* client,
 		int fatal __attribute__ ((unused)) )
 {
 	if (client->socket) { close(client->socket); }
@@ -524,7 +539,7 @@ void control_respond(struct control_client * client)
 
 	error_set_handler((cleanup_handler*) control_client_cleanup, client);
 
-	int i, linesc;		
+	int i, linesc;
 	linesc = read_lines_until_blankline(client->socket, 256, &lines);
 
 	if (linesc < 1)

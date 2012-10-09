@@ -18,7 +18,8 @@ struct control {
 	const char * socket_name;
 
 	pthread_t thread;
-	
+
+	struct self_pipe * open_signal;
 	struct self_pipe * close_signal;
 
 	/* This is owned by the control object, and used by a
@@ -36,7 +37,7 @@ struct control {
 struct control_client{
 	int              socket;
 	struct flexnbd * flexnbd;
-	
+
 	/* Passed in on creation.  We know it's all right to do this
 	 * because we know there's only ever one control_client.
 	 */
@@ -44,7 +45,7 @@ struct control_client{
 };
 
 struct control * control_create(
-		struct flexnbd *, 
+		struct flexnbd *,
 		const char * control_socket_name );
 void control_signal_close( struct control * );
 void control_destroy( struct control * );

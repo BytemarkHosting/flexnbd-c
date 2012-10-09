@@ -9,7 +9,7 @@ struct status * status_create( struct server * serve )
 
 	status = xmalloc( sizeof( struct status ) );
 	status->pid = getpid();
-	status->has_control = server_is_in_control( serve );
+	status->has_control = serve->success;
 	status->is_mirroring = NULL != serve->mirror;
 	return status;
 

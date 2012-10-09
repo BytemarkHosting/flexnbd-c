@@ -133,7 +133,7 @@ int server_mirror_can_start( struct server *serve );
 
 void server_unlink( struct server * serve );
 
-int do_serve( struct server * );
+int do_serve( struct server *, struct self_pipe * );
 
 struct mode_readwrite_params {
 	union mysockaddr     connect_to;
