@@ -266,11 +266,11 @@ void read_listen_param( int c,
 	}
 }
 
-void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_addr, char **from, char **size)
+void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_addr, char **from, char **size, char *err_text )
 {
 	switch(c){
 		case 'h':
-			fprintf(stdout, "%s\n", read_help_text );
+			fprintf(stdout, "%s\n", err_text );
 			exit( 0 );
 			break;
 		case 'l':
@@ -295,7 +295,7 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_ad
 			log_level = VERBOSE_LOG_LEVEL;
 			break;
 		default:
-			exit_err( read_help_text );
+			exit_err( err_text );
 			break;
 	}
 }
@@ -569,7 +569,7 @@ int mode_read( int argc, char *argv[] )
 
 		if ( c == -1 ) { break; }
 
-		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size );
+		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size, read_help_text );
 	}
 
 	if ( NULL == ip_addr || NULL == ip_port ) {
@@ -604,7 +604,7 @@ int mode_write( int argc, char *argv[] )
 		c = getopt_long(argc, argv, write_short_options, write_options, NULL);
 		if ( c == -1 ) { break; }
 
-		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size );
+		read_readwrite_param( c, &ip_addr, &ip_port, &bind_addr, &from, &size, write_help_text );
 	}
 
 	if ( NULL == ip_addr || NULL == ip_port ) {
