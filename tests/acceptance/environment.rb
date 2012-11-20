@@ -78,6 +78,10 @@ class Environment
   end
 
 
+  def write1( data )
+    @nbd1.write( 0, data )
+  end
+
   def writefile1(data)
     @file1 = FileWriter.new(@filename1, @blocksize).write(data)
   end

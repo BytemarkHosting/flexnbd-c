@@ -129,5 +129,32 @@ class TestHappyPath < Test::Unit::TestCase
     assert_no_match( /^(F|E):/, stderr )
   end
 
+
+  def test_write_more_than_one_run
+    one_mb = 2**20
+    data = "\0" * 256 * one_mb
+
+    File.open(@env.filename1, "wb") do |f| f.write( "1" * 256 * one_mb ) end
+
+    @env.serve1
+    sleep 5
+    @env.write1( data )
+    @env.nbd1.can_die(0)
+    @env.nbd1.kill
+
+    i = 0
+    File.open(@env.filename1, "rb") do |f|
+      while mb = f.read( one_mb )
+        unless "\0"*one_mb == mb
+          msg = "Read non-zeros after offset %x:\n"%(i * one_mb)
+          msg += `hexdump #{@env.filename1} | head -n5`
+          fail msg
+        end
+        i += 1
+      end
+    end
+    p i
+  end
+
 end
 

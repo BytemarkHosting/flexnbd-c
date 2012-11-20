@@ -64,7 +64,7 @@ int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 				struct fiemap_extent *last = &fiemap->fm_extents[
 					fiemap->fm_mapped_extents-1
 				];
-				offset += last->fe_logical + last->fe_length;
+				offset = last->fe_logical + last->fe_length;
 			}
 			else {
 				offset += fiemap->fm_length;

@@ -140,8 +140,11 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 				 * and memcpy being fast, rather than try to
 				 * hand-optimized something specific.
 				 */
-				if (zerobuffer[0] != 0 ||
-				    memcmp(zerobuffer, zerobuffer + 1, blockrun - 1)) {
+
+				int all_zeros = (zerobuffer[0] == 0) && 
+					(0 == memcmp( zerobuffer, zerobuffer+1, blockrun-1 ));
+
+				if ( !all_zeros ) {
 					memcpy(client->mapped+from, zerobuffer, blockrun);
 					bitset_set_range(map, from, blockrun);
 					server_dirty(client->serve, from, blockrun);
