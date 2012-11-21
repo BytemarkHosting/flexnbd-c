@@ -153,7 +153,6 @@ class TestHappyPath < Test::Unit::TestCase
         i += 1
       end
     end
-    p i
   end
 
 end
