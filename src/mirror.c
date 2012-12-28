@@ -30,6 +30,7 @@
 #include <string.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 struct mirror * mirror_alloc(
 		union mysockaddr * connect_to,
@@ -151,10 +152,11 @@ static const unsigned int mirror_last_pass_after_bytes_written = 100<<20;
  */
 static const int mirror_maximum_passes = 7;
 
+
 /* A single mirror pass over the disc, optionally locking IO around the
  * transfer.
  */
-int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
+int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 {
 	uint64_t current = 0;
 	int success = 1;
@@ -179,7 +181,7 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 			 * is likely to slow things down but will be
 			 * safe.
 			 */
-			if (should_lock) { server_lock_io( serve ); }
+			if (!is_last_pass) { server_lock_io( serve ); }
 			{
 				debug("in lock block");
 				/** FIXME: do something useful with bytes/second */
@@ -191,12 +193,15 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 						0,
 						serve->mirror->mapped + current,
 						MS_REQUEST_LIMIT_SECS);
+				madvise( serve->mirror->mapped + current, 
+						run, 
+						MADV_DONTNEED );
 
 				/* now mark it clean */
 				bitset_clear_range(map, current, run);
 				debug("leaving lock block");
 			}
-			if (should_lock) { server_unlock_io( serve ); }
+			if (!is_last_pass) { server_unlock_io( serve ); }
 
 			*written += run;
 		}
@@ -207,6 +212,10 @@ int mirror_pass(struct server * serve, int should_lock, uint64_t *written)
 			success = 0;
 			break;
 		}
+	}
+
+	if ( !success ) {
+		madvise( serve->mirror->mapped, serve->size, MADV_NORMAL );
 	}
 
 	return success;
@@ -329,6 +338,7 @@ int mirror_should_quit( struct mirror * mirror )
 	}
 }
 
+
 void mirror_run( struct server *serve )
 {
 	NULLCHECK( serve );
@@ -341,7 +351,7 @@ void mirror_run( struct server *serve )
 	for (pass=0; pass < mirror_maximum_passes-1; pass++) {
 
 		debug("mirror start pass=%d", pass);
-		if ( !mirror_pass( serve, 1, &written ) ){
+		if ( !mirror_pass( serve, 0, &written ) ){
 			debug("Failed mirror pass state is %d", mirror_get_state( serve->mirror ) );
 			debug("pass failed, giving up");
 			return; }
@@ -352,7 +362,7 @@ void mirror_run( struct server *serve )
 
 	server_lock_io( serve );
 	{
-		if ( mirror_pass( serve, 0, &written ) &&
+		if ( mirror_pass( serve, 1, &written ) &&
 				mirror_should_quit( serve->mirror ) ) {
 			debug("exit!");
 			mirror_on_exit( serve );
