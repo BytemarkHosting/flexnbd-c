@@ -66,6 +66,8 @@ void mode(char* mode, int argc, char **argv);
 # define VERBOSE_LOG_LEVEL 1
 #endif
 
+#define QUIET_LOG_LEVEL 4
+
 #define OPT_QUIET "quiet"
 #define SOPT_QUIET "q"
 #define GETOPT_QUIET GETOPT_FLAG( OPT_QUIET, 'q' )

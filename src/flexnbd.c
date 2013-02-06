@@ -82,7 +82,7 @@ struct flexnbd * flexnbd_create_serving(
 	char* s_ip_address,
 	char* s_port,
 	char* s_file,
-	char *s_ctrl_sock,
+	char* s_ctrl_sock,
 	int default_deny,
 	int acl_entries,
 	char** s_acl_entries,
@@ -109,7 +109,7 @@ struct flexnbd * flexnbd_create_listening(
 		char* s_ip_address,
 		char* s_port,
 		char* s_file,
-		char *s_ctrl_sock,
+		char* s_ctrl_sock,
 		int default_deny,
 		int acl_entries,
 		char** s_acl_entries )

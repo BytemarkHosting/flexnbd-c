@@ -25,7 +25,7 @@ struct client *client_create( struct server *serve, int socket )
 
 	struct client *c;
 
-	c = xmalloc( sizeof( struct server ) );
+	c = xmalloc( sizeof( struct client ) );
 	c->stopped = 0;
 	c->socket = socket;
 	c->serve = serve;

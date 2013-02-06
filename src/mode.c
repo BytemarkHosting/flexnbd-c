@@ -215,7 +215,7 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 			*default_deny = 1;
 			break;
 		case 'q':
-			log_level = 4;
+			log_level = QUIET_LOG_LEVEL;
 			break;
 		case 'v':
 			log_level = VERBOSE_LOG_LEVEL;
@@ -255,7 +255,7 @@ void read_listen_param( int c,
 			*default_deny = 1;
 			break;
 		case 'q':
-			log_level = 4;
+			log_level = QUIET_LOG_LEVEL;
 			break;
 		case 'v':
 			log_level = VERBOSE_LOG_LEVEL;
@@ -289,7 +289,7 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_ad
 			*bind_addr = optarg;
 			break;
 		case 'q':
-			log_level = 4;
+			log_level = QUIET_LOG_LEVEL;
 			break;
 		case 'v':
 			log_level = VERBOSE_LOG_LEVEL;
@@ -311,7 +311,7 @@ void read_sock_param( int c, char **sock, char *help_text )
 			*sock = optarg;
 			break;
 		case 'q':
-			log_level = 4;
+			log_level = QUIET_LOG_LEVEL;
 			break;
 		case 'v':
 			log_level = VERBOSE_LOG_LEVEL;
@@ -356,7 +356,7 @@ void read_mirror_param(
 			*bind_addr = optarg;
 			break;
 		case 'q':
-			log_level = 4;
+			log_level = QUIET_LOG_LEVEL;
 			break;
 		case 'v':
 			log_level = VERBOSE_LOG_LEVEL;
@@ -378,7 +378,7 @@ void read_break_param( int c, char **sock )
 			*sock = optarg;
 			break;
 		case 'q':
-			log_level = 4;
+			log_level = QUIET_LOG_LEVEL;
 			break;
 		case 'v':
 			log_level = VERBOSE_LOG_LEVEL;
