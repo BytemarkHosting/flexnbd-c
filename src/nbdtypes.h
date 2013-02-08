@@ -3,13 +3,19 @@
 
 
 /* http://linux.derkeiler.com/Mailing-Lists/Kernel/2003-09/2332.html */
-#define INIT_PASSWD "NBDMAGIC" 
-#define INIT_MAGIC 0x0000420281861253 
-#define REQUEST_MAGIC 0x25609513 
-#define REPLY_MAGIC 0x67446698 
-#define REQUEST_READ 0 
-#define REQUEST_WRITE 1 
-#define REQUEST_DISCONNECT 2 
+#define INIT_PASSWD "NBDMAGIC"
+#define INIT_MAGIC 0x0000420281861253
+#define REQUEST_MAGIC 0x25609513
+#define REPLY_MAGIC 0x67446698
+#define REQUEST_READ 0
+#define REQUEST_WRITE 1
+#define REQUEST_DISCONNECT 2
+
+/* 1MiB is the de-facto standard for maximum size of header + data */
+#define NBD_MAX_SIZE ( 1024 * 1024 )
+
+#define NBD_REQUEST_SIZE ( sizeof( struct nbd_request_raw ) )
+#define NBD_REPLY_SIZE   ( sizeof( struct nbd_reply_raw ) )
 
 #include <linux/types.h>
 #include <inttypes.h>
@@ -51,7 +57,7 @@ struct nbd_init {
 
 struct nbd_request {
 	uint32_t magic;
-	uint32_t type;    /* == READ || == WRITE  */
+	uint32_t type;    /* == READ || == WRITE || == DISCONNECT */
 	char handle[8];
 	uint64_t from;
 	uint32_t len;
@@ -62,7 +68,6 @@ struct nbd_reply {
 	uint32_t error;           /* 0 = ok, else error   */
 	char handle[8];         /* handle you got from request  */
 };
-
 
 void nbd_r2h_init( struct nbd_init_raw * from, struct nbd_init * to );
 void nbd_r2h_request( struct nbd_request_raw *from, struct nbd_request * to );

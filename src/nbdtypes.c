@@ -55,3 +55,4 @@ void nbd_h2r_reply( struct nbd_reply * from, struct nbd_reply_raw * to )
 	to->error = be32toh( from->error );
 	memcpy( to->handle, from->handle, 8 );
 }
+
