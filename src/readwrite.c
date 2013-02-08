@@ -56,6 +56,25 @@ fail:
 	return 0;
 }
 
+int socket_nbd_write_hello(int fd, off64_t out_size)
+{
+	struct nbd_init init;
+	struct nbd_init_raw init_raw;
+
+	memcpy(&init.passwd, INIT_PASSWD, 8);
+	init.magic  = INIT_MAGIC;
+	init.size   = out_size;
+
+	memset( &init_raw, 0, sizeof( init_raw ) ); // ensure reserved is 0s
+	nbd_h2r_init(&init, &init_raw);
+
+	if ( 0 > writeloop( fd, &init_raw, sizeof( init_raw ) ) ) {
+		warn( SHOW_ERRNO( "failed to write hello to socket" ) );
+		return 0;
+	}
+	return 1;
+}
+
 void fill_request(struct nbd_request *request, int type, off64_t from, int len)
 {
 	request->magic  = htobe32(REQUEST_MAGIC);
