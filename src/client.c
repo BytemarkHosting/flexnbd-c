@@ -6,7 +6,6 @@
 #include "nbdtypes.h"
 #include "self_pipe.h"
 
-
 #include <sys/mman.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -14,10 +13,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
-
-
-
 
 struct client *client_create( struct server *serve, int socket )
 {
@@ -60,7 +55,7 @@ void client_destroy( struct client *client )
 /**
  * So waiting on client->socket is len bytes of data, and we must write it all
  * to client->mapped.  However while doing do we must consult the bitmap
- * client->block_allocation_map, which is a bitmap where one bit represents
+ * client->serve->allocation_map, which is a bitmap where one bit represents
  * block_allocation_resolution bytes.  Where a bit isn't set, there are no
  * disc blocks allocated for that portion of the file, and we'd like to keep
  * it that way.
@@ -72,6 +67,8 @@ void client_destroy( struct client *client )
 void write_not_zeroes(struct client* client, uint64_t from, int len)
 {
 	NULLCHECK( client );
+	NULLCHECK( client->serve );
+	NULLCHECK( client->serve->allocation_map );
 
 	struct bitset_mapping *map = client->serve->allocation_map;
 
@@ -141,7 +138,7 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 				 * hand-optimized something specific.
 				 */
 
-				int all_zeros = (zerobuffer[0] == 0) && 
+				int all_zeros = (zerobuffer[0] == 0) &&
 					(0 == memcmp( zerobuffer, zerobuffer+1, blockrun-1 ));
 
 				if ( !all_zeros ) {
@@ -425,15 +422,14 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 			request.from,
 			request.len
 		);
+
+		/* Ensure this updated block is written in the event of a mirror op */
 		server_dirty(client->serve, request.from, request.len);
 		/* the allocation_map is shared between client threads, and may be
-		 * being built.  But AFAICT this is safe, to accurately reflect the
-		 * fact that we've caused block allocation to occur, though we will
-		 * never consult the allocation_map until the builder thread has
-		 * finished.
+		 * being built. We need to reflect the write in it, as it may be in
+		 * a position the builder has already gone over.
 		 */
-		bitset_set_range(client->serve->allocation_map, 
-			request.from, request.len);
+		bitset_set_range(client->serve->allocation_map, request.from, request.len);
 	}
 
 	if (1) /* not sure whether this is necessary... */

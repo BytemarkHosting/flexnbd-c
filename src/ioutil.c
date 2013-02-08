@@ -29,7 +29,7 @@ int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 	memset(&fiemap_static, 0, sizeof(fiemap_static));
 
 	for (offset = 0; offset < allocation_map->size; ) {
-		
+
 		unsigned int i;
 
 		fiemap->fm_start = offset;
@@ -45,9 +45,7 @@ int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 
 		if ( ioctl( fd, FS_IOC_FIEMAP, fiemap ) < 0 ) {
 			debug( "Couldn't get fiemap, returning no allocation_map" );
-			free(allocation_map);
-			allocation_map = NULL;
-			break;
+			return 0; /* it's up to the caller to free the map */
 		}
 		else {
 			for ( i = 0; i < fiemap->fm_mapped_extents; i++ ) {
@@ -55,9 +53,9 @@ int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 						  fiemap->fm_extents[i].fe_logical,
 						  fiemap->fm_extents[i].fe_length );
 			}
-		
-		
-			/* must move the offset on, but careful not to jump max_length 
+
+
+			/* must move the offset on, but careful not to jump max_length
 			 * if we've actually hit max_offsets.
 			 */
 			if (fiemap->fm_mapped_extents > 0) {
@@ -73,7 +71,7 @@ int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
 	}
 
 	debug("Successfully built allocation map");
-	return NULL != allocation_map;
+	return 1;
 }
 
 

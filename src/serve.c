@@ -773,6 +773,11 @@ void* build_allocation_map_thread(void* serve_uncast)
 		serve->allocation_map_built = 1;
 	}
 	else {
+		/* We can operate without it, but we can't free it without a race.
+		 * All that happens if we leave it is that it gradually builds up an
+		 * *incomplete* record of writes. Nobody will use it, as
+		 * allocation_map_built == 0 for the lifetime of the process.
+		 */
 		warn( "Didn't build allocation map for %s", serve->filename );
 	}
 
