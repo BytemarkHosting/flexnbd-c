@@ -2,6 +2,7 @@
 #include "client.h"
 #include "nbdtypes.h"
 #include "ioutil.h"
+#include "sockutil.h"
 #include "util.h"
 #include "bitset.h"
 #include "control.h"
@@ -19,22 +20,6 @@
 
 #include <sys/socket.h>
 #include <netinet/tcp.h>
-
-static inline void* sockaddr_address_data(struct sockaddr* sockaddr)
-{
-	NULLCHECK( sockaddr );
-
-	struct sockaddr_in*  in  = (struct sockaddr_in*) sockaddr;
-	struct sockaddr_in6* in6 = (struct sockaddr_in6*) sockaddr;
-
-	if (sockaddr->sa_family == AF_INET) {
-		return &in->sin_addr;
-	}
-	if (sockaddr->sa_family == AF_INET6) {
-		return &in6->sin6_addr;
-	}
-	return NULL;
-}
 
 struct server * server_create (
 	struct flexnbd * flexnbd,
@@ -231,82 +216,15 @@ int server_port( struct server * server )
 }
 
 
-/* Try to bind to our serving socket, retrying until it works or gives a
- * fatal error. */
-void serve_bind( struct server * serve )
-{
-	int bind_result;
-
-	char s_address[64];
-	memset( s_address, 0, 64 );
-	strcpy( s_address, "???" );
-	inet_ntop( serve->bind_to.generic.sa_family,
-			sockaddr_address_data( &serve->bind_to.generic),
-			s_address, 64 );
-
-	do {
-		bind_result = bind(
-				serve->server_fd,
-				&serve->bind_to.generic,
-				sizeof(serve->bind_to));
-
-		if ( 0 == bind_result ) {
-			info( "Bound to %s port %d",
-					s_address,
-					ntohs(serve->bind_to.v4.sin_port));
-			break;
-		}
-		else {
-
-			warn( "Couldn't bind to %s port %d: %s",
-					s_address,
-					ntohs(serve->bind_to.v4.sin_port),
-					strerror( errno ) );
-
-			switch (errno){
-				/* bind() can give us EACCES,
-				 * EADDRINUSE, EADDRNOTAVAIL, EBADF,
-				 * EINVAL or ENOTSOCK.
-				 *
-				 * Any of these other than EACCES,
-				 * EADDRINUSE or EADDRNOTAVAIL signify
-				 * that there's a logic error somewhere.
-				 *
-				 * EADDRINUSE is fatal: if there's
-				 * something already where we want to be
-				 * listening, we have no guarantees that
-				 * any clients will cope with it.
-				 */
-				case EACCES:
-				case EADDRNOTAVAIL:
-					debug("retrying");
-					sleep(1);
-					continue;
-				case EADDRINUSE:
-					fatal( "%s port %d in use, giving up.",
-							s_address,
-							ntohs(serve->bind_to.v4.sin_port));
-				default:
-					fatal( "Giving up" );
-			}
-		}
-	} while ( 1 );
-}
-
-
-
 /** Prepares a listening socket for the NBD server, binding etc. */
 void serve_open_server_socket(struct server* params)
 {
 	NULLCHECK( params );
 
-	int optval=1;
-
-	params->server_fd= socket(params->bind_to.generic.sa_family == AF_INET ?
+	params->server_fd = socket(params->bind_to.generic.sa_family == AF_INET ?
 	  PF_INET : PF_INET6, SOCK_STREAM, 0);
 
-	FATAL_IF_NEGATIVE(params->server_fd,
-	  "Couldn't create server socket");
+	FATAL_IF_NEGATIVE( params->server_fd, "Couldn't create server socket" );
 
 	/* We need SO_REUSEADDR so that when we switch from listening to
 	 * serving we don't have to change address if we don't want to.
@@ -317,8 +235,7 @@ void serve_open_server_socket(struct server* params)
 	 * we barf.
 	 */
 	FATAL_IF_NEGATIVE(
-		setsockopt(params->server_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)),
-		"Couldn't set SO_REUSEADDR"
+		sock_set_reuseaddr( params->server_fd, 1 ), "Couldn't set SO_REUSEADDR"
 	);
 
 	/* TCP_NODELAY makes everything not be slow.  If we can't set
@@ -326,14 +243,16 @@ void serve_open_server_socket(struct server* params)
 	 * understand.
 	 */
 	FATAL_IF_NEGATIVE(
-		setsockopt(params->server_fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval)),
-		"Couldn't set TCP_NODELAY"
+		sock_set_tcp_nodelay( params->server_fd, 1 ), "Couldn't set TCP_NODELAY"
 	);
 
 	/* If we can't bind, presumably that's because someone else is
 	 * squatting on our ip/port combo, or the ip isn't yet
 	 * configured. Ideally we want to retry this. */
-	serve_bind(params);
+	FATAL_UNLESS_ZERO(
+		sock_try_bind( params->server_fd, &params->bind_to.generic ),
+		SHOW_ERRNO( "Failed to bind() socket" )
+	);
 
 	FATAL_IF_NEGATIVE(
 		listen(params->server_fd, params->tcp_backlog),
@@ -354,17 +273,13 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 	int join_errno;
 
 	if (entry->thread != 0) {
-		char s_client_address[64];
+		char s_client_address[128];
 
-		memset(s_client_address, 0, 64);
-		strcpy(s_client_address, "???");
-		inet_ntop( entry->address.generic.sa_family,
-				sockaddr_address_data(&entry->address.generic),
-				s_client_address,
-				64 );
+		sockaddr_address_string( &entry->address.generic, &s_client_address[0], 128 );
 
 		debug( "%s(%p,...)", joinfunc == pthread_join ? "joining" : "tryjoining", entry->thread );
 		join_errno = joinfunc(entry->thread, &status);
+
 		/* join_errno can legitimately be ESRCH if the thread is
 		 * already dead, but the client still needs tidying up. */
 		if (join_errno != 0 && !entry->client->stopped ) {
@@ -483,9 +398,11 @@ int server_should_accept_client(
 	NULLCHECK( client_address );
 	NULLCHECK( s_client_address );
 
-	if (inet_ntop(client_address->generic.sa_family,
-				sockaddr_address_data(&client_address->generic),
-				s_client_address, s_client_address_len ) == NULL) {
+	const char* result = sockaddr_address_string(
+		&client_address->generic, s_client_address, s_client_address_len
+	);
+
+	if ( NULL == result ) {
 		warn( "Rejecting client %s: Bad client_address", s_client_address );
 		return 0;
 	}

@@ -148,7 +148,7 @@ void mylog(int line_level, const char* format, ...);
 
 #define NULLCHECK(value) FATAL_IF_NULL(value, "BUG: " #value " is null")
 
-#define SHOW_ERRNO( msg ) msg ": %s (%i)", ( errno == 0 ? "EOF" : strerror(errno) ), errno
+#define SHOW_ERRNO( msg, ... ) msg ": %s (%i)", ##__VA_ARGS__, ( errno == 0 ? "EOF" : strerror(errno) ), errno
 
 #endif
 
