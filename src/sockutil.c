@@ -86,6 +86,7 @@ int sock_try_bind( int fd, const struct sockaddr* sa )
 {
 	int bind_result;
 	char s_address[256];
+	int retry = 1;
 
 	sockaddr_address_string( sa, &s_address[0], 256 );
 
@@ -116,12 +117,14 @@ int sock_try_bind( int fd, const struct sockaddr* sa )
 					continue;
 				case EADDRINUSE:
 					warn( "%s in use, giving up.", s_address );
+					retry = 0;
 					break;
 				default:
 					warn( "giving up" );
+					retry = 0;
 			}
 		}
-	} while ( 1 );
+	} while ( retry );
 
 	return bind_result;
 }
