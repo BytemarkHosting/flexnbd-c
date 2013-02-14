@@ -84,7 +84,7 @@ namespace "test" do
 
   desc "Run NBD test scenarios"
   task 'scenarios' => 'flexnbd' do
-    sh "cd tests/acceptance; ruby nbd_scenarios"
+    sh "cd tests/acceptance; ruby nbd_scenarios -v"
   end
 end
 
