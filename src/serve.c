@@ -636,8 +636,10 @@ int server_accept( struct server * params )
 	self_pipe_fd_set( params->close_signal, &fds );
 	self_pipe_fd_set( params->acl_updated_signal, &fds );
 
-	FATAL_IF_NEGATIVE(select(FD_SETSIZE, &fds,
-				NULL, NULL, NULL), "select() failed");
+	FATAL_IF_NEGATIVE(
+		sock_try_select(FD_SETSIZE, &fds, NULL, NULL, NULL),
+		SHOW_ERRNO( "select() failed" )
+	);
 
 	if ( self_pipe_fd_isset( params->close_signal, &fds ) ){
 		server_close_clients( params );
