@@ -8,7 +8,7 @@
 require 'flexnbd/fake_source'
 include FlexNBD
 
-addr, port, srv_pid, rebind_addr, rebind_port = *ARGV
+addr, port, srv_pid = *ARGV
 
 client = FakeSource.new( addr, port, "Timed out connecting" )
 client.read_hello
@@ -30,3 +30,4 @@ rescue Timeout::Error
 end
 
 exit(0)
+

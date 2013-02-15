@@ -130,6 +130,7 @@ file check("client") =>
   build/mbox.o
   build/mirror.o
   build/status.o
+  build/sockutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
@@ -165,6 +166,7 @@ file check("serve") =>
   build/acl.o
   build/mbox.o
   build/ioutil.o
+  build/sockutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
@@ -185,6 +187,7 @@ file check("readwrite") =>
   build/nbdtypes.o
   build/mbox.o
   build/ioutil.o
+  build/sockutil.o
   build/util.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
@@ -194,6 +197,7 @@ file check("flexnbd") =>
 %w{build/tests/check_flexnbd.o
   build/flexnbd.o
   build/ioutil.o
+  build/sockutil.o
   build/util.o
   build/control.o
   build/mbox.o

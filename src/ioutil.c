@@ -146,7 +146,10 @@ int sendfileloop(int out_fd, int in_fd, off64_t *offset, size_t count)
 		ssize_t result = sendfile64(out_fd, in_fd, offset, count-sent);
 		debug("sendfile64(out_fd=%d, in_fd=%d, offset=%p, count-sent=%ld) = %ld", out_fd, in_fd, offset, count-sent, result);
 
-		if (result == -1) { return -1; }
+		if (result == -1) {
+			debug( "%s (%i) calling sendfile64()", strerror(errno), errno );
+			return -1;
+		}
 		sent += result;
 		debug("sent=%ld, count=%ld", sent, count);
 	}

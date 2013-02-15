@@ -5,7 +5,7 @@ require 'file_writer'
 
 class Environment
   attr_reader( :blocksize, :filename1, :filename2, :ip,
-               :port1, :port2, :nbd1, :nbd2, :file1, :file2, :rebind_port1 )
+               :port1, :port2, :nbd1, :nbd2, :file1, :file2 )
 
   def initialize
     @blocksize = 1024
@@ -14,9 +14,7 @@ class Environment
     @ip = "127.0.0.1"
     @available_ports = [*40000..41000] - listening_ports
     @port1 = @available_ports.shift
-    @rebind_port1 = @available_ports.shift
     @port2 = @available_ports.shift
-    @rebind_port2 = @available_ports.shift
     @nbd1 = FlexNBD::FlexNBD.new("../../build/flexnbd", @ip, @port1)
     @nbd2 = FlexNBD::FlexNBD.new("../../build/flexnbd", @ip, @port2)
 
