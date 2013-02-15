@@ -21,7 +21,7 @@ class ValgrindExecutor
   attr_reader :pid
 
   def run( cmd )
-    @pid = fork do exec "valgrind --track-origins=yes #{cmd}" end
+    @pid = fork do exec "valgrind --track-origins=yes --suppressions=custom.supp #{cmd}" end
   end
 end # class ValgrindExecutor
 
@@ -131,7 +131,7 @@ class ValgrindKillingExecutor
 
   def run( cmd )
     @io_r, io_w = IO.pipe
-    @pid = fork do exec( "valgrind --xml=yes --xml-fd=#{io_w.fileno} " + cmd ) end
+    @pid = fork do exec( "valgrind --suppressions=custom.supp --xml=yes --xml-fd=#{io_w.fileno} " + cmd ) end
     launch_watch_thread( @pid, @io_r )
     @pid
   end
@@ -521,3 +521,4 @@ module FlexNBD
   end
 
 end
+
