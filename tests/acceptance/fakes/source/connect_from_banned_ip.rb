@@ -13,10 +13,8 @@ addr, port = *ARGV
 
 client = FakeSource.new( addr, port, "Timed out connecting", "127.0.0.6" )
 sleep( 0.25 )
-client.ensure_disconnected
 
+rsp = client.disconnected? ? 0 : 1
 client.close
-exit(0)
-
-
+exit(rsp)
 

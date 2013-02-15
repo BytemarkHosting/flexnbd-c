@@ -21,6 +21,13 @@ class Environment
     @fake_pid = nil
   end
 
+  def proxy1(port=@port2)
+    @nbd1.proxy(@ip, port)
+  end
+  def proxy2(port=@port1)
+    @nbd2.proxy(@ip, port)
+  end
+
 
   def serve1(*acl)
     @nbd1.serve(@filename1, *acl)

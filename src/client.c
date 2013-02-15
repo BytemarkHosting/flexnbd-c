@@ -1,7 +1,8 @@
 #include "client.h"
 #include "serve.h"
-#include "util.h"
 #include "ioutil.h"
+#include "sockutil.h"
+#include "util.h"
 #include "bitset.h"
 #include "nbdtypes.h"
 #include "self_pipe.h"
@@ -189,7 +190,7 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);
 	self_pipe_fd_set( client->stop_signal, &fds );
-	fd_count = select(FD_SETSIZE, &fds, NULL, NULL, ptv);
+	fd_count = sock_try_select(FD_SETSIZE, &fds, NULL, NULL, ptv);
 	if ( fd_count == 0 ) {
 		/* This "can't ever happen" */
 		if ( NULL == ptv ) { fatal( "No FDs selected, and no timeout!" ); }
@@ -344,30 +345,43 @@ void client_flush( struct client * client, size_t len )
 int client_request_needs_reply( struct client * client,
 		struct nbd_request request )
 {
-	debug("request type %d", request.type);
-
+	/* The client is stupid, but don't take down the whole server as a result.
+	 * We send a reply before disconnecting so that at least some indication of
+	 * the problem is visible, and so proxies don't retry the same (bad) request
+	 * forever.
+	 */
 	if (request.magic != REQUEST_MAGIC) {
-		fatal("Bad magic %08x", request.magic);
+		warn("Bad magic %08x from client", request.magic);
+		client_write_reply( client, &request, EBADMSG );
+		client->disconnect = 1; // no need to flush
+		return 0;
 	}
+
+	debug(
+		"request type=%"PRIu32", from=%"PRIu64", len=%"PRIu32,
+		request.type, request.from, request.len
+	);
+
+	/* check it's not out of range */
+	if ( request.from+request.len > client->serve->size) {
+		warn("write request %"PRIu64"+%"PRIu32" out of range",
+		  request.from, request.len
+		);
+		if ( request.type == REQUEST_WRITE ) {
+			client_flush( client, request.len );
+		}
+		client_write_reply( client, &request, EPERM ); /* TODO: Change to ERANGE ? */
+		client->disconnect = 0;
+		return 0;
+	}
+
 
 	switch (request.type)
 	{
 	case REQUEST_READ:
 		break;
 	case REQUEST_WRITE:
-		/* check it's not out of range */
-		if ( request.from+request.len > client->serve->size) {
-			warn("write request %d+%d out of range",
-			  request.from,
-			  request.len
-			);
-			client_write_reply( client, &request, 1 );
-			client_flush( client, request.len );
-			client->disconnect = 0;
-			return 0;
-		}
 		break;
-
 	case REQUEST_DISCONNECT:
 		debug("request disconnect");
 		client->disconnect = 1;

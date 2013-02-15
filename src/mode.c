@@ -56,6 +56,29 @@ static char listen_help_text[] =
 	VERBOSE_LINE
 	QUIET_LINE;
 
+static struct option proxy_options[] = {
+	GETOPT_HELP,
+	GETOPT_ADDR,
+	GETOPT_PORT,
+	GETOPT_CONNECT_ADDR,
+	GETOPT_CONNECT_PORT,
+	GETOPT_BIND,
+	GETOPT_QUIET,
+	GETOPT_VERBOSE,
+	{0}
+};
+static char proxy_short_options[] = "hl:p:C:P:b:" SOPT_QUIET SOPT_VERBOSE;
+static char proxy_help_text[] =
+	"Usage: flexnbd " CMD_PROXY " <options>\n\n"
+	"Resiliently proxy an NBD connection between client and server\n\n"
+	HELP_LINE
+	"\t--" OPT_ADDR ",-l <ADDR>\tThe address we will bind to as a proxy.\n"
+	"\t--" OPT_PORT ",-p <PORT>\tThe port we will bind to as a proxy.\n"
+	"\t--" OPT_CONNECT_ADDR ",-C <ADDR>\tAddress of the proxied server.\n"
+	"\t--" OPT_CONNECT_PORT ",-P <PORT>\tPort of the proxied server.\n"
+	"\t--" OPT_BIND ",-b <ADDR>\tThe address we connect from, as a proxy.\n"
+	QUIET_LINE
+	VERBOSE_LINE;
 
 static struct option read_options[] = {
 	GETOPT_HELP,
@@ -173,10 +196,13 @@ char help_help_text_arr[] =
 	"Usage: flexnbd <cmd> [cmd options]\n\n"
 	"Commands:\n"
 	"\tflexnbd serve\n"
+	"\tflexnbd listen\n"
+	"\tflexnbd proxy\n"
 	"\tflexnbd read\n"
 	"\tflexnbd write\n"
 	"\tflexnbd acl\n"
 	"\tflexnbd mirror\n"
+	"\tflexnbd break\n"
 	"\tflexnbd status\n"
 	"\tflexnbd help\n\n"
 	"See flexnbd help <cmd> for further info\n";
@@ -389,6 +415,46 @@ void read_break_param( int c, char **sock )
 	}
 }
 
+
+void read_proxy_param(
+			int c,
+			char **downstream_addr,
+			char **downstream_port,
+			char **upstream_addr,
+			char **upstream_port,
+			char **bind_addr )
+{
+	switch( c ) {
+		case 'h' :
+			fprintf( stdout, "%s\n", proxy_help_text );
+			exit( 0 );
+			break;
+		case 'l':
+			*downstream_addr = optarg;
+			break;
+		case 'p':
+			*downstream_port = optarg;
+			break;
+		case 'C':
+			*upstream_addr = optarg;
+			break;
+		case 'P':
+			*upstream_port = optarg;
+			break;
+		case 'b':
+			*bind_addr = optarg;
+			break;
+		case 'q':
+			log_level = QUIET_LOG_LEVEL;
+			break;
+		case 'v':
+			log_level = VERBOSE_LOG_LEVEL;
+			break;
+		default:
+			exit_err( proxy_help_text );
+			break;
+	}
+}
 
 void read_status_param( int c, char **sock )
 {
@@ -733,6 +799,55 @@ int mode_status( int argc, char *argv[] )
 	return 0;
 }
 
+int mode_proxy( int argc, char *argv[] )
+{
+	int c;
+	struct flexnbd * flexnbd;
+	char *downstream_addr = NULL;
+	char *downstream_port = NULL;
+	char *upstream_addr   = NULL;
+	char *upstream_port   = NULL;
+	char *bind_addr       = NULL;
+	int success;
+
+	while (1) {
+		c = getopt_long( argc, argv, proxy_short_options, proxy_options, NULL );
+		if ( -1 == c ) { break; }
+		read_proxy_param( c,
+				&downstream_addr,
+				&downstream_port,
+				&upstream_addr,
+				&upstream_port,
+				&bind_addr
+		);
+	}
+
+	if ( NULL == downstream_addr || NULL == downstream_port ){
+		fprintf( stderr, "both --addr and --port are required.\n" );
+		exit_err( proxy_help_text );
+	} else if ( NULL == upstream_addr || NULL == upstream_port ){
+		fprintf( stderr, "both --conn-addr and --conn-port are required.\n" );
+		exit_err( proxy_help_text );
+	}
+
+	flexnbd = flexnbd_create_proxying(
+		downstream_addr,
+		downstream_port,
+		upstream_addr,
+		upstream_port,
+		bind_addr
+	);
+
+	info(
+		"Proxying between %s %s (downstream) and %s %s (upstream)",
+		downstream_addr, downstream_port, upstream_addr, upstream_port
+	);
+
+	success = flexnbd_proxy( flexnbd );
+	flexnbd_destroy( flexnbd );
+
+	return success ? 0 : 1;
+}
 
 int mode_help( int argc, char *argv[] )
 {
@@ -757,6 +872,8 @@ int mode_help( int argc, char *argv[] )
 			help_text = mirror_help_text;
 		} else if ( IS_CMD( CMD_STATUS, cmd ) ) {
 			help_text = status_help_text;
+		} else if ( IS_CMD( CMD_PROXY, cmd ) ) {
+			help_text = proxy_help_text;
 		} else { exit_err( help_help_text ); }
 	}
 
@@ -790,6 +907,8 @@ void mode(char* mode, int argc, char **argv)
 	}
        	else if ( IS_CMD( CMD_STATUS, mode ) ) {
 		mode_status( argc, argv );
+	} else if ( IS_CMD( CMD_PROXY, mode ) ) {
+		mode_proxy( argc, argv );
 	}
 	else if ( IS_CMD( CMD_HELP, mode ) ) {
 		mode_help( argc-1, argv+1 );
@@ -800,5 +919,4 @@ void mode(char* mode, int argc, char **argv)
 	}
 	exit(0);
 }
-
 

@@ -24,7 +24,7 @@ COMMANDS
 
 serve
 ~~~~~
-  $ flexnbd serve --addr <ADDR> --port <PORT> --file <FILE> 
+  $ flexnbd serve --addr <ADDR> --port <PORT> --file <FILE>
     [--sock <SOCK>] [--default-deny] [global option]* [acl entry]*
 
 Serve a file. If any ACL entries are given (which should be IP
@@ -54,11 +54,11 @@ Options
     How to interpret an empty ACL.  If --default-deny is given, an
     empty ACL will let no clients connect.  If it is not given, an
     empty ACL will let any client connect.
-    
+
 listen
 ~~~~~~
 
-  $ flexnbd listen --addr <ADDR> --port <PORT> --file <FILE> 
+  $ flexnbd listen --addr <ADDR> --port <PORT> --file <FILE>
     [--sock <SOCK>] [--default-deny] [global option]* [acl entry]*
 
 Listen for an inbound migration, and quit with a status of 0 on
@@ -85,10 +85,59 @@ Options
 ^^^^^^^
 As for 'serve'.
 
+proxy
+~~~~~
+
+  $ flexnbd proxy --addr <ADDR> --port <PORT>
+    --conn-addr <ADDR> --conn-port <PORT> [--bind <ADDR>] [global option]*
+
+Proxy requests from an NBD client to an NBD server, resiliently. Only one
+client can be connected (to the address specified by --addr and --port) at a
+time, and ACLs cannot be applied to the client, as they can be to clients
+connecting directly to a flexnbd in serve mode.
+
+On starting up, the proxy will attempt to connect to the server specified by
+--conn-addr and --conn-port (from the address specified by --bind, if given). If
+it fails, then the process will die with an error exit status.
+
+Assuming a successful connection to the `upstream` server is made, the proxy
+will then start listening on the address specified by --addr and --port, waiting
+for `downstream` to connect to it (this will be your NBD client). The client
+will be given the same hello message as the proxy was given by the server.
+
+When connected, any request the client makes will be read by the proxy and sent
+to the server. If the server goes away for any reason, the proxy will remember
+the request and regularly (~ every 5 seconds) try to reconnect to the server.
+Upon reconnection, the request is sent and a reply is waited for. When a reply
+is received, it is sent back to the client.
+
+When the client disconnects, cleanly or otherwise, the proxy goes back to
+waiting for a new client to connect. The connection to the server is maintained
+at that point, in case it is needed again.
+
+Only one request may be in-flight at a time under the current architecture; that
+doesn't seem to slow things down much relative to alternative options, but may
+be changed in the future if it becomes an issue.
+
+Options
+^^^^^^^
+
+*--addr, -l ADDR*:
+    The address to listen on. Required.
+
+*--port, -p PORT*:
+    The port to listen on. Required.
+
+*--conn-addr, -C ADDR*:
+    The address of the NBD server to connect to. Required.
+
+*--conn-port, -P PORT*:
+    The port of the NBD server to connect to. Required.
+
 mirror
 ~~~~~~
 
-  $ flexnbd mirror --addr <ADDR> --port <PORT> --sock SOCK 
+  $ flexnbd mirror --addr <ADDR> --port <PORT> --sock SOCK
       [--unlink] [--bind <BIND-ADDR>] [global option]*
 
 Start a migration from the server with control socket SOCK to the server
@@ -128,8 +177,8 @@ Options
 *--sock, -s SOCK*:
   The control socket of the local server to migrate from. Required.
 
-*--unlink, -u*: 
-  Unlink the served file from the local filesystem after successfully 
+*--unlink, -u*:
+  Unlink the served file from the local filesystem after successfully
   mirroring.
 
 *--bind, -b BIND-ADDR*:
@@ -190,7 +239,7 @@ value.  Currently reported values are:
 read
 ~~~~
 
-  $ flexnbd read --addr <ADDR> --port <PORT> --from <OFFSET> 
+  $ flexnbd read --addr <ADDR> --port <PORT> --from <OFFSET>
     --size <SIZE>  [--bind BIND-ADDR] [global option]*
 
 Connect to the server at ADDR:PORT, and read SIZE bytes starting at
@@ -220,7 +269,7 @@ Options
 write
 ~~~~~
 
-  $ cat ... | flexnbd write --addr <ADDR> --port <PORT> --from <OFFSET> 
+  $ cat ... | flexnbd write --addr <ADDR> --port <PORT> --from <OFFSET>
     --size <SIZE>  [--bind BIND-ADDR] [global option]*
 
 Connect to the server at ADDR:PORT, and write SIZE bytes from STDIN
@@ -299,9 +348,9 @@ the log line.
 *SOURCEFILE:SOURCELINE*:
   Identifies where in the source code this log line can be found.
 
-*MSG*: 
+*MSG*:
   A short message describing what's happening, how it's being done, or
-if you're very lucky *why* it's going on.  
+if you're very lucky *why* it's going on.
 
 EXAMPLES
 --------
@@ -346,11 +395,11 @@ To migrate, we need to provide a destination file of the right size.
 
 Now we check the status of each server, to check that they are both in
 the right state:
- 
+
   $ flexnbd status --sock /tmp/flex-source.sock
   pid=9648 is_mirroring=false has_control=true
   $ flexnbd status --sock /tmp/flex-dest.sock
-  pid=9651 is_mirroring=false has_control=false 
+  pid=9651 is_mirroring=false has_control=false
   $
 
 With this knowledge in hand, we can start the migration:
@@ -366,6 +415,40 @@ Note that because the file is so small in this case, we see the source
 server quit soon after we start the migration, and the destination
 exited at roughly the same time.
 
+Proxying
+~~~~~~~~
+
+The main point of the proxy mode is to allow clients that would otherwise break
+when the NBD server goes away (during a migration, for instance) to see a
+persistent TCP connection throughout the process, instead of needing its own
+reconnection logic.
+
+For maximum reliability, the proxy process would be run on the same machine as
+the actual NBD client; an example might look like:
+
+  nbd-server-1$ flexnbd serve -l 10.0.0.1 -p 4777 myfile [...]
+
+  nbd-client-1$ flexnbd proxy -l 127.0.0.1 -p 4777 -C 10.0.0.1 -P 4777
+  nbd-client-1$ nbd-client -c 127.0.0.1 4777 /dev/nbd0
+
+  nbd-server-2$ flexnbd listen -l 10.0.0.2 -p 4777 -f myfile [...]
+
+  nbd-server-1$ flexnbd mirror --addr 10.0.0.2 -p 4777 [...]
+
+Upon completing the migration, the mirroring and listening flexnbd servers will
+both exit. With the proxy mediating requests, this does not break the TCP
+connection that nbd-client is holding open. If no requests are in-flight, it
+will not notice anything at all; if requests are in-flight, then the reply will
+take longer than usual to be returned.
+
+When flexnbd is restarted in serve mode on the second server:
+
+  nbd-server-2$ flexnbd serve -l 10.0.0.1 -p 4777 -f myfile [...]
+
+The proxy notices and reconnects, fulfiling any request it has in its buffer.
+The data in myfile has been moved between physical servers without the nbd
+client process having to be disturbed at all.
+
 BUGS
 ----
 
@@ -374,9 +457,9 @@ Should be reported to alex@bytemark.co.uk.
 AUTHOR
 ------
 
-Written by Alex Young <alex@bytemark.co.uk>.  
-Original concept and core code by Matthew Bloch
-<matthew@bytemark.co.uk>.
+Written by Alex Young <alex@bytemark.co.uk>.
+Original concept and core code by Matthew Bloch <matthew@bytemark.co.uk>.
+Some additions by Nick Thomas <nick@bytemark.co.uk>
 
 COPYING
 -------
@@ -384,3 +467,4 @@ COPYING
 Copyright (c) 2012 Bytemark Hosting Ltd. Free use of this software is
 granted under the terms of the GNU General Public License version 3 or
 later.
+

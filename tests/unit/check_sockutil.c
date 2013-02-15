@@ -1,3 +1,7 @@
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+
 #include "sockutil.h"
 
 #include <check.h>

@@ -56,8 +56,6 @@ module FlexNBD
         }
       end
 
-      REPLY_MAGIC="\x67\x44\x66\x98"
-
       def write_error( handle )
         write_reply( handle, 1 )
       end
@@ -76,7 +74,7 @@ module FlexNBD
         if opts[:magic] == :wrong
           write_rand( @sock, 4 )
         else
-          @sock.write( REPLY_MAGIC )
+          @sock.write( ::FlexNBD::REPLY_MAGIC )
         end
 
         @sock.write( [err].pack("N") )
@@ -91,6 +89,10 @@ module FlexNBD
 
       def read_data( len )
         @sock.read( len )
+      end
+
+      def write_data( len )
+        @sock.write( len )
       end
 
 
@@ -161,3 +163,4 @@ module FlexNBD
 
   end # module FakeDest
 end # module FlexNBD
+
