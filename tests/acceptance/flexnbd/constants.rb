@@ -32,6 +32,9 @@ module FlexNBD
   end
 
   read_constants()
-end # module FlexNBD
 
+  REQUEST_MAGIC = "\x25\x60\x95\x13" unless defined?(REQUEST_MAGIC)
+  REPLY_MAGIC = "\x67\x44\x66\x98" unless defined?(REPLY_MAGIC)
+
+end # module FlexNBD
 

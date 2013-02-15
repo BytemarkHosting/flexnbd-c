@@ -30,7 +30,7 @@ module FlexNBD
 
 
     def read_hello()
-      timing_out( FlexNBD::MS_HELLO_TIME_SECS,
+      timing_out( ::FlexNBD::MS_HELLO_TIME_SECS,
                   "Timed out waiting for hello." ) do
         fail "No hello." unless (hello = @sock.read( 152 )) &&
           hello.length==152
@@ -47,15 +47,14 @@ module FlexNBD
     end
 
 
-    def send_request( type, handle="myhandle", from=0, len=0 )
+    def send_request( type, handle="myhandle", from=0, len=0, magic=REQUEST_MAGIC )
       fail "Bad handle" unless handle.length == 8
 
-      @sock.write( "\x25\x60\x95\x13" )
+      @sock.write( magic )
       @sock.write( [type].pack( 'N' ) )
       @sock.write( handle )
-      @sock.write( "\x0"*4 )
-      @sock.write( [from].pack( 'N' ) )
-      @sock.write( [len ].pack( 'N' ) )
+      @sock.write( [n64( from )].pack( 'q' ) )
+      @sock.write( [len].pack( 'N' ) )
     end
 
 
@@ -122,10 +121,10 @@ module FlexNBD
     end
 
 
-    def ensure_disconnected
-      Timeout.timeout( 2 ) do
-        @sock.read(1)
-      end
+    def disconnected?
+      result = nil
+      Timeout.timeout( 2 ) { result = ( @sock.read(1) == nil ) }
+      result
     end
 
 
@@ -140,6 +139,22 @@ module FlexNBD
       end
     end
 
+    private
+
+    # take a 64-bit number, turn it upside down (due to :
+    #   http://blade.nagaokaut.ac.jp/cgi-bin/scat.rb/ruby/ruby-core/11920
+    # )
+    def n64(b)
+      ((b & 0xff00000000000000) >> 56) |
+      ((b & 0x00ff000000000000) >> 40) |
+      ((b & 0x0000ff0000000000) >> 24) |
+      ((b & 0x000000ff00000000) >> 8)  |
+      ((b & 0x00000000ff000000) << 8)  |
+      ((b & 0x0000000000ff0000) << 24) |
+      ((b & 0x000000000000ff00) << 40) |
+      ((b & 0x00000000000000ff) << 56)
+    end
 
   end # class FakeSource
 end # module FlexNBD
+

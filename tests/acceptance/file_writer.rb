@@ -8,6 +8,10 @@ class FileWriter
     @pattern = ""
   end
 
+  def size
+    @blocksize * @pattern.split("").size
+  end
+
   # We write in fixed block sizes, given by "blocksize"
   #    _ means skip a block
   #    0 means write a block full of zeroes
