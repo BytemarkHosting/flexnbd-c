@@ -20,9 +20,12 @@ void mode(char* mode, int argc, char **argv);
 #define OPT_SIZE "size"
 #define OPT_DENY "default-deny"
 #define OPT_UNLINK "unlink"
+#define OPT_CONNECT_ADDR "conn-addr"
+#define OPT_CONNECT_PORT "conn-port"
 
 #define CMD_SERVE  "serve"
 #define CMD_LISTEN "listen"
+#define CMD_PROXY  "proxy"
 #define CMD_READ   "read"
 #define CMD_WRITE  "write"
 #define CMD_ACL    "acl"
@@ -40,7 +43,6 @@ void mode(char* mode, int argc, char **argv);
 
 #define GETOPT_HELP GETOPT_FLAG( OPT_HELP, 'h' )
 #define GETOPT_DENY GETOPT_FLAG( OPT_DENY, 'd' )
-
 #define GETOPT_ADDR GETOPT_ARG( OPT_ADDR, 'l' )
 #define GETOPT_PORT GETOPT_ARG( OPT_PORT, 'p' )
 #define GETOPT_FILE GETOPT_ARG( OPT_FILE, 'f' )
@@ -49,6 +51,8 @@ void mode(char* mode, int argc, char **argv);
 #define GETOPT_SIZE GETOPT_ARG( OPT_SIZE, 'S' )
 #define GETOPT_BIND GETOPT_ARG( OPT_BIND, 'b' )
 #define GETOPT_UNLINK GETOPT_ARG( OPT_UNLINK, 'u' )
+#define GETOPT_CONNECT_ADDR GETOPT_ARG( OPT_CONNECT_ADDR, 'C' )
+#define GETOPT_CONNECT_PORT GETOPT_ARG( OPT_CONNECT_PORT, 'P' )
 
 #define OPT_VERBOSE "verbose"
 #define SOPT_VERBOSE "v"

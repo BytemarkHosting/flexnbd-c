@@ -21,7 +21,7 @@ class ValgrindExecutor
   attr_reader :pid
 
   def run( cmd )
-    @pid = fork do exec "valgrind --track-origins=yes #{cmd}" end
+    @pid = fork do exec "valgrind --suppressions=custom.supp --track-origins=yes #{cmd}" end
   end
 end # class ValgrindExecutor
 
@@ -131,7 +131,7 @@ class ValgrindKillingExecutor
 
   def run( cmd )
     @io_r, io_w = IO.pipe
-    @pid = fork do exec( "valgrind --xml=yes --xml-fd=#{io_w.fileno} " + cmd ) end
+    @pid = fork do exec( "valgrind --suppressions=custom.supp --xml=yes --xml-fd=#{io_w.fileno} " + cmd ) end
     launch_watch_thread( @pid, @io_r )
     @pid
   end
@@ -241,6 +241,15 @@ module FlexNBD
         "#{acl.join(' ')}"
     end
 
+    def proxy_cmd( connect_ip, connect_port )
+      "#{bin} proxy "\
+        "--addr #{ip} "\
+        "--port #{port} "\
+        "--conn-addr #{connect_ip} "\
+        "--conn-port #{connect_port} "\
+        "#{@debug}"
+    end
+
 
     def read_cmd( offset, length )
       "#{bin} read "\
@@ -319,6 +328,7 @@ module FlexNBD
         sleep 0.1
       end
 
+
       start_wait_thread( @pid )
       at_exit { kill }
     end
@@ -334,6 +344,31 @@ module FlexNBD
 
     def listen(file, *acl)
       run_serve_cmd( listen_cmd( file, acl ) )
+    end
+
+    def tcp_server_open?
+      # raises if the other side doesn't accept()
+      sock = TCPSocket.new(ip, port) rescue nil
+
+      success = !!sock
+      ( sock.close rescue nil) if sock
+      success
+    end
+
+    def proxy( connect_ip, connect_port )
+      cmd = proxy_cmd( connect_ip, connect_port )
+      debug( cmd )
+
+      @pid = @executor.run( cmd )
+
+      until tcp_server_open?
+        pid, status = Process.wait2(@pid, Process::WNOHANG)
+        raise "server did not start (#{cmd})" if pid
+        sleep 0.1
+      end
+
+      start_wait_thread( @pid )
+      at_exit { kill }
     end
 
 
@@ -521,3 +556,4 @@ module FlexNBD
   end
 
 end
+

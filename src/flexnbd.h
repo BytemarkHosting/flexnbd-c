@@ -4,6 +4,7 @@
 #include "acl.h"
 #include "mirror.h"
 #include "serve.h"
+#include "proxy.h"
 #include "self_pipe.h"
 #include "mbox.h"
 #include "control.h"
@@ -11,10 +12,13 @@
 
 /* Carries the "globals". */
 struct flexnbd {
-	/* We always have a serve pointer, but it should never be
-	 * dereferenced outside a flexnbd_switch_lock/unlock pair.
+	/* Our serve pointer should never be dereferenced outside a
+	 * flexnbd_switch_lock/unlock pair.
 	 */
 	struct server * serve;
+
+	/* In proxy mode, this is filled instead of serve, above */
+	struct proxier * proxy;
 
 	/* We only have a control object if a control socket name was
 	 * passed on the command line.
@@ -46,6 +50,14 @@ struct flexnbd * flexnbd_create_listening(
 	int acl_entries,
 	char** s_acl_entries );
 
+struct flexnbd * flexnbd_create_proxying(
+	char* s_downstream_address,
+	char* s_downstream_port,
+	char* s_upstream_address,
+	char* s_upstream_port,
+	char* s_upstream_bind
+);
+
 void flexnbd_destroy( struct flexnbd * );
 enum mirror_state;
 enum mirror_state flexnbd_get_mirror_state( struct flexnbd * );
@@ -55,7 +67,9 @@ int flexnbd_signal_fd( struct flexnbd * flexnbd );
 
 
 int flexnbd_serve( struct flexnbd * flexnbd );
+int flexnbd_proxy( struct flexnbd * flexnbd );
 struct server * flexnbd_server( struct flexnbd * flexnbd );
 void flexnbd_replace_acl( struct flexnbd * flexnbd, struct acl * acl );
 struct status * flexnbd_status_create( struct flexnbd * flexnbd );
 #endif
+

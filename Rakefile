@@ -125,6 +125,7 @@ file check("client") =>
   build/parse.o
   build/client.o
   build/serve.o
+  build/proxy.o
   build/acl.o
   build/ioutil.o
   build/mbox.o
@@ -160,6 +161,7 @@ file check("serve") =>
   build/client.o
   build/flexthread.o
   build/serve.o
+  build/proxy.o
   build/flexnbd.o
   build/mirror.o
   build/status.o
@@ -177,6 +179,7 @@ file check("readwrite") =>
   build/client.o
   build/self_pipe.o
   build/serve.o
+  build/proxy.o
   build/parse.o
   build/acl.o
   build/flexthread.o
@@ -210,7 +213,8 @@ file check("flexnbd") =>
   build/nbdtypes.o
   build/readwrite.o
   build/mirror.o
-  build/serve.o} do |t|
+  build/serve.o
+  build/proxy.o} do |t|
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
@@ -225,7 +229,7 @@ end
   tgt = "build/tests/check_#{m}.o"
   maybe_obj_name = "build/#{m}.o"
   # Take it out in case we're testing util.o or ioutil.o
-  deps = ["build/ioutil.o", "build/util.o"] - [maybe_obj_name]
+  deps = ["build/ioutil.o", "build/util.o", "build/sockutil.o"] - [maybe_obj_name]
 
   # Add it back in if it's something we need to compile
   deps << maybe_obj_name if OBJECTS.include?( maybe_obj_name )
