@@ -316,7 +316,7 @@ int proxy_run_request_upstream( struct proxier* proxy )
 	}
 
 	proxy->rsp_buf_size = rsp_buf_size;
-	return rsp_buf_size;
+	return 1;
 }
 
 /* Write an NBD reply back downstream. Return 0 on failure, 1 on success. */
