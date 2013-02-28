@@ -168,9 +168,12 @@ int sock_try_connect( int fd, struct sockaddr* to, socklen_t addrlen, int wait )
 					break; /* success */
 				case EAGAIN:
 				case EINTR:
-					break; /* Try again */
+					/* Try connect() again. This only breaks out of the switch,
+					 * not the do...while loop. since result == -1, we go again.
+					 */
+					break;
 				default:
-					warn( SHOW_ERRNO( "Failed to connect()") );
+					warn( SHOW_ERRNO( "Failed to connect()" ) );
 					goto out;
 			}
 		}
