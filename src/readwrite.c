@@ -17,16 +17,20 @@ int socket_connect(struct sockaddr* to, struct sockaddr* from)
 	}
 
 	if (NULL != from) {
-		if ( 0 > bind(fd, from, sizeof(struct sockaddr_in6)) ){
-			warn( "bind() failed");
-			FATAL_IF_NEGATIVE( close( fd ), SHOW_ERRNO( "FIXME" ) );
+		if ( 0 > bind( fd, from, sizeof(struct sockaddr_in6 ) ) ){
+			warn( SHOW_ERRNO( "bind() to source address failed" ) );
+			if ( 0 > close( fd ) ) {  /* Non-fatal leak */
+				warn( SHOW_ERRNO( "Failed to close fd %i", fd ) );
+			}
 			return -1;
 		}
 	}
 
 	if ( 0 > sock_try_connect( fd, to, sizeof( struct sockaddr_in6 ), 15 ) ) {
 		warn( SHOW_ERRNO( "connect failed" ) );
-		FATAL_IF_NEGATIVE( close( fd ), SHOW_ERRNO( "FIXME" ) );
+		if ( 0 > close( fd ) ) { /* Non-fatal leak */
+			warn( SHOW_ERRNO( "Failed to close fd %i", fd ) );
+		}
 		return -1;
 	}
 
