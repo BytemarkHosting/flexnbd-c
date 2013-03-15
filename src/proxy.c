@@ -90,8 +90,9 @@ int proxy_connect_to_upstream( struct proxier* proxy )
 	}
 
 	if( !socket_nbd_read_hello( fd, &size ) ) {
-		FATAL_IF_NEGATIVE(
-			close( fd ), SHOW_ERRNO( "FIXME: shouldn't be fatal" )
+		WARN_IF_NEGATIVE(
+			sock_try_close( fd ),
+			"Couldn't close() after failed read of NBD hello on fd %i", fd
 		);
 		return 0;
 	}
@@ -114,10 +115,10 @@ void proxy_disconnect_from_upstream( struct proxier* proxy )
 		debug(" Closing upstream connection" );
 
 		/* TODO: An NBD disconnect would be pleasant here */
-
-		FATAL_IF_NEGATIVE(
-			close( proxy->upstream_fd ),
-			SHOW_ERRNO( "FIXME: shouldn't be fatal" )
+		WARN_IF_NEGATIVE(
+			sock_try_close( proxy->upstream_fd ),
+			"Failed to close() fd %i when disconnecting from upstream",
+			proxy->upstream_fd
 		);
 		proxy->upstream_fd = -1;
 	}
@@ -442,10 +443,11 @@ int proxy_accept( struct proxier* params )
 		params->downstream_fd = client_fd;
 		proxy_session( params );
 
-		if ( close( params->downstream_fd ) == -1 )  {
-			warn( SHOW_ERRNO( "FIXME: close returned" ) );
-		}
-
+		WARN_IF_NEGATIVE(
+			sock_try_close( params->downstream_fd ),
+			"Couldn't close() downstram fd %i after proxy session",
+			params->downstream_fd
+		);
 		params->downstream_fd = -1;
 	}
 
@@ -467,7 +469,10 @@ void proxy_cleanup( struct proxier* params )
 	info( "cleaning up" );
 
 	if ( -1 != params->listen_fd ) {
-		close( params->listen_fd );
+		WARN_IF_NEGATIVE(
+			sock_try_close( params->listen_fd ),
+			"Failed to close() listen_fd %i", params->listen_fd
+		);
 	}
 
 	debug( "Cleanup done" );

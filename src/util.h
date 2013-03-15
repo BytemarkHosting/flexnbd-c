@@ -150,5 +150,7 @@ void mylog(int line_level, const char* format, ...);
 
 #define SHOW_ERRNO( msg, ... ) msg ": %s (%i)", ##__VA_ARGS__, ( errno == 0 ? "EOF" : strerror(errno) ), errno
 
+#define WARN_IF_NEGATIVE( value, msg, ... ) if ( value < 0 ) { warn( msg, ##__VA_ARGS__ ); }
+
 #endif
 

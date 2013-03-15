@@ -34,5 +34,8 @@ int sock_try_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptf
 /* Try to call connect(), timing out after wait seconds */
 int sock_try_connect( int fd, struct sockaddr* to, socklen_t addrlen, int wait );
 
+/* Try to call close(), retrying EINTR */
+int sock_try_close( int fd );
+
 #endif
 

@@ -216,3 +216,24 @@ out:
 	return result;
 }
 
+int sock_try_close( int fd )
+{
+	int result;
+
+	do {
+		result = close( fd );
+
+		if ( result == -1 ) {
+			if ( EINTR == errno ) {
+				continue; /* retry EINTR */
+			} else {
+				warn( SHOW_ERRNO( "Failed to close() fd %i", fd ) );
+				break; /* Other errors get reported */
+			}
+		}
+
+	} while( 0 );
+
+	return result;
+}
+
