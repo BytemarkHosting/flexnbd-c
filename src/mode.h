@@ -25,7 +25,6 @@ void mode(char* mode, int argc, char **argv);
 
 #define CMD_SERVE  "serve"
 #define CMD_LISTEN "listen"
-#define CMD_PROXY  "proxy"
 #define CMD_READ   "read"
 #define CMD_WRITE  "write"
 #define CMD_ACL    "acl"

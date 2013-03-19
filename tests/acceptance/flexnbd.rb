@@ -242,7 +242,7 @@ module FlexNBD
     end
 
     def proxy_cmd( connect_ip, connect_port )
-      "#{bin} proxy "\
+      "#{bin}-proxy "\
         "--addr #{ip} "\
         "--port #{port} "\
         "--conn-addr #{connect_ip} "\

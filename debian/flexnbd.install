@@ -1,2 +1,5 @@
-build/flexnbd      usr/bin
-build/flexnbd.1.gz usr/share/man/man1
+build/flexnbd             usr/bin
+build/flexnbd-proxy       usr/bin
+build/flexnbd.1.gz        usr/share/man/man1
+build/flexnbd-proxy.1.gz  usr/share/man/man1
+

@@ -17,9 +17,6 @@ struct flexnbd {
 	 */
 	struct server * serve;
 
-	/* In proxy mode, this is filled instead of serve, above */
-	struct proxier * proxy;
-
 	/* We only have a control object if a control socket name was
 	 * passed on the command line.
 	 */
@@ -49,14 +46,6 @@ struct flexnbd * flexnbd_create_listening(
 	int default_deny,
 	int acl_entries,
 	char** s_acl_entries );
-
-struct flexnbd * flexnbd_create_proxying(
-	char* s_downstream_address,
-	char* s_downstream_port,
-	char* s_upstream_address,
-	char* s_upstream_port,
-	char* s_upstream_bind
-);
 
 void flexnbd_destroy( struct flexnbd * );
 enum mirror_state;

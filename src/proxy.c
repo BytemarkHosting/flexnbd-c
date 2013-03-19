@@ -11,18 +11,16 @@
 #include <netinet/tcp.h>
 
 struct proxier* proxy_create(
-	struct flexnbd* flexnbd,
+	int signal_fd,
 	char* s_downstream_address,
 	char* s_downstream_port,
 	char* s_upstream_address,
 	char* s_upstream_port,
 	char* s_upstream_bind )
 {
-	NULLCHECK( flexnbd );
-
 	struct proxier* out;
 	out = xmalloc( sizeof( struct proxier ) );
-	out->flexnbd = flexnbd;
+	out->signal_fd = signal_fd;
 
 	FATAL_IF_NULL(s_downstream_address, "Listen address not specified");
 	NULLCHECK( s_downstream_address );
@@ -172,13 +170,11 @@ int proxy_should_exit( struct proxier* params, fd_set *check_fds, int wait )
 	fd_set internal_fds;
 	fd_set* fds = check_fds;
 
-	int signal_fd = flexnbd_signal_fd( params->flexnbd );
-
 	if ( NULL == check_fds ) {
 		fds = &internal_fds;
 
 		FD_ZERO( fds );
-		FD_SET( signal_fd, fds );
+		FD_SET( params->signal_fd, fds );
 
 		FATAL_IF_NEGATIVE(
 			sock_try_select(FD_SETSIZE, fds, NULL, NULL, &tv),
@@ -186,7 +182,7 @@ int proxy_should_exit( struct proxier* params, fd_set *check_fds, int wait )
 		);
 	}
 
-	if ( FD_ISSET( signal_fd, fds ) ) {
+	if ( FD_ISSET( params->signal_fd, fds ) ) {
 		info( "Stop signal received" );
 		return 1;
 	}
@@ -410,7 +406,6 @@ int proxy_accept( struct proxier* params )
 	NULLCHECK( params );
 
 	int              client_fd;
-	int              signal_fd = flexnbd_signal_fd( params->flexnbd );
 	fd_set           fds;
 	int              should_continue = 1;
 
@@ -421,7 +416,7 @@ int proxy_accept( struct proxier* params )
 
 	FD_ZERO(&fds);
 	FD_SET(params->listen_fd, &fds);
-	FD_SET(signal_fd, &fds);
+	FD_SET(params->signal_fd, &fds);
 
 	FATAL_IF_NEGATIVE(
 		sock_try_select(FD_SETSIZE, &fds, NULL, NULL, NULL),

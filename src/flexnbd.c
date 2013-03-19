@@ -128,27 +128,6 @@ struct flexnbd * flexnbd_create_listening(
 	return flexnbd;
 }
 
-
-struct flexnbd * flexnbd_create_proxying(
-	char* s_downstream_address,
-	char* s_downstream_port,
-	char* s_upstream_address,
-	char* s_upstream_port,
-	char* s_upstream_bind
-)
-{
-	struct flexnbd * flexnbd = xmalloc( sizeof( struct flexnbd ) );
-	flexnbd->proxy = proxy_create(
-			flexnbd,
-			s_downstream_address,
-			s_downstream_port,
-			s_upstream_address,
-			s_upstream_port,
-			s_upstream_bind);
-	flexnbd_create_shared( flexnbd, NULL );
-	return flexnbd;
-}
-
 void flexnbd_spawn_control(struct flexnbd * flexnbd )
 {
 	NULLCHECK( flexnbd );
@@ -270,17 +249,6 @@ int flexnbd_serve( struct flexnbd * flexnbd )
 		flexnbd_stop_control( flexnbd );
 		debug("Control thread stopped");
 	}
-
-	return success;
-}
-
-int flexnbd_proxy( struct flexnbd * flexnbd )
-{
-	NULLCHECK( flexnbd );
-	int success;
-
-	success = do_proxy( flexnbd->proxy );
-	debug("do_proxy success is %d", success );
 
 	return success;
 }

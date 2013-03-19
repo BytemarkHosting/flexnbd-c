@@ -55,10 +55,13 @@ struct proxier {
 
     /* We transform the raw reply header into here */
 	struct nbd_reply   rsp_hdr;
+
+	/* File descriptor that signal handlers write to */
+	int signal_fd;
 };
 
 struct proxier* proxy_create(
-	struct flexnbd * flexnbd,
+	int signal_fd,
 	char* s_downstream_address,
 	char* s_downstream_port,
 	char* s_upstream_address,
