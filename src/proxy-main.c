@@ -1,9 +1,7 @@
 #include <signal.h>
-#include <sys/signalfd.h>
 
 #include "mode.h"
 #include "util.h"
-#include "sockutil.h"
 #include "proxy.h"
 
 
@@ -71,62 +69,38 @@ void read_proxy_param(
 	}
 }
 
-/* Stolen from flexnbd.c, wil change in the near future so no point DRYing */
-int build_signal_fd(void)
+struct proxier * proxy = NULL;
+
+void my_exit(int signum)
 {
+	info( "Exit signalled (%i)", signum );
+	if ( NULL != proxy ) {
+		proxy_cleanup( proxy );
+	};
+	exit( 0 );
+}
+
+int main( int argc, char *argv[] )
+{
+	int c;
+	char *downstream_addr = NULL;
+	char *downstream_port = NULL;
+	char *upstream_addr   = NULL;
+	char *upstream_port   = NULL;
+	char *bind_addr       = NULL;
+	int success;
+
 	sigset_t mask;
-	int sfd;
+	struct sigaction exit_action;
 
 	sigemptyset( &mask );
 	sigaddset( &mask, SIGTERM );
 	sigaddset( &mask, SIGQUIT );
 	sigaddset( &mask, SIGINT );
 
-	FATAL_UNLESS( 0 == pthread_sigmask( SIG_BLOCK, &mask, NULL ),
-			"Signal blocking failed" );
-
-	sfd = signalfd( -1, &mask, 0 );
-	FATAL_IF( -1 == sfd, "Failed to get a signal fd" );
-
-	return sfd;
-}
-
-struct proxier* flexnbd_create_proxying(
-	int signal_fd,
-	char* s_downstream_address,
-	char* s_downstream_port,
-	char* s_upstream_address,
-	char* s_upstream_port,
-	char* s_upstream_bind
-)
-{
-	struct proxier* proxy =  proxy_create(
-		signal_fd,
-		s_downstream_address,
-		s_downstream_port,
-		s_upstream_address,
-		s_upstream_port,
-		s_upstream_bind
-	);
-
-	return proxy;
-}
-
-
-int main( int argc, char *argv[] )
-{
-	int c;
-	struct proxier * proxy;
-	char *downstream_addr = NULL;
-	char *downstream_port = NULL;
-	char *upstream_addr   = NULL;
-	char *upstream_port   = NULL;
-	char *bind_addr       = NULL;
-	int signal_fd;
-	int success;
-
-	signal(SIGPIPE, SIG_IGN); /* calls to splice() unhelpfully throw this */
-	error_init();
+	exit_action.sa_handler = my_exit;
+	exit_action.sa_mask = mask;
+	exit_action.sa_flags = 0;
 
 	while (1) {
 		c = getopt_long( argc, argv, proxy_short_options, proxy_options, NULL );
@@ -148,10 +122,7 @@ int main( int argc, char *argv[] )
 		exit_err( proxy_help_text );
 	}
 
-	signal_fd = build_signal_fd();
-
-	proxy = flexnbd_create_proxying(
-		signal_fd,
+	proxy = proxy_create(
 		downstream_addr,
 		downstream_port,
 		upstream_addr,
@@ -159,13 +130,19 @@ int main( int argc, char *argv[] )
 		bind_addr
 	);
 
+	/* Set these *after* proxy has been assigned to */
+	sigaction(SIGTERM, &exit_action, NULL);
+	sigaction(SIGQUIT, &exit_action, NULL);
+	sigaction(SIGINT,  &exit_action, NULL);
+	signal(SIGPIPE, SIG_IGN); /* calls to splice() unhelpfully throw this */
+
 	info(
 		"Proxying between %s %s (downstream) and %s %s (upstream)",
 		downstream_addr, downstream_port, upstream_addr, upstream_port
 	);
 
-    success = do_proxy( proxy );
-    sock_try_close( signal_fd );
+	success = do_proxy( proxy );
+	proxy_destroy( proxy );
 
 	return success ? 0 : 1;
 }
