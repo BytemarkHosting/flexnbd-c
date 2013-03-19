@@ -76,10 +76,10 @@ START_TEST( test_sockaddr_address_string_doesnt_overflow_short_buffer )
 	v4->sin_port = htons( 4777 );
 	ck_assert_int_eq( 1, inet_pton( AF_INET, "192.168.0.1", &v4->sin_addr ));
 
-	result = sockaddr_address_string( &sa, &testbuf[0], 4 );
+	result = sockaddr_address_string( &sa, &testbuf[0], 2 );
 	ck_assert( result == NULL );
 
-	ck_assert_str_eq( "", testbuf );
+	ck_assert_str_eq( "??", testbuf );
 
 }
 END_TEST

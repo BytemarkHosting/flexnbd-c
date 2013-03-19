@@ -42,7 +42,9 @@ const char* sockaddr_address_string( const struct sockaddr* sa, char* dest, size
 		ret = inet_ntop( AF_INET, &in->sin_addr, dest, len );
 	} else if ( sa->sa_family == AF_INET6 ) {
 		ret = inet_ntop( AF_INET6, &in6->sin6_addr, dest, len );
-	} else {
+	}
+
+	if ( ret == NULL ) {
 		strncpy( dest, "???", len );
 	}
 
