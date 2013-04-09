@@ -21,6 +21,7 @@ struct proxier {
 
 	/** address to bind to when making outgoing connections */
 	union mysockaddr  connect_from;
+	int               bind; /* Set to true if we should use it */
 
 	/* The socket we listen() on and accept() against */
 	int               listen_fd;

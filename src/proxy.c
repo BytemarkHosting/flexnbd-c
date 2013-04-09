@@ -53,6 +53,7 @@ struct proxier* proxy_create(
 			"Couldn't parse bind address '%s'",
 			s_upstream_bind
 		);
+		out->bind = 1;
 	}
 
 	out->listen_fd = -1;
@@ -78,7 +79,12 @@ void proxy_destroy( struct proxier* proxy )
  */
 int proxy_connect_to_upstream( struct proxier* proxy )
 {
-	int fd = socket_connect( &proxy->connect_to.generic, &proxy->connect_from.generic );
+	struct sockaddr* connect_from = NULL;
+	if ( proxy->bind ) {
+		connect_from = &proxy->connect_from.generic;
+	}
+
+	int fd = socket_connect( &proxy->connect_to.generic, connect_from );
 	off64_t size = 0;
 
 	if ( -1 == fd ) {
