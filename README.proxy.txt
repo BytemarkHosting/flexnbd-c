@@ -27,13 +27,12 @@ returning the response to the client.
 USAGE
 -----
 
-  $ flexnbd-proxy --addr <ADDR> --port <PORT>
+  $ flexnbd-proxy --addr <ADDR> [ --port <PORT> ]
     --conn-addr <ADDR> --conn-port <PORT> [--bind <ADDR>] [option]*
 
 Proxy requests from an NBD client to an NBD server, resiliently. Only one
-client can be connected (to the address specified by --addr and --port) at a
-time, and ACLs cannot be applied to the client, as they can be to clients
-connecting directly to a flexnbd in serve mode.
+client can be connected at a time, and ACLs cannot be applied to the client, as they 
+can be to clients connecting directly to a flexnbd in serve mode.
 
 On starting up, the proxy will attempt to connect to the server specified by
 --conn-addr and --conn-port (from the address specified by --bind, if given). If
@@ -62,10 +61,11 @@ Options
 ~~~~~~~
 
 *--addr, -l ADDR*:
-    The address to listen on. Required.
-
+    The address to listen on. If this begins with a '/', it is assumed to be
+    a UNIX domain socket to create. Otherwise, it should be an IPv4 or IPv6
+    address.
 *--port, -p PORT*:
-    The port to listen on. Required.
+    The port to listen on, if --addr is not a UNIX socket. 
 
 *--conn-addr, -C ADDR*:
     The address of the NBD server to connect to. Required.
@@ -161,17 +161,16 @@ Current issues include:
 * Only old-style NBD negotiation is supported
 * Only one request may be in-flight at a time
 * All I/O is blocking, and signals terminate the process immediately
-* No UNIX socket support
+* UNIX socket support is limited to the listen address
 * FLUSH and TRIM commands, and the FUA flag, are not supported
 * DISCONNECT requests do not get passed through to the NBD server
 * No active timeout-retry of requests - we trust the kernel's idea of failure
 
 AUTHOR
 ------
-
 Written by Alex Young <alex@bytemark.co.uk>.
 Original concept and core code by Matthew Bloch <matthew@bytemark.co.uk>.
-Some additions by Nick Thomas <nick@bytemark.co.uk>
+Proxy mode written by Nick Thomas <nick@bytemark.co.uk>
 
 COPYING
 -------

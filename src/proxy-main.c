@@ -19,10 +19,11 @@ static struct option proxy_options[] = {
 static char proxy_short_options[] = "hl:p:C:P:b:" SOPT_QUIET SOPT_VERBOSE;
 static char proxy_help_text[] =
 	"Usage: flexnbd-proxy <options>\n\n"
-	"Resiliently proxy an NBD connection between client and server\n\n"
+	"Resiliently proxy an NBD connection between client and server\n"
+	"We can listen on TCP or UNIX socket, but only connect to TCP servers.\n\n"
 	HELP_LINE
 	"\t--" OPT_ADDR ",-l <ADDR>\tThe address we will bind to as a proxy.\n"
-	"\t--" OPT_PORT ",-p <PORT>\tThe port we will bind to as a proxy.\n"
+	"\t--" OPT_PORT ",-p <PORT>\tThe port we will bind to as a proxy, if required.\n"
 	"\t--" OPT_CONNECT_ADDR ",-C <ADDR>\tAddress of the proxied server.\n"
 	"\t--" OPT_CONNECT_PORT ",-P <PORT>\tPort of the proxied server.\n"
 	"\t--" OPT_BIND ",-b <ADDR>\tThe address we connect from, as a proxy.\n"
@@ -114,8 +115,8 @@ int main( int argc, char *argv[] )
 		);
 	}
 
-	if ( NULL == downstream_addr || NULL == downstream_port ){
-		fprintf( stderr, "both --addr and --port are required.\n" );
+	if ( NULL == downstream_addr  ){
+		fprintf( stderr, "--addr is required.\n" );
 		exit_err( proxy_help_text );
 	} else if ( NULL == upstream_addr || NULL == upstream_port ){
 		fprintf( stderr, "both --conn-addr and --conn-port are required.\n" );
@@ -136,10 +137,17 @@ int main( int argc, char *argv[] )
 	sigaction(SIGINT,  &exit_action, NULL);
 	signal(SIGPIPE, SIG_IGN); /* calls to splice() unhelpfully throw this */
 
-	info(
-		"Proxying between %s %s (downstream) and %s %s (upstream)",
-		downstream_addr, downstream_port, upstream_addr, upstream_port
-	);
+	if ( NULL != downstream_port ) {
+		info(
+			"Proxying between %s %s (downstream) and %s %s (upstream)",
+			downstream_addr, downstream_port, upstream_addr, upstream_port
+		);
+	} else {
+		info(
+			"Proxying between %s (downstream) and %s %s (upstream)",
+			downstream_addr, upstream_addr, upstream_port
+		);
+	}
 
 	success = do_proxy( proxy );
 	proxy_destroy( proxy );

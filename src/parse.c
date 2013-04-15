@@ -8,6 +8,7 @@ int atoi(const char *nptr);
                               ((x) >= 'A' && (x) <= 'F' ) || \
                                (x) == ':' || (x) == '.'      \
                             )
+
 /* FIXME: should change this to return negative on error like everything else */
 int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 {
@@ -45,6 +46,22 @@ int parse_ip_to_sockaddr(struct sockaddr* out, char* src)
 	}
 
 	return 0;
+}
+
+
+int parse_to_sockaddr(struct sockaddr* out, char* address)
+{
+	struct sockaddr_un* un = (struct sockaddr_un*) out;
+
+	NULLCHECK( address );
+
+	if ( address[0] == '/' ) {
+		un->sun_family = AF_UNIX;
+		strncpy( un->sun_path, address, 108 ); /* FIXME: linux only */
+		return 1;
+	}
+
+	return parse_ip_to_sockaddr( out, address );
 }
 
 int parse_acl(struct ip_and_mask (**out)[], int max, char **entries)

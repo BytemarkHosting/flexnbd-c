@@ -4,12 +4,14 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <sys/un.h>
 
 #include "sockutil.h"
 #include "util.h"
 
 size_t sockaddr_size( const struct sockaddr* sa )
 {
+	struct sockaddr_un* un = (struct sockaddr_un*) sa;
 	size_t ret = 0;
 
 	switch( sa->sa_family ) {
@@ -18,6 +20,9 @@ size_t sockaddr_size( const struct sockaddr* sa )
 			break;
 		case AF_INET6:
 			ret = sizeof( struct sockaddr_in6 );
+			break;
+		case AF_UNIX:
+			ret = sizeof( un->sun_family ) + SUN_LEN( un );
 			break;
 	}
 
@@ -31,6 +36,7 @@ const char* sockaddr_address_string( const struct sockaddr* sa, char* dest, size
 
 	struct sockaddr_in*  in  = ( struct sockaddr_in*  ) sa;
 	struct sockaddr_in6* in6 = ( struct sockaddr_in6* ) sa;
+	struct sockaddr_un*  un  = ( struct sockaddr_un*  ) sa;
 
 	unsigned short real_port = ntohs( in->sin_port ); // common to in and in6
 	size_t size;
@@ -42,13 +48,15 @@ const char* sockaddr_address_string( const struct sockaddr* sa, char* dest, size
 		ret = inet_ntop( AF_INET, &in->sin_addr, dest, len );
 	} else if ( sa->sa_family == AF_INET6 ) {
 		ret = inet_ntop( AF_INET6, &in6->sin6_addr, dest, len );
+	} else if ( sa->sa_family == AF_UNIX ) {
+		ret = strncpy( dest, un->sun_path, SUN_LEN( un ) );
 	}
 
 	if ( ret == NULL ) {
 		strncpy( dest, "???", len );
 	}
 
-	if ( NULL != ret && real_port > 0 ) {
+	if ( NULL != ret && real_port > 0 && sa->sa_family != AF_UNIX ) {
 		size = strlen( dest );
 		snprintf( dest + size, len - size, " port %d", real_port );
 	}

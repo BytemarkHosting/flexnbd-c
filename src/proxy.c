@@ -24,15 +24,15 @@ struct proxier* proxy_create(
 	NULLCHECK( s_downstream_address );
 
 	FATAL_UNLESS(
-		parse_ip_to_sockaddr( &out->listen_on.generic, s_downstream_address ),
-		"Couldn't parse downstream address '%s' (use 0 if "
-		"you want to bind all IPs)",
-		s_downstream_address
+		parse_to_sockaddr( &out->listen_on.generic, s_downstream_address ),
+		"Couldn't parse downstream address %s"
 	);
 
-	FATAL_IF_NULL( s_downstream_port, "Downstream port not specified" );
-	NULLCHECK( s_downstream_port );
-	parse_port( s_downstream_port, &out->listen_on.v4 );
+	if ( out->listen_on.family != AF_UNIX ) {
+		FATAL_IF_NULL( s_downstream_port, "Downstream port not specified" );
+		NULLCHECK( s_downstream_port );
+		parse_port( s_downstream_port, &out->listen_on.v4 );
+	}
 
 	FATAL_IF_NULL(s_upstream_address, "Upstream address not specified");
 	NULLCHECK( s_upstream_address );
@@ -143,10 +143,12 @@ void proxy_open_listen_socket(struct proxier* params)
 		SHOW_ERRNO( "Couldn't set SO_REUSEADDR" )
 	);
 
-	FATAL_IF_NEGATIVE(
-		sock_set_tcp_nodelay(params->listen_fd, 1),
-		SHOW_ERRNO( "Couldn't set TCP_NODELAY" )
-	);
+	if( AF_UNIX != params->listen_on.family ) {
+		FATAL_IF_NEGATIVE(
+			sock_set_tcp_nodelay(params->listen_fd, 1),
+			SHOW_ERRNO( "Couldn't set TCP_NODELAY" )
+		);
+	}
 
 	FATAL_UNLESS_ZERO(
 		sock_try_bind( params->listen_fd, &params->listen_on.generic ),
@@ -379,8 +381,10 @@ int proxy_accept( struct proxier* params )
 	if ( FD_ISSET( params->listen_fd, &fds ) ) {
 		client_fd = accept( params->listen_fd, &client_address.generic, &socklen );
 
-		if ( sock_set_tcp_nodelay(client_fd, 1) == -1 ) {
-			warn( SHOW_ERRNO( "Failed to set TCP_NODELAY" ) );
+		if ( client_address.family != AF_UNIX ) {
+			if ( sock_set_tcp_nodelay(client_fd, 1) == -1 ) {
+				warn( SHOW_ERRNO( "Failed to set TCP_NODELAY" ) );
+			}
 		}
 
 		info( "Accepted nbd client socket fd %d", client_fd );
@@ -438,6 +442,12 @@ void proxy_cleanup( struct proxier* proxy )
 			)
 		);
 		proxy->upstream_fd = -1;
+	}
+
+	if ( AF_UNIX == proxy->listen_on.family ) {
+		if ( -1 == unlink( proxy->listen_on.un.sun_path ) ) {
+			warn( SHOW_ERRNO( "Failed to unlink %s", proxy->listen_on.un.sun_path ) );
+		}
 	}
 
 	debug( "Cleanup done" );
