@@ -34,6 +34,10 @@ int socket_connect(struct sockaddr* to, struct sockaddr* from)
 		return -1;
 	}
 
+	if ( sock_set_tcp_nodelay( fd, 1 ) == -1 ) {
+		warn( SHOW_ERRNO( "Failed to set TCP_NODELAY" ) );
+	}
+
 	return fd;
 }
 
