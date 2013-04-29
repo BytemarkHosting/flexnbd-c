@@ -9,6 +9,10 @@
 #include "nbdtypes.h"
 #include "self_pipe.h"
 
+#ifdef PREFETCH
+  #include "prefetch.h"
+#endif
+
 struct proxier {
 	/* The flexnbd wrapper this proxier is attached to */
 	struct flexnbd*   flexnbd;
@@ -56,6 +60,10 @@ struct proxier {
 
     /* We transform the raw reply header into here */
 	struct nbd_reply   rsp_hdr;
+
+#ifdef PREFETCH
+  struct prefetch *prefetch;
+#endif
 };
 
 struct proxier* proxy_create(
