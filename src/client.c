@@ -455,7 +455,7 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		FATAL_IF_NEGATIVE(
 			msync( client->mapped + from_rounded,
 				len_rounded,
-				MS_SYNC),
+				MS_SYNC | MS_INVALIDATE),
 			"msync failed %ld %ld", request.from, request.len
 		);
 	}
