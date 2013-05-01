@@ -2,7 +2,7 @@
 #include "readwrite.h"
 
 #ifdef PREFETCH
-  #include "prefetch.h"
+#include "prefetch.h"
 #endif
 
 
@@ -66,7 +66,7 @@ struct proxier* proxy_create(
 	out->upstream_fd = -1;
 
 #ifdef PREFETCH
-       out->prefetch = xmalloc( sizeof( struct prefetch ) );
+	out->prefetch = xmalloc( sizeof( struct prefetch ) );
 #endif
 
 
@@ -81,7 +81,7 @@ void proxy_destroy( struct proxier* proxy )
 	free( proxy->req_buf );
 	free( proxy->rsp_buf );
 #ifdef PREFETCH
-       free( proxy->prefetch );
+	free( proxy->prefetch );
 #endif
 
 	free( proxy );
@@ -243,88 +243,101 @@ int proxy_run_request_upstream( struct proxier* proxy )
 	unsigned char* rsp_hdr_raw  = proxy->rsp_buf;
 	unsigned char* rsp_data = proxy->rsp_buf + NBD_REPLY_SIZE;
 
-	struct nbd_reply_raw*   reply_raw   = (struct nbd_reply_raw*) rsp_hdr_raw;
+	struct nbd_reply_raw* reply_raw = (struct nbd_reply_raw*) rsp_hdr_raw;
+	struct nbd_request*   request   = &(proxy->req_hdr);
 
-	struct nbd_request*     request = &(proxy->req_hdr);
 #ifdef PREFETCH
-  /* We only want to consider prefetching if we know we're not getting too much
-   * data back, if it's a read request, and if the prefetch won't try to read
-   * past the end of the file.
-   */
-  int prefetching = 
-    request->len <= PREFETCH_BUFSIZE && 
-    request->type == REQUEST_READ &&
-    (request->from + request->len * 2) <= proxy->upstream_size;
+	/* We only want to consider prefetching if we know we're not
+	 * getting too much data back, if it's a read request, and if
+	 * the prefetch won't try to read past the end of the file.
+	 */
+	int prefetching =
+		request->len <= PREFETCH_BUFSIZE &&
+		request->type == REQUEST_READ &&
+		(request->from + request->len * 2) <= proxy->upstream_size;
 
-  /* We pull the request out of the proxy struct, rewrite the
-   * request size, and write it back.
-   */
-  if ( prefetching ) {
-    /* We need a malloc here because nbd_h2r_request craps
-     * out if passed an address on the stack
-     */
-    struct nbd_request* rewrite_request = xmalloc( sizeof( struct nbd_request ) );
-    NULLCHECK( rewrite_request );
-    memcpy( rewrite_request, request, sizeof( struct nbd_request ) );
+	/* We pull the request out of the proxy struct, rewrite the
+	 * request size, and write it back.
+	 */
+	if ( prefetching ) {
+		/* We need a malloc here because nbd_h2r_request craps
+		 * out if passed an address on the stack
+		 */
+		struct nbd_request* rewrite_request =
+			xmalloc( sizeof( struct nbd_request ) );
+		NULLCHECK( rewrite_request );
+		memcpy( rewrite_request,
+			request,
+			sizeof( struct nbd_request ) );
 
-    rewrite_request->len *= 2;
-    debug( "Prefetching %d bytes", rewrite_request->len );
+		rewrite_request->len *= 2;
+		debug( "Prefetching %d bytes", rewrite_request->len );
 
-    nbd_h2r_request( rewrite_request, (struct nbd_request_raw *)proxy->req_buf );
-    free( rewrite_request );
-  }
+		nbd_h2r_request( rewrite_request,
+				 (struct nbd_request_raw *)proxy->req_buf );
+		free( rewrite_request );
+	}
 #endif
- 
-	struct nbd_reply*       reply = &(proxy->rsp_hdr);
+
+	struct nbd_reply* reply = &(proxy->rsp_hdr);
 
 	size_t rsp_buf_size;
 
 #ifdef PREFETCH
-  if ( request->type == REQUEST_READ ){
-    /* See if we can respond with what's in our prefetch
-     * cache
-     */
-    if( proxy->prefetch->is_full && 
-        request->from == proxy->prefetch->from &&
-        request->len  == proxy->prefetch->len ) {
-      /* HUZZAH!  A match! */
-      debug( "Prefetch hit!" );
+	if ( request->type == REQUEST_READ ){
+		/* See if we can respond with what's in our prefetch
+		 * cache
+		 */
+		if( proxy->prefetch->is_full &&
+		    request->from == proxy->prefetch->from &&
+		    request->len  == proxy->prefetch->len ) {
+			/* HUZZAH!  A match! */
+			debug( "Prefetch hit!" );
 
-      /* First build a reply header */
-      struct nbd_reply prefetch_reply = {REPLY_MAGIC, 0, "01234567"};
-      memcpy( &(prefetch_reply.handle), request->handle, 8 );
+			/* First build a reply header */
+			struct nbd_reply prefetch_reply =
+				{REPLY_MAGIC, 0, "01234567"};
+			memcpy( &(prefetch_reply.handle), request->handle, 8 );
 
-      /* now copy it into the response */
-      nbd_h2r_reply( &prefetch_reply, reply_raw );
+			/* now copy it into the response */
+			nbd_h2r_reply( &prefetch_reply, reply_raw );
 
-      /* and the data */
-      memcpy( rsp_data, proxy->prefetch->buffer, proxy->prefetch->len );
+			/* and the data */
+			memcpy( rsp_data,
+				proxy->prefetch->buffer,
+				proxy->prefetch->len );
 
-      proxy->rsp_buf_size = NBD_REPLY_SIZE + proxy->prefetch->len;
+			proxy->rsp_buf_size =
+				NBD_REPLY_SIZE + proxy->prefetch->len;
 
-      /* return early, our work here is done */
-      return 1;
-    }
-  }
-  else {
-    /* Safety catch.  If we're sending a write request, we
-     * blow away the cache.  This is very pessimistic, but
-     * it's simpler (and therefore safer) than working out
-     * whether we can keep it or not.
-     */
-    debug( "Blowing away prefetch cache on type %d request.", request->type );
-    proxy->prefetch->is_full = 0;
-  }
-#endif  
+			/* return early, our work here is done */
+			return 1;
+		}
+	}
+	else {
+		/* Safety catch.  If we're sending a write request, we
+		 * blow away the cache.  This is very pessimistic, but
+		 * it's simpler (and therefore safer) than working out
+		 * whether we can keep it or not.
+		 */
+		debug("Blowing away prefetch cache on type %d request.",
+		      request->type);
+		proxy->prefetch->is_full = 0;
+	}
+#endif
 
-	if ( writeloop( proxy->upstream_fd, proxy->req_buf, proxy->req_buf_size ) == -1 ) {
+	if ( -1 == writeloop( proxy->upstream_fd,
+			      proxy->req_buf,
+			      proxy->req_buf_size ) ) {
 		warn( "Failed to send request to upstream" );
-    goto disconnect;
+		goto disconnect;
 	}
 
-	if ( readloop( proxy->upstream_fd, rsp_hdr_raw, NBD_REPLY_SIZE ) == -1 ) {
+	if ( -1 == readloop( proxy->upstream_fd,
+			     rsp_hdr_raw,
+			     NBD_REPLY_SIZE ) ) {
 		debug( "Failed to get reply header from upstream" );
-    goto disconnect;
+		goto disconnect;
 	}
 
 	nbd_r2h_reply( reply_raw, reply );
@@ -332,51 +345,59 @@ int proxy_run_request_upstream( struct proxier* proxy )
 
 	if ( reply->magic != REPLY_MAGIC ) {
 		debug( "Reply magic is incorrect" );
-    goto disconnect;
+		goto disconnect;
 	}
 
-	debug( "NBD reply received from upstream. Response code: %"PRIu32, reply->error );
+	debug("NBD reply received from upstream. Response code: %"PRIu32,
+	      reply->error );
 
 	if ( reply->error != 0 ) {
-		warn( "NBD  error returned from upstream: %"PRIu32, reply->error );
+		warn( "NBD  error returned from upstream: %"PRIu32,
+		      reply->error );
 	}
 
-  if ( reply->error == 0 && request->type == REQUEST_READ ) {
+	if ( reply->error == 0 && request->type == REQUEST_READ ) {
 #ifdef PREFETCH
-    if (readloop( proxy->upstream_fd, rsp_data,  request->len ) == -1 ) {
-      debug( "Failed to get reply data from upstream" );
-      goto disconnect;
-    }
+		if ( -1 == readloop( proxy->upstream_fd,
+				    rsp_data,
+				    request->len ) ) {
+			debug( "Failed to get reply data from upstream" );
+			goto disconnect;
+		}
 
-
-    if ( prefetching ) {
-      if ( readloop( proxy->upstream_fd, &(proxy->prefetch->buffer),  request->len ) == -1 ) {
-        debug( "Failed to get prefetch reply data from upstream" );
-        goto disconnect;
-      }
-      proxy->prefetch->from = request->from + request->len;
-      proxy->prefetch->len  = request->len;
-      proxy->prefetch->is_full = 1;
-    }
+		if ( prefetching ) {
+			if ( -1 == readloop( proxy->upstream_fd,
+					    &(proxy->prefetch->buffer),
+					    request->len ) ) {
+				debug( "Failed to get prefetch reply data "
+				       "from upstream" );
+				goto disconnect;
+			}
+			proxy->prefetch->from = request->from + request->len;
+			proxy->prefetch->len  = request->len;
+			proxy->prefetch->is_full = 1;
+		}
 #else
 
-    if (readloop( proxy->upstream_fd, rsp_data, request->len ) == -1 ) {
-      debug( "Failed to get reply data from upstream" );
-      goto disconnect;
-    }
+		if ( -1 == readloop( proxy->upstream_fd,
+				     rsp_data,
+				     request->len ) ) {
+			debug( "Failed to get reply data from upstream" );
+			goto disconnect;
+		}
 #endif
-    rsp_buf_size += request->len;
-  }
+		rsp_buf_size += request->len;
+	}
 
 	proxy->rsp_buf_size = rsp_buf_size;
 	return 1;
 
 disconnect:
-  proxy_disconnect_from_upstream( proxy );
+	proxy_disconnect_from_upstream( proxy );
 #ifdef PREFETCH
-  proxy->prefetch->is_full = 0;
+	proxy->prefetch->is_full = 0;
 #endif
-  return 0;
+	return 0;
 }
 
 /* Write an NBD reply back downstream. Return 0 on failure, 1 on success. */
