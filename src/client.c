@@ -551,6 +551,12 @@ void* client_serve(void* client_uncast)
 		),
 		"Couldn't open/mmap file %s: %s", client->serve->filename, strerror( errno )
 	);
+
+	FATAL_IF_NEGATIVE(
+		madvise( client->mapped, client->serve->size, MADV_SEQUENTIAL ),
+		SHOW_ERRNO( "Failed to madvise() %s", client->serve->filename )
+	);
+
 	debug( "Opened client file fd %d", client->fileno);
 	debug("client: sending hello");
 	client_send_hello(client);

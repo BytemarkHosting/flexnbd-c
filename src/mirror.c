@@ -89,6 +89,11 @@ void mirror_init( struct mirror * mirror, const char * filename )
 		filename
 	);
 
+	FATAL_IF_NEGATIVE(
+		madvise( mirror->mapped, size, MADV_SEQUENTIAL ),
+		SHOW_ERRNO( "Failed to madvise() %s", filename )
+	);
+
 	mirror->dirty_map = bitset_alloc(size, 4096);
 
 }
@@ -193,8 +198,8 @@ int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 						0,
 						serve->mirror->mapped + current,
 						MS_REQUEST_LIMIT_SECS);
-				madvise( serve->mirror->mapped + current, 
-						run, 
+				madvise( serve->mirror->mapped + current,
+						run,
 						MADV_DONTNEED );
 
 				/* now mark it clean */
