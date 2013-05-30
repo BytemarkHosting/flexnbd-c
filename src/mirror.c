@@ -260,6 +260,11 @@ void mirror_cleanup( struct server * serve,
 	NULLCHECK( mirror );
 	info( "Cleaning up mirror thread");
 
+	if ( mirror->mapped ) {
+		munmap( mirror->mapped, serve->size );
+	}
+	mirror->mapped = NULL;
+
 	if( mirror->client && mirror->client > 0 ){
 		close( mirror->client );
 	}
