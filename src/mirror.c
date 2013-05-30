@@ -198,9 +198,6 @@ int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 						0,
 						serve->mirror->mapped + current,
 						MS_REQUEST_LIMIT_SECS);
-				madvise( serve->mirror->mapped + current,
-						run,
-						MADV_DONTNEED );
 
 				/* now mark it clean */
 				bitset_clear_range(map, current, run);
@@ -217,10 +214,6 @@ int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 			success = 0;
 			break;
 		}
-	}
-
-	if ( !success ) {
-		madvise( serve->mirror->mapped, serve->size, MADV_NORMAL );
 	}
 
 	return success;
