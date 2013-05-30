@@ -248,8 +248,8 @@ void mirror_on_exit( struct server * serve )
 	debug("serve_wait_for_close");
 	serve_wait_for_close( serve );
 
-	debug("Unlinking %s", serve->filename );
 	if ( ACTION_UNLINK == serve->mirror->action_at_finish ) {
+		debug("Unlinking %s", serve->filename );
 		server_unlink( serve );
 	}
 
