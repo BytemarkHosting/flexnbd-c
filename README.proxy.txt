@@ -94,7 +94,10 @@ error to set both --verbose and --quiet.  The last one wins.
 
 The log line format is:
 
-  <LEVEL>:<PID> <THREAD> <SOURCEFILE>:<SOURCELINE>: <MSG>
+  <TIMESTAMP> <LEVEL>:<PID> <THREAD> <SOURCEFILE>:<SOURCELINE>: <MSG>
+
+*TIMESTAMP*:
+  Time the log entry was made. This is expressed as milliseconds since the epoc.
 
 *LEVEL*:
   This will be one of 'D', 'I', 'W', 'E', 'F' in increasing order of

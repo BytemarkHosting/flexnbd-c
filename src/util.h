@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 void* xrealloc(void* ptr, size_t size);
 void* xmalloc(size_t size);
@@ -85,9 +86,13 @@ void error_handler(int fatal);
 /* mylog a line at the given level (0 being most verbose) */
 void mylog(int line_level, const char* format, ...);
 
+/* Returns the current time, in milliseconds, from CLOCK_MONOTONIC */
+uint64_t monotonic_time_ms(void);
+
+
 #define levstr(i) (i==0?'D':(i==1?'I':(i==2?'W':(i==3?'E':'F'))))
 
-#define myloglev(level, msg, ...) mylog( level, "%c:%d %p %s:%d: "msg"\n", levstr(level), getpid(),pthread_self(), __FILE__, __LINE__, ##__VA_ARGS__ )
+#define myloglev(level, msg, ...) mylog( level, "%"PRIu64":%c:%d %p %s:%d: "msg"\n", monotonic_time_ms(), levstr(level), getpid(),pthread_self(), __FILE__, __LINE__, ##__VA_ARGS__ )
 
 #ifdef DEBUG
 #  define debug(msg, ...) myloglev(0, msg, ##__VA_ARGS__)
