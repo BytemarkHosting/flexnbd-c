@@ -128,7 +128,7 @@ int proxy_connect_to_upstream( struct proxier* proxy )
 void proxy_disconnect_from_upstream( struct proxier* proxy )
 {
 	if ( -1 != proxy->upstream_fd ) {
-		debug(" Closing upstream connection" );
+		info(" Closing upstream connection" );
 
 		/* TODO: An NBD disconnect would be pleasant here */
 		WARN_IF_NEGATIVE(
@@ -191,7 +191,7 @@ int proxy_get_request_from_downstream( struct proxier* proxy )
 	struct nbd_request*     request = &(proxy->req_hdr);
 
 	if ( readloop( proxy->downstream_fd, req_hdr_raw, NBD_REQUEST_SIZE ) == -1 ) {
-		info( SHOW_ERRNO( "Failed to get request header" ) );
+		info( SHOW_ERRNO( "Failed to get request header from downstream" ) );
 		return 0;
 	}
 
@@ -329,14 +329,14 @@ int proxy_run_request_upstream( struct proxier* proxy )
 	if ( -1 == writeloop( proxy->upstream_fd,
 			      proxy->req_buf,
 			      proxy->req_buf_size ) ) {
-		warn( "Failed to send request to upstream" );
+		warn( SHOW_ERRNO( "Failed to send request to upstream" ) );
 		goto disconnect;
 	}
 
 	if ( -1 == readloop( proxy->upstream_fd,
 			     rsp_hdr_raw,
 			     NBD_REPLY_SIZE ) ) {
-		debug( "Failed to get reply header from upstream" );
+		warn( SHOW_ERRNO( "Failed to get reply header from upstream" ) );
 		goto disconnect;
 	}
 
@@ -348,8 +348,8 @@ int proxy_run_request_upstream( struct proxier* proxy )
 		goto disconnect;
 	}
 
-	debug("NBD reply received from upstream. Response code: %"PRIu32,
-	      reply->error );
+	debug( "NBD reply received from upstream. Response code: %"PRIu32,
+	       reply->error );
 
 	if ( reply->error != 0 ) {
 		warn( "NBD  error returned from upstream: %"PRIu32,
@@ -361,7 +361,7 @@ int proxy_run_request_upstream( struct proxier* proxy )
 		if ( -1 == readloop( proxy->upstream_fd,
 				    rsp_data,
 				    request->len ) ) {
-			debug( "Failed to get reply data from upstream" );
+			warn( SHOW_ERRNO( "Failed to get read reply data from upstream" ) );
 			goto disconnect;
 		}
 
@@ -369,8 +369,7 @@ int proxy_run_request_upstream( struct proxier* proxy )
 			if ( -1 == readloop( proxy->upstream_fd,
 					    &(proxy->prefetch->buffer),
 					    request->len ) ) {
-				debug( "Failed to get prefetch reply data "
-				       "from upstream" );
+				warn( SHOW_ERRNO( "Failed to get prefetch read reply data from upstream" ) );
 				goto disconnect;
 			}
 			proxy->prefetch->from = request->from + request->len;
@@ -382,7 +381,7 @@ int proxy_run_request_upstream( struct proxier* proxy )
 		if ( -1 == readloop( proxy->upstream_fd,
 				     rsp_data,
 				     request->len ) ) {
-			debug( "Failed to get reply data from upstream" );
+			warn( SHOW_ERRNO( "Failed to get read reply data from upstream" ) );
 			goto disconnect;
 		}
 #endif
@@ -413,7 +412,7 @@ int proxy_send_reply_downstream( struct proxier* proxy )
 
 	result = writeloop( proxy->downstream_fd, rsp_buf, proxy->rsp_buf_size );
 	if ( result == -1 ) {
-		debug( "Failed to send reply downstream" );
+		warn( SHOW_ERRNO( "Failed to send reply downstream" ) );
 		return 0;
 	}
 
@@ -443,27 +442,27 @@ void proxy_session( struct proxier* proxy )
 	info( "Beginning proxy session on fd %i", downstream_fd );
 
 	if ( !socket_nbd_write_hello( downstream_fd, proxy->upstream_size ) ) {
-		debug( "Sending hello failed on fd %i, ending session", downstream_fd );
+		warn( "Sending hello failed on fd %i, ending session", downstream_fd );
 		return;
 	}
 
 	while( proxy_get_request_from_downstream( proxy ) ) {
 		do {
 			if ( proxy->upstream_fd == -1 ) {
-				debug( "Connecting to upstream" );
+				info( "Connecting to upstream" );
 				if ( !proxy_connect_to_upstream( proxy ) ) {
-					debug( "Failed to connect to upstream" );
+					warn( "Failed to connect to upstream" );
 					result = 0;
 					sleep( 5 );
 					continue;
 				}
-				debug( "Connected to upstream");
+				info( "Connected to upstream");
 			}
 			result = proxy_run_request_upstream( proxy );
 		} while ( result == 0 );
 
 		if ( !proxy_send_reply_downstream( proxy ) ) {
-			debug( "Replying on fd %i failed, ending session", downstream_fd );
+			warn( "Replying on fd %i failed, ending session", downstream_fd );
 			break;
 		}
 
@@ -492,7 +491,7 @@ int proxy_accept( struct proxier* params )
 	union mysockaddr client_address;
 	socklen_t        socklen = sizeof( client_address );
 
-	debug("accept loop starting");
+	info( "Waiting for client connection" );
 
 	FD_ZERO(&fds);
 	FD_SET(params->listen_fd, &fds);
@@ -574,7 +573,7 @@ void proxy_cleanup( struct proxier* proxy )
 		}
 	}
 
-	debug( "Cleanup done" );
+	info( "Cleanup done" );
 }
 
 /** Full lifecycle of the proxier */
@@ -582,10 +581,10 @@ int do_proxy( struct proxier* params )
 {
 	NULLCHECK( params );
 
-	debug( "Ensuring upstream server is open" );
+	info( "Ensuring upstream server is open" );
 
 	if ( !proxy_connect_to_upstream( params ) ) {
-		info( "Couldn't connect to upstream server during initialization" );
+		warn( "Couldn't connect to upstream server during initialization, exiting" );
 		proxy_cleanup( params );
 		return 1;
 	};
