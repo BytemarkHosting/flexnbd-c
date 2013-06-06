@@ -20,6 +20,10 @@ struct client *client_create( struct server *serve, int socket )
 	NULLCHECK( serve );
 
 	struct client *c;
+	struct sigevent evp = {
+		.sigev_notify = SIGEV_SIGNAL,
+		.sigev_signo = CLIENT_KILLSWITCH_SIGNAL
+	};
 
 	c = xmalloc( sizeof( struct client ) );
 	c->stopped = 0;
@@ -27,6 +31,11 @@ struct client *client_create( struct server *serve, int socket )
 	c->serve = serve;
 
 	c->stop_signal = self_pipe_create();
+
+	FATAL_IF_NEGATIVE(
+		timer_create( CLOCK_MONOTONIC, &evp, &(c->killswitch) ),
+		SHOW_ERRNO( "Failed to create killswitch timer" )
+	);
 
 	debug( "Alloced client %p with socket %d", c, socket );
 	return c;
@@ -44,6 +53,11 @@ void client_signal_stop( struct client *c)
 void client_destroy( struct client *client )
 {
 	NULLCHECK( client );
+
+	FATAL_IF_NEGATIVE(
+		timer_delete( client->killswitch ),
+		SHOW_ERRNO( "Couldn't delete killswitch" )
+	);
 
 	debug( "Destroying stop signal for client %p", client );
 	self_pipe_destroy( client->stop_signal );
@@ -476,6 +490,43 @@ void client_reply( struct client* client, struct nbd_request request )
 }
 
 
+/* Starts a timer that will kill the whole process if disarm is not called
+ * within a timeout (see CLIENT_HANDLE_TIMEOUT).
+ */
+void client_arm_killswitch( struct client* client )
+{
+	struct itimerspec its = {
+		.it_value    = { .tv_nsec = 0, .tv_sec = CLIENT_HANDLER_TIMEOUT },
+		.it_interval = { .tv_nsec = 0, .tv_sec = 0 }
+	};
+
+	debug( "Arming killswitch" );
+
+	FATAL_IF_NEGATIVE(
+		timer_settime( client->killswitch, 0, &its, NULL ),
+		SHOW_ERRNO( "Failed to arm killswitch" )
+	);
+
+	return;
+}
+
+void client_disarm_killswitch( struct client* client )
+{
+	struct itimerspec its = {
+		.it_value    = { .tv_nsec = 0, .tv_sec = 0 },
+		.it_interval = { .tv_nsec = 0, .tv_sec = 0 }
+	};
+
+	debug( "Disarming killswitch" );
+
+	FATAL_IF_NEGATIVE(
+		timer_settime( client->killswitch, 0, &its, NULL ),
+		SHOW_ERRNO( "Failed to disarm killswitch" )
+	);
+
+	return;
+}
+
 /* Returns 0 if we should continue trying to serve requests */
 int client_serve_request(struct client* client)
 {
@@ -492,11 +543,26 @@ int client_serve_request(struct client* client)
 	server_lock_io( client->serve );
 	{
 		if ( !server_is_closed( client->serve ) ) {
+			/* We arm / disarm around client_reply() to catch cases where the
+			 * remote peer sends part of a write request data before dying,
+			 * and cases where we send part of read reply data before they die.
+			 *
+			 * That last is theoretical right now, but could break us in the
+			 * same way as a half-write (which causes us to sit in read forever)
+			 *
+			 * We only arm/disarm inside the server io lock because it's common
+			 * during migrations for us to be hanging on that mutex for quite
+			 * a while while the final pass happens - it's held for the entire
+			 * time.
+			 */
+			client_arm_killswitch( client );
 			client_reply( client, request );
+			client_disarm_killswitch( client );
 			stop = 0;
 		}
 	}
 	server_unlock_io( client->serve );
+
 
 	return stop;
 }
