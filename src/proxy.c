@@ -392,6 +392,10 @@ int proxy_run_request_upstream( struct proxier* proxy )
 	return 1;
 
 disconnect:
+	warn(
+		"Request was: type=%"PRIu32" from=%"PRIu64" len=%"PRIu32,
+		request->type, request->from, request->len
+	);
 	proxy_disconnect_from_upstream( proxy );
 #ifdef PREFETCH
 	proxy->prefetch->is_full = 0;
