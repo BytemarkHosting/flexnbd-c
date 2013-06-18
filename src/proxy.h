@@ -47,7 +47,10 @@ struct proxier {
 	unsigned char*     req_buf;
 
 	/* Number of bytes currently sat in req_buf */
-	size_t             req_buf_size;
+	ssize_t             req_buf_size;
+
+	/* Number of bytes of request we've gotten through */
+	off_t              req_buf_offset;
 
 	/* We transform the raw request header into here */
 	struct nbd_request req_hdr;
@@ -56,13 +59,27 @@ struct proxier {
 	unsigned char*     rsp_buf;
 
 	/* Number of bytes currently sat in rsp_buf */
-	size_t             rsp_buf_size;
+	ssize_t             rsp_buf_size;
+
+	/* Number of bytes of response we've gotten through */
+	off_t              rsp_buf_offset;
 
     /* We transform the raw reply header into here */
 	struct nbd_reply   rsp_hdr;
 
+	/* It's starting to feel like we need an object for a single proxy session.
+	 * These two track how many requests we've sent so far, and whether the
+	 * NBD_INIT code has been sent to the client yet.
+	 */
+	uint64_t req_count;
+	int hello_sent;
+
+	/* And now we're doing non-blocking connect to upstream, we need this too */
+	struct nbd_init_raw init_buf;
+	off_t init_buf_offset;
+
 #ifdef PREFETCH
-  struct prefetch *prefetch;
+	struct prefetch *prefetch;
 #endif
 };
 
