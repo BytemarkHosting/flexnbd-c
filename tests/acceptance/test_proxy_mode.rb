@@ -70,7 +70,8 @@ class TestProxyMode < Test::Unit::TestCase
         assert_equal 0, rsp[:error]
 
         data = @env.file1.read(offset, 4096)
-        assert_equal( ( "\xFF" * 4096 ), data, "Data not written" )
+
+        assert_equal( ( "\xFF" * 4096 ), data, "Data not written correctly (offset is #{n})" )
       end
     end
   end
