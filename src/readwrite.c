@@ -41,41 +41,58 @@ int socket_connect(struct sockaddr* to, struct sockaddr* from)
 	return fd;
 }
 
-int socket_nbd_read_hello(int fd, off64_t * out_size)
+int nbd_check_hello( struct nbd_init_raw* init_raw, off64_t* out_size )
 {
-	struct nbd_init init;
-	if ( 0 > readloop(fd, &init, sizeof(init)) ) {
-		warn( "Couldn't read init" );
+	if ( strncmp( init_raw->passwd, INIT_PASSWD, 8 ) != 0 ) {
+		warn( "wrong passwd" );
 		goto fail;
 	}
-	if (strncmp(init.passwd, INIT_PASSWD, 8) != 0) {
-		warn("wrong passwd");
+	if ( be64toh( init_raw->magic ) != INIT_MAGIC ) {
+		warn( "wrong magic (%x)", be64toh( init_raw->magic ) );
 		goto fail;
 	}
-	if (be64toh(init.magic) != INIT_MAGIC) {
-		warn("wrong magic (%x)", be64toh(init.magic));
-		goto fail;
-	}
+
 	if ( NULL != out_size ) {
-		*out_size = be64toh(init.size);
+		*out_size = be64toh( init_raw->size );
 	}
 
 	return 1;
 fail:
 	return 0;
+
+}
+
+int socket_nbd_read_hello( int fd, off64_t* out_size )
+{
+	struct nbd_init_raw init_raw;
+
+
+	if ( 0 > readloop( fd, &init_raw, sizeof(init_raw) ) ) {
+		warn( "Couldn't read init" );
+		return 0;
+	}
+
+	return nbd_check_hello( &init_raw, out_size );
+}
+
+void nbd_hello_to_buf( struct nbd_init_raw *buf, off64_t out_size )
+{
+	struct nbd_init init;
+
+	memcpy( &init.passwd, INIT_PASSWD, 8 );
+	init.magic  = INIT_MAGIC;
+	init.size   = out_size;
+
+	memset( buf, 0, sizeof( struct nbd_init_raw ) ); // ensure reserved is 0s
+	nbd_h2r_init( &init, buf );
+
+	return;
 }
 
 int socket_nbd_write_hello(int fd, off64_t out_size)
 {
-	struct nbd_init init;
 	struct nbd_init_raw init_raw;
-
-	memcpy(&init.passwd, INIT_PASSWD, 8);
-	init.magic  = INIT_MAGIC;
-	init.size   = out_size;
-
-	memset( &init_raw, 0, sizeof( init_raw ) ); // ensure reserved is 0s
-	nbd_h2r_init(&init, &init_raw);
+	nbd_hello_to_buf( &init_raw, out_size );
 
 	if ( 0 > writeloop( fd, &init_raw, sizeof( init_raw ) ) ) {
 		warn( SHOW_ERRNO( "failed to write hello to socket" ) );

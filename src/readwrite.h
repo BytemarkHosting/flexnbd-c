@@ -12,5 +12,11 @@ void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf, i
 void socket_nbd_write(int fd, off64_t from, int len, int out_fd, void* out_buf, int timeout_secs);
 int socket_nbd_disconnect( int fd );
 
+/* as you can see, we're slowly accumulating code that should really be in an
+ * NBD library */
+
+void nbd_hello_to_buf( struct nbd_init_raw* buf, off64_t out_size );
+int nbd_check_hello( struct nbd_init_raw* init_raw, off64_t* out_size );
+
 #endif
 
