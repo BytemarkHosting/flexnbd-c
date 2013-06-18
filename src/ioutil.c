@@ -10,6 +10,7 @@
 
 #include "util.h"
 #include "bitset.h"
+#include "ioutil.h"
 
 
 int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
@@ -266,5 +267,68 @@ int fd_is_closed( int fd_in )
 	int result = fcntl( fd_in, F_GETFL ) < 0;
 	errno = errno_old;
 	return result;
+}
+
+
+static inline int io_errno_permanent()
+{
+	return ( errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR );
+}
+
+
+/* Returns -1 if the operation failed, or the number of bytes read if all is
+ * well. Note that 0 bytes may be returned. Unlike read(), this is not an EOF! */
+ssize_t iobuf_read(int fd, struct iobuf *iobuf, size_t default_size )
+{
+	size_t left;
+	ssize_t count;
+
+	if ( iobuf->needle == 0 ) {
+		iobuf->size = default_size;
+	}
+
+	left = iobuf->size - iobuf->needle;
+	debug( "Reading %"PRIu32" of %"PRIu32" bytes from fd %i", left, iobuf->size, fd );
+
+	count = read( fd, iobuf->buf + iobuf->needle, left );
+
+	if ( count > 0 ) {
+		iobuf->needle += count;
+		debug( "read() returned %"PRIu32" bytes", count );
+	} else if ( count == 0 ) {
+		warn( "read() returned EOF on fd %i", fd );
+		errno = 0;
+		return -1;
+	} else if ( count == -1 ) {
+		if ( io_errno_permanent() ) {
+			warn( SHOW_ERRNO( "read() failed on fd %i", fd ) );
+		} else {
+			count = 0;
+		}
+	}
+
+	return count;
+}
+
+ssize_t iobuf_write( int fd, struct iobuf *iobuf )
+{
+	size_t left = iobuf->size - iobuf->needle;
+	ssize_t count;
+
+	debug( "Writing %"PRIu32" of %"PRIu32" bytes to fd %i", left, iobuf->size, fd );
+	count = write( fd, iobuf->buf + iobuf->needle, left );
+
+	if ( count >= 0 ) {
+		iobuf->needle += count;
+		debug( "write() returned %"PRIu32" bytes", count );
+	} else {
+		if ( io_errno_permanent() ) {
+			warn( SHOW_ERRNO( "write() failed on fd %i", fd ) );
+		} else {
+			count = 0;
+		}
+	}
+
+	return count;
 }
 

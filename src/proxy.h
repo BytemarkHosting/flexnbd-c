@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "ioutil.h"
 #include "flexnbd.h"
 #include "parse.h"
 #include "nbdtypes.h"
@@ -43,29 +44,21 @@ struct proxier {
 	/* This is the size we advertise to the downstream server */
 	off64_t           upstream_size;
 
-	/* Scratch space for the current NBD request from downstream */
-	unsigned char*     req_buf;
-
-	/* Number of bytes currently sat in req_buf */
-	ssize_t             req_buf_size;
-
-	/* Number of bytes of request we've gotten through */
-	off_t              req_buf_offset;
-
 	/* We transform the raw request header into here */
 	struct nbd_request req_hdr;
 
-	/* Scratch space for the current NBD reply from upstream */
-	unsigned char*     rsp_buf;
-
-	/* Number of bytes currently sat in rsp_buf */
-	ssize_t             rsp_buf_size;
-
-	/* Number of bytes of response we've gotten through */
-	off_t              rsp_buf_offset;
-
     /* We transform the raw reply header into here */
 	struct nbd_reply   rsp_hdr;
+
+	/* Used for our non-blocking negotiation with upstream. TODO: maybe use
+	 * for downstream as well ( we currently overload rsp ) */
+	struct iobuf init;
+
+	/* The current NBD request from downstream */
+	struct iobuf req;
+
+	/* The current NBD reply from upstream */
+	struct iobuf rsp;
 
 	/* It's starting to feel like we need an object for a single proxy session.
 	 * These two track how many requests we've sent so far, and whether the
@@ -73,10 +66,6 @@ struct proxier {
 	 */
 	uint64_t req_count;
 	int hello_sent;
-
-	/* And now we're doing non-blocking connect to upstream, we need this too */
-	struct nbd_init_raw init_buf;
-	off_t init_buf_offset;
 
 #ifdef PREFETCH
 	struct prefetch *prefetch;
