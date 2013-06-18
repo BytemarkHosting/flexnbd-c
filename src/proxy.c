@@ -114,9 +114,9 @@ int proxy_connect_to_upstream( struct proxier* proxy )
 		return 0;
 	}
 
-	proxy_finish_connect_to_upstream( proxy, size );
 	proxy->upstream_fd = fd;
 	sock_set_nonblock( fd, 1 );
+	proxy_finish_connect_to_upstream( proxy, size );
 
 	return 1;
 }
