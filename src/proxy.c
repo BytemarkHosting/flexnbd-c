@@ -383,7 +383,6 @@ int proxy_read_from_downstream( struct proxier *proxy, int state )
 
 //	assert( state == READ_FROM_DOWNSTREAM );
 
-read:
 	count = iobuf_read( proxy->downstream_fd, &proxy->req, NBD_REQUEST_SIZE );
 
 	if ( count == -1 ) {
@@ -413,11 +412,6 @@ read:
 			}
 
 			proxy->req.size += request->len;
-
-			/* Minor optimisation: Read again immediately if there's write
-			 * request data to be had. No point select()ing again
-			 */
-			goto read;
 		}
 	}
 
@@ -533,7 +527,6 @@ int proxy_read_from_upstream( struct proxier* proxy, int state )
 	struct nbd_reply*     reply     = &(proxy->rsp_hdr);
 	struct nbd_reply_raw* reply_raw = (struct nbd_reply_raw*) proxy->rsp.buf;
 
-read:
 	/* We can't assume the NBD_REPLY_SIZE + req->len is what we'll get back */
 	count = iobuf_read( proxy->upstream_fd, &proxy->rsp, NBD_REPLY_SIZE );
 
@@ -559,7 +552,6 @@ read:
 			/* Read the read reply data too. Same optimisation as
 			 * read_from_downstream */
 			proxy->rsp.size += proxy->req_hdr.len;
-			goto read;
 		}
 	}
 
