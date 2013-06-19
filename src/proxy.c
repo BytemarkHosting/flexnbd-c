@@ -561,8 +561,7 @@ int proxy_read_from_upstream( struct proxier* proxy, int state )
 		}
 
 		if ( ( proxy->req_hdr.type & REQUEST_MASK ) == REQUEST_READ ) {
-			/* Get the read reply data too. Same optimisation as
-			 * read_from_downstream */
+			/* Get the read reply data too. */
 			proxy->rsp.size += proxy->req_hdr.len;
 		}
 	}
