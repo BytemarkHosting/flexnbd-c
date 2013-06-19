@@ -246,114 +246,6 @@ void proxy_open_listen_socket(struct proxier* params)
 	return;
 }
 
-
-#ifdef PREFETCH
-
-int proxy_prefetch_for_request( struct proxier* proxy, int state )
-{
-	/* TODO: restore prefetch capability */
-	return state;
-
-	/* We only want to consider prefetching if we know we're not
-	 * getting too much data back, if it's a read request, and if
-	 * the prefetch won't try to read past the end of the file.
-	 */
-	int prefetching =
-		request->len <= PREFETCH_BUFSIZE &&
-		request->type == REQUEST_READ &&
-		(request->from + request->len * 2) <= proxy->upstream_size;
-
-	/* We pull the request out of the proxy struct, rewrite the
-	 * request size, and write it back.
-	 */
-	if ( prefetching ) {
-		/* We need a malloc here because nbd_h2r_request craps
-		 * out if passed an address on the stack
-		 */
-		struct nbd_request* rewrite_request =
-			xmalloc( sizeof( struct nbd_request ) );
-		NULLCHECK( rewrite_request );
-		memcpy( rewrite_request,
-			request,
-			sizeof( struct nbd_request ) );
-
-		rewrite_request->len *= 2;
-		debug( "Prefetching %d bytes", rewrite_request->len );
-
-		nbd_h2r_request( rewrite_request,
-				 (struct nbd_request_raw *)proxy->req.buf );
-		free( rewrite_request );
-	}
-//####
-	if ( request->type == REQUEST_READ ){
-		/* See if we can respond with what's in our prefetch
-		 * cache
-		 */
-		if( proxy->prefetch->is_full &&
-		    request->from == proxy->prefetch->from &&
-		    request->len  == proxy->prefetch->len ) {
-			/* HUZZAH!  A match! */
-			debug( "Prefetch hit!" );
-
-			/* First build a reply header */
-			struct nbd_reply prefetch_reply =
-				{REPLY_MAGIC, 0, "01234567"};
-			memcpy( &(prefetch_reply.handle), request->handle, 8 );
-
-			/* now copy it into the response */
-			nbd_h2r_reply( &prefetch_reply, reply_raw );
-
-			/* and the data */
-			memcpy( rsp_data,
-				proxy->prefetch->buffer,
-				proxy->prefetch->len );
-
-			proxy->rsp.size =
-				NBD_REPLY_SIZE + proxy->prefetch->len;
-
-			/* return early, our work here is done */
-			return 1;
-		}
-	}
-	else {
-		/* Safety catch.  If we're sending a write request, we
-		 * blow away the cache.  This is very pessimistic, but
-		 * it's simpler (and therefore safer) than working out
-		 * whether we can keep it or not.
-		 */
-		debug("Blowing away prefetch cache on type %d request.",
-		      request->type);
-		proxy->prefetch->is_full = 0;
-	}
-}
-
-int proxy_prefetch_for_reply( struct proxier* proxy, int state )
-{
-	return state;
-
-		if ( -1 == readloop( proxy->upstream_fd,
-				    rsp_data,
-				    request->len ) ) {
-			warn( SHOW_ERRNO( "Failed to get read reply data from upstream" ) );
-			goto disconnect;
-		}
-
-		if ( prefetching ) {
-			if ( -1 == readloop( proxy->upstream_fd,
-					    &(proxy->prefetch->buffer),
-					    request->len ) ) {
-				warn( SHOW_ERRNO( "Failed to get prefetch read reply data from upstream" ) );
-				goto disconnect;
-			}
-			proxy->prefetch->from = request->from + request->len;
-			proxy->prefetch->len  = request->len;
-			proxy->prefetch->is_full = 1;
-		}
-
-}
-
-#endif
-
 typedef enum {
 	EXIT,
 	WRITE_TO_DOWNSTREAM,
@@ -373,6 +265,126 @@ static char* proxy_session_state_names[] = {
   "WRITE_TO_UPSTREAM",
   "READ_FROM_UPSTREAM"
 };
+
+#ifdef PREFETCH
+
+int proxy_prefetch_for_request( struct proxier* proxy, int state )
+{
+	struct nbd_request* req = &proxy->req_hdr;
+	struct nbd_reply* rsp = &proxy->rsp_hdr;
+
+	struct nbd_request_raw* req_raw = (struct nbd_request_raw*) proxy->req.buf;
+	struct nbd_reply_raw *rsp_raw = (struct nbd_reply_raw*) proxy->rsp.buf;
+
+	int is_read = ( req->type & REQUEST_MASK ) == REQUEST_READ;
+
+	int prefetch_start = req->from;
+	int prefetch_end = req->from + ( req->len * 2 );
+
+	/* We only want to consider prefetching if we know we're not
+	 * getting too much data back, if it's a read request, and if
+	 * the prefetch won't try to read past the end of the file.
+	 */
+
+	int prefetching = req->len <= PREFETCH_BUFSIZE && is_read &&
+		prefetch_start < prefetch_end && prefetch_end <= proxy->upstream_size;
+
+	if ( is_read ) {
+		/* See if we can respond with what's in our prefetch
+		 * cache */
+		if ( proxy->prefetch->is_full &&
+		    req->from == proxy->prefetch->from &&
+		    req->len  == proxy->prefetch->len ) {
+			/* HUZZAH!  A match! */
+			debug( "Prefetch hit!" );
+
+			/* First build a reply header */
+			rsp->magic = REPLY_MAGIC;
+			rsp->error = 0;
+			memcpy( &rsp->handle, &req->handle, 8 );
+
+			/* now copy it into the response */
+			nbd_h2r_reply( rsp, rsp_raw );
+
+			/* and the data */
+			memcpy(
+				proxy->rsp.buf + NBD_REPLY_SIZE,
+				proxy->prefetch->buffer, proxy->prefetch->len
+			);
+
+			proxy->rsp.size = NBD_REPLY_SIZE + proxy->prefetch->len;
+			proxy->rsp.needle = 0;
+
+			/* return early, our work here is done */
+			return WRITE_TO_DOWNSTREAM;
+		}
+	}
+	else {
+		/* Safety catch.  If we're sending a write request, we
+		 * blow away the cache.  This is very pessimistic, but
+		 * it's simpler (and therefore safer) than working out
+		 * whether we can keep it or not.
+		 */
+		debug( "Blowing away prefetch cache on type %d request.", req->type );
+		proxy->prefetch->is_full = 0;
+	}
+
+	debug( "Prefetch cache MISS!");
+
+
+	/* We pull the request out of the proxy struct, rewrite the
+	 * request size, and write it back.
+	 */
+	if ( prefetching ) {
+		proxy->is_prefetch_req = 1;
+		proxy->prefetch_req_orig_len = req->len;
+
+		req->len *= 2;
+
+		debug( "Prefetching %"PRIu32" bytes", req->len - proxy->prefetch_req_orig_len );
+		nbd_h2r_request( req, req_raw );
+		debug( "Request len: %"PRIu32" ; raw: %"PRIu32, req->len, req_raw->len );
+	}
+
+	return state;
+}
+
+int proxy_prefetch_for_reply( struct proxier* proxy, int state )
+{
+	size_t prefetched_bytes;
+
+	if ( !proxy->is_prefetch_req ) {
+		return state;
+	}
+
+	prefetched_bytes = proxy->req_hdr.len - proxy->prefetch_req_orig_len;
+
+	debug( "Prefetched %d bytes", prefetched_bytes );
+	memcpy(
+		proxy->rsp.buf + proxy->prefetch_req_orig_len,
+		&(proxy->prefetch->buffer),
+		prefetched_bytes
+	);
+
+	proxy->prefetch->from = proxy->req_hdr.from + proxy->prefetch_req_orig_len;
+	proxy->prefetch->len = prefetched_bytes;
+
+	/* We've finished with proxy->req by now, so don't need to alter it to make
+	 * it look like the request was before prefetch */
+
+	/* Truncate the bytes we'll write downstream */
+	proxy->req_hdr.len = proxy->prefetch_req_orig_len;
+	proxy->rsp.size -= prefetched_bytes;
+
+	/* And we need to reset these */
+	proxy->prefetch->is_full = 1;
+	proxy->is_prefetch_req = 0;
+
+	return state;
+}
+
+#endif
+
 
 int proxy_read_from_downstream( struct proxier *proxy, int state )
 {

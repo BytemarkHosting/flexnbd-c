@@ -68,6 +68,12 @@ struct proxier {
 	int hello_sent;
 
 #ifdef PREFETCH
+	/* While the in-flight request has been munged by prefetch, these two are
+	 * set to true, and the original length of the request, respectively */
+	int is_prefetch_req;
+	uint32_t prefetch_req_orig_len;
+
+	/* And here, we actually store the prefetched data once it's returned */
 	struct prefetch *prefetch;
 #endif
 };
