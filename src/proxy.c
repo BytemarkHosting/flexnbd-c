@@ -393,19 +393,19 @@ int proxy_read_from_downstream( struct proxier *proxy, int state )
 	if ( proxy->req.needle == NBD_REQUEST_SIZE ) {
 		nbd_r2h_request( request_raw, request );
 
-		if ( request->type == REQUEST_DISCONNECT ) {
+		if ( ( request->type & REQUEST_MASK ) == REQUEST_DISCONNECT ) {
 			info( "Received disconnect request from client" );
 			return EXIT;
 		}
 
 		/* Simple validations */
-		if ( request->type == REQUEST_READ ) {
+		if ( ( request->type & REQUEST_MASK ) == REQUEST_READ ) {
 			if (request->len > ( NBD_MAX_SIZE - NBD_REPLY_SIZE ) ) {
 				warn( "NBD read request size %"PRIu32" too large", request->len );
 				return EXIT;
 			}
 		}
-		if ( request->type == REQUEST_WRITE ) {
+		if ( (request->type & REQUEST_MASK ) == REQUEST_WRITE ) {
 			if (request->len > ( NBD_MAX_SIZE - NBD_REQUEST_SIZE ) ) {
 				warn( "NBD write request size %"PRIu32" too large", request->len );
 				return EXIT;
@@ -548,8 +548,8 @@ int proxy_read_from_upstream( struct proxier* proxy, int state )
 			goto disconnect;
 		}
 
-		if ( ( proxy->req_hdr.type || REQUEST_READ ) == REQUEST_READ ) {
-			/* Read the read reply data too. Same optimisation as
+		if ( ( proxy->req_hdr.type & REQUEST_MASK ) == REQUEST_READ ) {
+			/* Get the read reply data too. Same optimisation as
 			 * read_from_downstream */
 			proxy->rsp.size += proxy->req_hdr.len;
 		}

@@ -11,6 +11,10 @@
 #define REQUEST_WRITE 1
 #define REQUEST_DISCONNECT 2
 
+/* The top 2 bytes of the type field are overloaded and can contain flags */
+#define REQUEST_MASK 0x0000ffff
+
+
 /* 1MiB is the de-facto standard for maximum size of header + data */
 #define NBD_MAX_SIZE ( 1024 * 1024 )
 
