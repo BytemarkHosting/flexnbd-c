@@ -14,6 +14,12 @@
   #include "prefetch.h"
 #endif
 
+/** UPSTREAM_TIMEOUT
+ * How long ( in ms ) to allow for upstream to respond. If it takes longer
+ * than this, we will cancel the current request-response to them and resubmit
+ */
+#define UPSTREAM_TIMEOUT 30 * 1000
+
 struct proxier {
 	/* The flexnbd wrapper this proxier is attached to */
 	struct flexnbd*   flexnbd;
