@@ -303,6 +303,7 @@ ssize_t iobuf_read(int fd, struct iobuf *iobuf, size_t default_size )
 		if ( io_errno_permanent() ) {
 			warn( SHOW_ERRNO( "read() failed on fd %i", fd ) );
 		} else {
+			debug( SHOW_ERRNO( "read() returned 0 bytes" ) );
 			count = 0;
 		}
 	}
@@ -325,6 +326,7 @@ ssize_t iobuf_write( int fd, struct iobuf *iobuf )
 		if ( io_errno_permanent() ) {
 			warn( SHOW_ERRNO( "write() failed on fd %i", fd ) );
 		} else {
+			debug( SHOW_ERRNO( "write() returned 0 bytes" ) );
 			count = 0;
 		}
 	}
