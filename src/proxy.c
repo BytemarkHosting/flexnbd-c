@@ -697,6 +697,7 @@ void proxy_session( struct proxier* proxy )
 
 				if ( connect_to_upstream_cooldown ) {
 					connect_to_upstream_cooldown = 0;
+					select_timeout.tv_sec = 3;
 				} else {
 					proxy_start_connect_to_upstream( proxy );
 
@@ -705,10 +706,8 @@ void proxy_session( struct proxier* proxy )
 						continue;
 					}
 					FD_SET( proxy->upstream_fd, &wfds );
+					select_timeout.tv_sec = 15;
 				}
-				/* non-blocking connect() or a simple sleep */
-				select_timeout.tv_sec = 15;
-
 				break;
 			case READ_INIT_FROM_UPSTREAM:
 			case READ_FROM_UPSTREAM:
