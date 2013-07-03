@@ -500,6 +500,10 @@ void client_arm_killswitch( struct client* client )
 		.it_interval = { .tv_nsec = 0, .tv_sec = 0 }
 	};
 
+	if ( !client->serve->use_killswitch ) {
+		return;
+	}
+
 	debug( "Arming killswitch" );
 
 	FATAL_IF_NEGATIVE(
@@ -516,6 +520,10 @@ void client_disarm_killswitch( struct client* client )
 		.it_value    = { .tv_nsec = 0, .tv_sec = 0 },
 		.it_interval = { .tv_nsec = 0, .tv_sec = 0 }
 	};
+
+	if ( !client->serve->use_killswitch ) {
+		return;
+	}
 
 	debug( "Disarming killswitch" );
 

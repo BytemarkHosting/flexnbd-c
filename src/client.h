@@ -47,7 +47,9 @@ struct client {
 	/* Have we seen a REQUEST_DISCONNECT message? */
 	int     disconnect;
 
-	/* kill the whole server if a request has been outstanding too long */
+	/* kill the whole server if a request has been outstanding too long,
+	 * assuming use_killswitch is set in serve
+	 */
 	timer_t killswitch;
 
 };

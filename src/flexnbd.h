@@ -36,7 +36,8 @@ struct flexnbd * flexnbd_create_serving(
 	int default_deny,
 	int acl_entries,
 	char** s_acl_entries,
-	int max_nbd_clients);
+	int max_nbd_clients,
+	int use_killswitch);
 
 struct flexnbd * flexnbd_create_listening(
 	char* s_ip_address,

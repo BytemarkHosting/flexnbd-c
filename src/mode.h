@@ -22,6 +22,7 @@ void mode(char* mode, int argc, char **argv);
 #define OPT_UNLINK "unlink"
 #define OPT_CONNECT_ADDR "conn-addr"
 #define OPT_CONNECT_PORT "conn-port"
+#define OPT_KILLSWITCH "killswitch"
 
 #define CMD_SERVE  "serve"
 #define CMD_LISTEN "listen"
@@ -52,6 +53,7 @@ void mode(char* mode, int argc, char **argv);
 #define GETOPT_UNLINK GETOPT_ARG( OPT_UNLINK, 'u' )
 #define GETOPT_CONNECT_ADDR GETOPT_ARG( OPT_CONNECT_ADDR, 'C' )
 #define GETOPT_CONNECT_PORT GETOPT_ARG( OPT_CONNECT_PORT, 'P' )
+#define GETOPT_KILLSWITCH   GETOPT_ARG( OPT_KILLSWITCH,   'k' )
 
 #define OPT_VERBOSE "verbose"
 #define SOPT_VERBOSE "v"

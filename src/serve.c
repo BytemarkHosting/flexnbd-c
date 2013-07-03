@@ -30,6 +30,7 @@ struct server * server_create (
 	int acl_entries,
 	char** s_acl_entries,
 	int max_nbd_clients,
+	int use_killswitch,
 	int success)
 {
 	NULLCHECK( flexnbd );
@@ -38,8 +39,9 @@ struct server * server_create (
 	out->flexnbd = flexnbd;
 	out->success = success;
 	out->max_nbd_clients = max_nbd_clients;
-	out->nbd_client = xmalloc( max_nbd_clients * sizeof( struct client_tbl_entry ) );
+	out->use_killswitch = use_killswitch;
 
+	out->nbd_client = xmalloc( max_nbd_clients * sizeof( struct client_tbl_entry ) );
 	out->tcp_backlog = 10; /* does this need to be settable? */
 
 	FATAL_IF_NULL(s_ip_address, "No IP address supplied");

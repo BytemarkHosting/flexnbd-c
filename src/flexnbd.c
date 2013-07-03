@@ -86,7 +86,8 @@ struct flexnbd * flexnbd_create_serving(
 	int default_deny,
 	int acl_entries,
 	char** s_acl_entries,
-	int max_nbd_clients)
+	int max_nbd_clients,
+	int use_killswitch)
 {
 	struct flexnbd * flexnbd = xmalloc( sizeof( struct flexnbd ) );
 	flexnbd->serve = server_create(
@@ -98,6 +99,7 @@ struct flexnbd * flexnbd_create_serving(
 			acl_entries,
 			s_acl_entries,
 			max_nbd_clients,
+			use_killswitch,
 			1);
 	flexnbd_create_shared( flexnbd,
 			s_ctrl_sock );
@@ -123,7 +125,7 @@ struct flexnbd * flexnbd_create_listening(
 			default_deny,
 			acl_entries,
 			s_acl_entries,
-			1, 0);
+			1, 0, 0);
 	flexnbd_create_shared( flexnbd, s_ctrl_sock );
 	return flexnbd;
 }

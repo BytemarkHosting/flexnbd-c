@@ -15,10 +15,11 @@ static struct option serve_options[] = {
 	GETOPT_SOCK,
 	GETOPT_DENY,
 	GETOPT_QUIET,
+	GETOPT_KILLSWITCH,
 	GETOPT_VERBOSE,
 	{0}
 };
-static char serve_short_options[] = "hl:p:f:s:d" SOPT_QUIET SOPT_VERBOSE;
+static char serve_short_options[] = "hl:p:f:s:dk" SOPT_QUIET SOPT_VERBOSE;
 static char serve_help_text[] =
 	"Usage: flexnbd " CMD_SERVE " <options> [<acl address>*]\n\n"
 	"Serve FILE from ADDR:PORT, with an optional control socket at SOCK.\n\n"
@@ -27,6 +28,7 @@ static char serve_help_text[] =
 	"\t--" OPT_PORT ",-p <PORT>\tThe port to serve on.\n"
 	"\t--" OPT_FILE ",-f <FILE>\tThe file to serve.\n"
 	"\t--" OPT_DENY ",-d\tDeny connections by default unless in ACL.\n"
+	"\t--" OPT_KILLSWITCH",-k  \tKill the server if a request takes 120 seconds.\n"
 	SOCK_LINE
 	VERBOSE_LINE
 	QUIET_LINE;
@@ -193,7 +195,7 @@ void do_write(struct mode_readwrite_params* params);
 void do_remote_command(char* command, char* mode, int argc, char** argv);
 
 
-void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char **sock, int *default_deny )
+void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char **sock, int *default_deny, int *use_killswitch )
 {
 	switch(c){
 		case 'h':
@@ -220,6 +222,9 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 			break;
 		case 'v':
 			log_level = VERBOSE_LOG_LEVEL;
+			break;
+		case 'k':
+			*use_killswitch = 1;
 			break;
 		default:
 			exit_err( serve_help_text );
@@ -404,6 +409,7 @@ int mode_serve( int argc, char *argv[] )
 	char *file    = NULL;
 	char *sock    = NULL;
 	int default_deny = 0; // not on by default
+	int use_killswitch = 0;
 	int err = 0;
 
 	int success;
@@ -414,7 +420,7 @@ int mode_serve( int argc, char *argv[] )
 		c = getopt_long(argc, argv, serve_short_options, serve_options, NULL);
 		if ( c == -1 ) { break; }
 
-		read_serve_param( c, &ip_addr, &ip_port, &file, &sock, &default_deny );
+		read_serve_param( c, &ip_addr, &ip_port, &file, &sock, &default_deny, &use_killswitch );
 	}
 
 	if ( NULL == ip_addr || NULL == ip_port ) {
@@ -427,7 +433,7 @@ int mode_serve( int argc, char *argv[] )
 	}
 	if ( err ) { exit_err( serve_help_text ); }
 
-	flexnbd = flexnbd_create_serving( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS );
+	flexnbd = flexnbd_create_serving( ip_addr, ip_port, file, sock, default_deny, argc - optind, argv + optind, MAX_NBD_CLIENTS, use_killswitch );
 	info( "Serving file %s", file );
 	success = flexnbd_serve( flexnbd );
 	flexnbd_destroy( flexnbd );

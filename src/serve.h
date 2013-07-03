@@ -87,6 +87,9 @@ struct server {
 	int                  max_nbd_clients;
 	struct client_tbl_entry *nbd_client;
 
+	/* Should clients use the killswitch? */
+	int use_killswitch;
+
 
 	/* Marker for whether this server has control over the data in
 	 * the file, or if we're waiting to receive it from an inbound
@@ -107,6 +110,7 @@ struct server * server_create(
 		int acl_entries,
 		char** s_acl_entries,
 		int max_nbd_clients,
+		int use_killswitch,
 		int success );
 void server_destroy( struct server * );
 int server_is_closed(struct server* serve);
