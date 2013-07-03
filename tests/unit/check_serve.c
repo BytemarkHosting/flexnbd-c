@@ -64,7 +64,7 @@ START_TEST( test_replaces_acl )
 {
 	struct flexnbd flexnbd;
 	flexnbd.signal_fd = -1;
-	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 1 );
+	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 0, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
 	server_replace_acl( s, new_acl );
@@ -79,7 +79,7 @@ START_TEST( test_signals_acl_updated )
 {
 	struct flexnbd flexnbd;
 	flexnbd.signal_fd = -1;
-	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 1 );
+	struct server * s = server_create( &flexnbd, "127.0.0.1", "0", dummy_file, 0, 0, NULL, 1, 0, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 0 );
 
 	server_replace_acl( s, new_acl );
@@ -148,7 +148,7 @@ START_TEST( test_acl_update_closes_bad_client )
 	 */
 	struct flexnbd flexnbd;
 	flexnbd.signal_fd = -1;
-	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 1 );
+	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 0, 1 );
 	struct acl * new_acl = acl_create( 0, NULL, 1 );
 	struct client * c;
 	struct client_tbl_entry * entry;
@@ -193,7 +193,7 @@ START_TEST( test_acl_update_leaves_good_client )
 	struct flexnbd flexnbd;
 	flexnbd.signal_fd = -1;
 
-	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 1 );
+	struct server * s = server_create( &flexnbd, "127.0.0.7", "0", dummy_file, 0, 0, NULL, 1, 0, 1 );
 
 	char *lines[] = {"127.0.0.1"};
 	struct acl * new_acl = acl_create( 1, lines, 1 );
@@ -241,7 +241,7 @@ Suite* serve_suite(void)
 	tcase_add_test(tc_acl_update, test_replaces_acl);
 	tcase_add_test(tc_acl_update, test_signals_acl_updated);
 
-	tcase_add_exit_test(tc_acl_update, test_acl_update_closes_bad_client, 0);  
+	tcase_add_exit_test(tc_acl_update, test_acl_update_closes_bad_client, 0);
 	tcase_add_exit_test(tc_acl_update, test_acl_update_leaves_good_client, 0);
 
 	suite_add_tcase(s, tc_acl_update);
