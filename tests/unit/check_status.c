@@ -255,6 +255,39 @@ START_TEST( test_renders_migration_pass )
 }
 END_TEST
 
+START_TEST( test_renders_pass_statistics )
+{
+	struct status status;
+	int fds[2];
+	pipe(fds);
+	char buf[1024] = {0};
+	char *found;
+
+	status.is_mirroring = 0;
+	status.pass_dirty_bytes = 2048;
+	status.pass_clean_bytes = 4096;
+	status_write( &status, fds[1] );
+
+	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
+			"Couldn't read the result" );
+	found = strstr( buf, "pass_dirty_bytes" );
+	fail_if( NULL != found, "migration pass output when not migrating" );
+
+	found = strstr( buf, "pass_clean_bytes" );
+	fail_if( NULL != found, "migration pass output when not migrating" );
+
+	status.is_mirroring = 1;
+	status_write( &status, fds[1] );
+
+	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
+			"Couldn't read the result" );
+	found = strstr( buf, "pass_dirty_bytes=2048" );
+	fail_if( NULL == found, "migration pass not output when not migrating" );
+	found = strstr( buf, "pass_clean_bytes=4096" );
+	fail_if( NULL == found, "migration pass not output when not migrating" );
+
+}
+END_TEST
 
 
 Suite *status_suite(void)
@@ -277,6 +310,7 @@ Suite *status_suite(void)
 	tcase_add_test(tc_render, test_renders_pid);
 	tcase_add_test(tc_render, test_renders_size);
 	tcase_add_test(tc_render, test_renders_migration_pass);
+	tcase_add_test(tc_render, test_renders_pass_statistics);
 
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_render);

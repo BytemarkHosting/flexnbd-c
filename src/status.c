@@ -44,6 +44,8 @@ int status_write( struct status * status, int fd )
 
 	if ( status->is_mirroring ) {
 		PRINT_INT( migration_pass );
+		PRINT_UINT64( pass_dirty_bytes );
+		PRINT_UINT64( pass_clean_bytes );
 	}
 
 	dprintf(fd, "\n");
