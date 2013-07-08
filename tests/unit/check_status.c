@@ -119,6 +119,22 @@ START_TEST( test_gets_size )
 }
 END_TEST
 
+START_TEST( test_gets_pass_statistics )
+{
+	struct server * server = mock_mirroring_server();
+	server->mirror->this_pass_clean = 2048;
+	server->mirror->this_pass_dirty = 4096;
+
+	struct status * status = status_create( server );
+
+	fail_unless( 2048 == status->pass_clean_bytes, "pass_clean_bytes wasn't gathered" );
+	fail_unless( 4096 == status->pass_dirty_bytes, "pass_dirty_bytes wasn't gathered" );
+
+	status_destroy( status );
+	destroy_mock_server( server );
+}
+END_TEST
+
 
 START_TEST( test_renders_has_control )
 {

@@ -17,6 +17,8 @@ struct status * status_create( struct server * serve )
 	status->is_mirroring = NULL != serve->mirror;
 	if ( status->is_mirroring ) {
 		status->migration_pass = serve->mirror->pass;
+		status->pass_dirty_bytes = serve->mirror->this_pass_dirty;
+		status->pass_clean_bytes = serve->mirror->this_pass_clean;
 	}
 
 	server_unlock_start_mirror( serve );

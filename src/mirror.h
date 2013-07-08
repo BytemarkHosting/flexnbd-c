@@ -82,6 +82,12 @@ struct mirror {
 
 	/* The current mirror pass. We put this here so status can query it */
 	int pass;
+
+	/* The number of dirty (had to send to dest) and clean (could skip) bytes
+	 * for this pass. Add them together and subtract from size to get remaining
+	 * bytes. */
+	uint64_t this_pass_dirty;
+	uint64_t this_pass_clean;
 };
 
 

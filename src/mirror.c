@@ -166,7 +166,9 @@ int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 	uint64_t current = 0;
 	int success = 1;
 	struct bitset_mapping *map = serve->mirror->dirty_map;
+	struct mirror * m = serve->mirror;
 	*written = 0;
+
 
 	while (current < serve->size) {
 		int run = bitset_run_count(map, current, mirror_longest_write);
@@ -205,7 +207,10 @@ int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 			}
 			if (!is_last_pass) { server_unlock_io( serve ); }
 
+			m->this_pass_dirty += run;
 			*written += run;
+		} else {
+			m->this_pass_clean += run;
 		}
 		current += run;
 
@@ -353,6 +358,8 @@ void mirror_run( struct server *serve )
 
 	info("Starting mirror" );
 	for (m->pass=0; m->pass < mirror_maximum_passes-1; m->pass++) {
+		m->this_pass_clean = 0;
+		m->this_pass_dirty = 0;
 
 		debug("mirror start pass=%d", m->pass);
 		if ( !mirror_pass( serve, 0, &written ) ){
@@ -366,6 +373,9 @@ void mirror_run( struct server *serve )
 
 	server_lock_io( serve );
 	{
+		m->this_pass_clean = 0;
+		m->this_pass_dirty = 0;
+
 		if ( mirror_pass( serve, 1, &written ) &&
 				mirror_should_quit( serve->mirror ) ) {
 			debug("exit!");

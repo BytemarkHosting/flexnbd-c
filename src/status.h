@@ -45,7 +45,14 @@
  *  When migrating, we perform a number of passes over the file. This indicates
  *  the current pass.
  *
+ * pass_dirty_bytes:
+ *  For the current pass, how many dirty bytes have we found so far? These are
+ *  classed as bytes that we are required to send to the destination.
  *
+ * pass_clean_bytes:
+ *  For the current pass, how many clean bytes? These are bytes we don't need
+ *  to send to the destination. Once all the bytes are clean, the migration is
+ *  done.
  */
 
 
@@ -60,6 +67,9 @@ struct status {
 	int has_control;
 	int is_mirroring;
 	int migration_pass;
+	uint64_t pass_dirty_bytes;
+	uint64_t pass_clean_bytes;
+
 };
 
 /** Create a status object for the given server. */
