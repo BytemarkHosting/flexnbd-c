@@ -11,6 +11,11 @@ struct status * status_create( struct server * serve )
 	status->pid = getpid();
 	status->has_control = serve->success;
 	status->is_mirroring = NULL != serve->mirror;
+
+	if ( status->is_mirroring ) {
+		status->migration_pass = serve->mirror->pass;
+	}
+
 	return status;
 
 }
@@ -26,6 +31,11 @@ int status_write( struct status * status, int fd )
 	PRINT_INT( pid );
 	PRINT_BOOL( is_mirroring );
 	PRINT_BOOL( has_control );
+
+	if ( status->is_mirroring ) {
+		PRINT_INT( migration_pass );
+	}
+
 	dprintf(fd, "\n");
 	return 1;
 }
@@ -36,3 +46,4 @@ void status_destroy( struct status * status )
 	NULLCHECK( status );
 	free( status );
 }
+

@@ -32,8 +32,17 @@
  * 	or "serve" mode.  It will become true when a server in "serve"
  * 	mode starts a migration, and will become false again when the
  * 	migration terminates, successfully or not.
- *	If the server is currently in "listen" mode, this will never b
+ *	If the server is currently in "listen" mode, this will never be
  *	true.
+ *
+ * If is_migrating is true, then a number of other attributes may appear,
+ * relating to the progress of the migration.
+ *
+ * migration_pass:
+ *  When migrating, we perform a number of passes over the file. This indicates
+ *  the current pass.
+ *
+ *
  */
 
 
@@ -46,6 +55,7 @@ struct status {
 	pid_t pid;
 	int has_control;
 	int is_mirroring;
+	int migration_pass;
 };
 
 /** Create a status object for the given server. */
@@ -60,3 +70,4 @@ void status_destroy( struct status * );
 
 
 #endif
+

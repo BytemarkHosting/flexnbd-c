@@ -10,6 +10,7 @@ START_TEST( test_status_create )
 	struct server server;
 	struct status *status = NULL;
 
+	server.mirror = NULL;
 	status = status_create( &server );
 
 	fail_if( NULL == status, "Status wasn't allocated" );
@@ -22,6 +23,7 @@ START_TEST( test_gets_has_control )
 	struct server server;
 	struct status * status;
 
+	server.mirror = NULL;
 	server.success = 1;
 	status = status_create( &server );
 
@@ -45,6 +47,25 @@ START_TEST( test_gets_is_mirroring )
 	status = status_create( &server );
 	fail_unless( status->is_mirroring, "is_mirroring wasn't set" );
 	status_destroy( status );
+}
+END_TEST
+
+START_TEST( test_gets_migration_pass )
+{
+	struct server server;
+	struct status * status;
+
+	server.mirror = NULL;
+	status = status_create( &server );
+	fail_if( status->migration_pass != 0, "migration_pass was set" );
+	status_destroy( status );
+
+	server.mirror = (struct mirror *)xmalloc( sizeof( struct mirror ) );
+	server.mirror->pass = 1;
+	status = status_create( &server );
+	fail_unless( status->migration_pass == 1, "migration_pass wasn't set" );
+	status_destroy( status );
+	free( server.mirror );
 }
 END_TEST
 
@@ -137,6 +158,36 @@ START_TEST( test_renders_pid )
 }
 END_TEST
 
+START_TEST( test_renders_migration_pass )
+{
+	struct status status;
+	int fds[2];
+	pipe(fds);
+	char buf[1024] = {0};
+	char *found;
+
+	status.is_mirroring = 0;
+	status.migration_pass = 1;
+	status_write( &status, fds[1] );
+
+	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
+			"Couldn't read the result" );
+	found = strstr( buf, "migration_pass" );
+	fail_if( NULL != found, "migration pass output when not migrating" );
+
+	status.is_mirroring = 1;
+	status_write( &status, fds[1] );
+
+	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
+			"Couldn't read the result" );
+	found = strstr( buf, "migration_pass=1" );
+	fail_if( NULL == found, "migration pass not output when not migrating" );
+
+
+}
+END_TEST
+
+
 
 Suite *status_suite(void)
 {
@@ -148,10 +199,12 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_gets_has_control);
 	tcase_add_test(tc_create, test_gets_is_mirroring);
 	tcase_add_test(tc_create, test_gets_pid);
+	tcase_add_test(tc_create, test_gets_migration_pass);
 
 	tcase_add_test(tc_render, test_renders_has_control);
 	tcase_add_test(tc_render, test_renders_is_mirroring);
 	tcase_add_test(tc_render, test_renders_pid);
+	tcase_add_test(tc_render, test_renders_migration_pass);
 
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_render);
@@ -170,5 +223,4 @@ int main(void)
 	srunner_free(sr);
 	return (number_failed == 0) ? 0 : 1;
 }
-
 

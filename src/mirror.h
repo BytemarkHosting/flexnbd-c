@@ -69,7 +69,7 @@ struct mirror {
 	const char *         filename;
 	off64_t              max_bytes_per_second;
 	enum mirror_finish_action action_at_finish;
-	
+
 	char                 *mapped;
 	struct bitset_mapping *dirty_map;
 
@@ -79,6 +79,9 @@ struct mirror {
 	 * and checking the remote size, whether successful or not.
 	 */
 	struct mbox *        commit_signal;
+
+	/* The current mirror pass. We put this here so status can query it */
+	int pass;
 };
 
 
@@ -106,3 +109,4 @@ struct mirror_super * mirror_super_create(
 		);
 void * mirror_super_runner( void * serve_uncast );
 #endif
+

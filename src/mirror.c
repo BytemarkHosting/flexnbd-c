@@ -347,13 +347,14 @@ void mirror_run( struct server *serve )
 	NULLCHECK( serve );
 	NULLCHECK( serve->mirror );
 
-	int pass;
+	struct mirror* m = serve->mirror;
+
 	uint64_t written;
 
 	info("Starting mirror" );
-	for (pass=0; pass < mirror_maximum_passes-1; pass++) {
+	for (m->pass=0; m->pass < mirror_maximum_passes-1; m->pass++) {
 
-		debug("mirror start pass=%d", pass);
+		debug("mirror start pass=%d", m->pass);
 		if ( !mirror_pass( serve, 0, &written ) ){
 			debug("Failed mirror pass state is %d", mirror_get_state( serve->mirror ) );
 			debug("pass failed, giving up");
