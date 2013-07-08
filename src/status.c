@@ -9,6 +9,7 @@ struct status * status_create( struct server * serve )
 
 	status = xmalloc( sizeof( struct status ) );
 	status->pid = getpid();
+	status->size = serve->size;
 	status->has_control = serve->success;
 	status->is_mirroring = NULL != serve->mirror;
 
@@ -25,10 +26,13 @@ struct status * status_create( struct server * serve )
 	do{dprintf( fd, #var "=%s ", BOOL_S( status->var ) );}while(0)
 #define PRINT_INT( var ) \
 	do{dprintf( fd, #var "=%d ", status->var );}while(0)
+#define PRINT_UINT64( var ) \
+	do{dprintf( fd, #var "=%"PRIu64" ", status->var );}while(0)
 
 int status_write( struct status * status, int fd )
 {
 	PRINT_INT( pid );
+	PRINT_UINT64( size );
 	PRINT_BOOL( is_mirroring );
 	PRINT_BOOL( has_control );
 

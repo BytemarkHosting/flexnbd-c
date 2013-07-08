@@ -20,6 +20,9 @@
  * pid:
  *      The current process ID.
  *
+ * size:
+ *  The size of the backing file being served, in bytes.
+ *
  * has_control:
  * 	This will be false when the server is listening for an incoming
  * 	migration.  It will switch to true when the end-of-migration
@@ -53,6 +56,7 @@
 
 struct status {
 	pid_t pid;
+	uint64_t size;
 	int has_control;
 	int is_mirroring;
 	int migration_pass;
