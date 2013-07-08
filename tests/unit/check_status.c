@@ -5,102 +5,117 @@
 
 #include <check.h>
 
-void prepare_server( struct server* serve )
+struct server* mock_server(void)
 {
-	serve->mirror = NULL;
+	struct server* out = xmalloc( sizeof( struct server ) );
+	out->l_start_mirror = flexthread_mutex_create();
+	return out;
+}
+
+struct server* mock_mirroring_server(void)
+{
+	struct server *out = mock_server();
+	out->mirror = xmalloc( sizeof( struct mirror ) );
+
+	return out;
+}
+
+void destroy_mock_server( struct server* serve )
+{
+	if ( NULL != serve->mirror ) {
+		free( serve->mirror );
+	}
+
+	flexthread_mutex_destroy( serve->l_start_mirror );
+	free( serve );
 }
 
 START_TEST( test_status_create )
 {
-	struct server server;
-	struct status *status = NULL;
-
-	prepare_server( &server );
-	status = status_create( &server );
+	struct server * server = mock_server();
+	struct status * status = status_create( server );
 
 	fail_if( NULL == status, "Status wasn't allocated" );
 	status_destroy( status );
+	destroy_mock_server( server );
 }
 END_TEST
 
 START_TEST( test_gets_has_control )
 {
-	struct server server;
-	struct status * status;
+	struct server * server = mock_server();
+	server->success = 1;
 
-	prepare_server( &server );
-	server.success = 1;
-	status = status_create( &server );
+	struct status * status = status_create( server );
 
 	fail_unless( status->has_control == 1, "has_control wasn't copied" );
 	status_destroy( status );
+	destroy_mock_server( server );
 }
 END_TEST
 
 
 START_TEST( test_gets_is_mirroring )
 {
-	struct server server;
-	struct status * status;
+	struct server * server = mock_server();
+	struct status * status = status_create( server );
 
-	prepare_server( &server );
-	status = status_create( &server );
 	fail_if( status->is_mirroring, "is_mirroring was set" );
 	status_destroy( status );
+	destroy_mock_server( server );
 
-	server.mirror = (struct mirror *)xmalloc( sizeof( struct mirror ) );
-	status = status_create( &server );
+	server = mock_mirroring_server();
+	status = status_create( server );
+
 	fail_unless( status->is_mirroring, "is_mirroring wasn't set" );
 	status_destroy( status );
+	destroy_mock_server( server );
 }
 END_TEST
 
 START_TEST( test_gets_migration_pass )
 {
-	struct server server;
-	struct status * status;
+	struct server * server = mock_server();
+	struct status * status = status_create( server );
 
-	prepare_server( &server );
-	status = status_create( &server );
 	fail_if( status->migration_pass != 0, "migration_pass was set" );
 	status_destroy( status );
+	destroy_mock_server( server );
 
-	server.mirror = (struct mirror *)xmalloc( sizeof( struct mirror ) );
-	server.mirror->pass = 1;
-	status = status_create( &server );
+	server = mock_mirroring_server();
+	server->mirror->pass = 1;
+	status = status_create( server );
+
 	fail_unless( status->migration_pass == 1, "migration_pass wasn't set" );
 	status_destroy( status );
-	free( server.mirror );
+	destroy_mock_server( server );
 }
 END_TEST
 
 
 START_TEST( test_gets_pid )
 {
-	struct server server;
-	struct status * status;
-
-	prepare_server( &server );
-	status = status_create( &server );
+	struct server * server = mock_server();
+	struct status * status = status_create( server );
 
 	fail_unless( getpid() == status->pid, "Pid wasn't gathered" );
 
 	status_destroy( status );
+	destroy_mock_server( server );
 }
 END_TEST
 
 START_TEST( test_gets_size )
 {
-	struct server server;
-	struct status * status;
+	struct server * server = mock_server();
+	server->size = 1024;
 
-	prepare_server( &server );
-	server.size = 1024;
-	status = status_create( &server );
+	struct status * status = status_create( server );
 
 	fail_unless( 1024 == status->size, "Size wasn't gathered" );
 
 	status_destroy( status );
+	destroy_mock_server( server );
 }
 END_TEST
 
@@ -238,6 +253,8 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_gets_pid);
 	tcase_add_test(tc_create, test_gets_size);
 	tcase_add_test(tc_create, test_gets_migration_pass);
+	tcase_add_test(tc_create, test_gets_pass_statistics);
+
 
 	tcase_add_test(tc_render, test_renders_has_control);
 	tcase_add_test(tc_render, test_renders_is_mirroring);

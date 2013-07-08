@@ -11,11 +11,15 @@ struct status * status_create( struct server * serve )
 	status->pid = getpid();
 	status->size = serve->size;
 	status->has_control = serve->success;
-	status->is_mirroring = NULL != serve->mirror;
 
+	server_lock_start_mirror( serve );
+
+	status->is_mirroring = NULL != serve->mirror;
 	if ( status->is_mirroring ) {
 		status->migration_pass = serve->mirror->pass;
 	}
+
+	server_unlock_start_mirror( serve );
 
 	return status;
 

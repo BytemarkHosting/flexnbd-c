@@ -195,6 +195,30 @@ file check("serve") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
+file check("status") =>
+%w{
+build/tests/check_status.o
+  build/self_pipe.o
+  build/nbdtypes.o
+  build/control.o
+  build/readwrite.o
+  build/parse.o
+  build/client.o
+  build/flexthread.o
+  build/serve.o
+  build/flexnbd.o
+  build/mirror.o
+  build/status.o
+  build/acl.o
+  build/mbox.o
+  build/ioutil.o
+  build/sockutil.o
+  build/util.o
+} do |t|
+  gcc_link t.name, t.prerequisites + [LIBCHECK]
+end
+
+
 file check("readwrite") =>
 %w{build/tests/check_readwrite.o
   build/readwrite.o
@@ -244,7 +268,7 @@ file check("control") =>
   gcc_link t.name, t.prerequisites + [LIBCHECK]
 end
 
-(TEST_MODULES- %w{control flexnbd acl client serve readwrite util}).each do |m|
+(TEST_MODULES- %w{status control flexnbd acl client serve readwrite util}).each do |m|
   tgt = "build/tests/check_#{m}.o"
   maybe_obj_name = "build/#{m}.o"
   # Take it out in case we're testing one of the utils
