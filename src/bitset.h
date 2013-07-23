@@ -46,7 +46,7 @@ static inline void bit_clear_range(char* b, int from, int len) {
 	for (; len > 0; len--) { bit_clear(b, from++); }
 }
 
-/** Counts the number of contiguous bits in array ''b'', starting at ''from'' 
+/** Counts the number of contiguous bits in array ''b'', starting at ''from''
   * up to a maximum number of bits ''len''.  Returns the number of contiguous
   * bits that are the same as the first one specified.
   */
@@ -58,7 +58,8 @@ static inline int bit_run_count(char* b, int from, int len) {
 		;
 
 	/* FIXME: debug this later */
-	/*for (; (from+count) % 64 != 0 && len > 0; len--)
+	/*
+	for (; (from+count) % 64 != 0 && len > 0; len--)
 		if (bit_has_value(b, from+count, first_value))
 			count++;
 		else
@@ -71,12 +72,12 @@ static inline int bit_run_count(char* b, int from, int len) {
 	}
 	for (; len > 0; len--)
 		if (bit_is_set(b, from+count))
-			count++;*/
-
+			count++;
+*/
 	return count;
 }
 
-/** An application of a bitset - a bitset mapping represents a file of ''size'' 
+/** An application of a bitset - a bitset mapping represents a file of ''size''
   * broken down into ''resolution''-sized chunks.  The bit set is assumed to
   * represent one bit per chunk.  We also bundle a lock so that the set can be
   * written reliably by multiple threads.
@@ -92,7 +93,7 @@ struct bitset_mapping {
   * given resolution.
   */
 static inline struct bitset_mapping* bitset_alloc(
-	uint64_t size, 
+	uint64_t size,
 	int resolution
 )
 {
@@ -123,8 +124,8 @@ static inline struct bitset_mapping* bitset_alloc(
   * file.
   */
 static inline void bitset_set_range(
-	struct bitset_mapping* set, 
-	uint64_t from, 
+	struct bitset_mapping* set,
+	uint64_t from,
 	uint64_t len)
 {
 	INT_FIRST_AND_LAST;
@@ -144,12 +145,12 @@ static inline void bitset_set(
 
 
 
-/** Clear the bits in a bitset which correspond to the given bytes in the 
+/** Clear the bits in a bitset which correspond to the given bytes in the
   * larger file.
   */
 static inline void bitset_clear_range(
-	struct bitset_mapping* set, 
-	uint64_t from, 
+	struct bitset_mapping* set,
+	uint64_t from,
 	uint64_t len)
 {
 	INT_FIRST_AND_LAST;
@@ -172,8 +173,8 @@ static inline void bitset_clear(
   * the bit field.
   */
 static inline int bitset_run_count(
-	struct bitset_mapping* set, 
-	uint64_t from, 
+	struct bitset_mapping* set,
+	uint64_t from,
 	uint64_t len)
 {
 	/* now fix in case len goes past the end of the memory we have

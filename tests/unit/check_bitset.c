@@ -2,8 +2,8 @@
 
 #include "bitset.h"
 
-#define assert_bitset_is( map, val ) { \
-	uint64_t *num = map->bits; \
+#define assert_bitset_is( map, val ) {\
+	uint64_t *num = (uint64_t*) map->bits; \
 	ck_assert_int_eq( val, *num ); \
 }
 
@@ -181,7 +181,7 @@ START_TEST( test_bitset_run_count )
 	struct bitset_mapping* map = bitset_alloc( 64, 1 );
 	uint64_t run;
 
-	assert_bitset_is( map,  0x0000000000000000 );
+	assert_bitset_is( map, 0x0000000000000000 );
 
 	bitset_set_range( map, 0, 32 );
 	assert_bitset_is( map, 0x00000000ffffffff );
