@@ -188,6 +188,9 @@ START_TEST( test_bitset_run_count )
 
 	assert_bitset_is( map, 0x0000000000000000 );
 
+	run = bitset_run_count( map, 0, 64 );
+	ck_assert_int_eq( 64, run );
+
 	bitset_set_range( map, 0, 32 );
 	assert_bitset_is( map, 0x00000000ffffffff );
 
@@ -215,6 +218,11 @@ START_TEST( test_bitset_run_count )
 	free( map );
 
 	map = bitset_alloc( 6400, 100 );
+	assert_bitset_is( map, 0x0000000000000000 );
+
+	run = bitset_run_count( map, 0, 6400 );
+	ck_assert_int_eq( 6400, run );
+
 	bitset_set_range( map, 0, 3200 );
 
 	run = bitset_run_count( map, 0, 6400 );
@@ -228,6 +236,16 @@ START_TEST( test_bitset_run_count )
 
 	run = bitset_run_count( map, 6500, 6400 );
 	ck_assert_int_eq( 0, run );
+	free( map );
+
+	// Now do something large and representative
+	map = bitset_alloc( 53687091200, 4096 );
+	bitset_set( map );
+	run = bitset_run_count( map, 0, 53687091200 );
+	ck_assert_int_eq( run, 53687091200 );
+
+	free( map );
+
 }
 END_TEST
 

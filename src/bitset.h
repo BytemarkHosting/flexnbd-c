@@ -74,7 +74,7 @@ static inline void bit_clear_range(char* b, uint64_t from, uint64_t len)
   * up to a maximum number of bits ''len''.  Returns the number of contiguous
   * bits that are the same as the first one specified.
   */
-static inline int bit_run_count(char* b, uint64_t from, uint64_t len) {
+static inline uint64_t bit_run_count(char* b, uint64_t from, uint64_t len) {
 	uint64_t* current_block;
 	uint64_t count = 0;
 	int first_value = bit_is_set(b, from);
@@ -138,8 +138,8 @@ static inline struct bitset_mapping* bitset_alloc(
 
 #define INT_FIRST_AND_LAST \
   uint64_t first = from/set->resolution, \
-      last = (from+len-1)/set->resolution, \
-      bitlen = last-first+1
+      last = ((from+len)-1)/set->resolution, \
+      bitlen = (last-first)+1
 
 #define BITSET_LOCK \
   FATAL_IF_NEGATIVE(pthread_mutex_lock(&set->lock), "Error locking bitset")
@@ -214,10 +214,12 @@ static inline uint64_t bitset_run_count(
 	len = ( len + from ) > set->size ? ( set->size - from ) : len;
 
 	INT_FIRST_AND_LAST;
+
 	BITSET_LOCK;
-	run = (bit_run_count(set->bits, first, bitlen) * set->resolution) -
-	  (from % set->resolution);
+	run = bit_run_count(set->bits, first, bitlen) * set->resolution;
+	run -= (from % set->resolution);
 	BITSET_UNLOCK;
+
 	return run;
 }
 

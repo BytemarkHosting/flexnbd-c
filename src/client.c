@@ -140,7 +140,7 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 			char zerobuffer[block_allocation_resolution];
 			/* not allocated, read in block_allocation_resoution */
 			while (run > 0) {
-				int blockrun = block_allocation_resolution -
+				uint64_t blockrun = block_allocation_resolution -
 				  (from % block_allocation_resolution);
 				if (blockrun > run)
 					blockrun = run;

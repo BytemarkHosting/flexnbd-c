@@ -270,7 +270,7 @@ int fd_is_closed( int fd_in )
 }
 
 
-static inline int io_errno_permanent()
+static inline int io_errno_permanent(void)
 {
 	return ( errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR );
 }
