@@ -627,7 +627,7 @@ void* client_serve(void* client_uncast)
 	);
 
 	FATAL_IF_NEGATIVE(
-		madvise( client->mapped, client->serve->size, MADV_SEQUENTIAL ),
+		madvise( client->mapped, client->serve->size, MADV_RANDOM ),
 		SHOW_ERRNO( "Failed to madvise() %s", client->serve->filename )
 	);
 
