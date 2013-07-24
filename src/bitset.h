@@ -75,29 +75,33 @@ static inline void bit_clear_range(char* b, uint64_t from, uint64_t len)
   * bits that are the same as the first one specified.
   */
 static inline int bit_run_count(char* b, uint64_t from, uint64_t len) {
-	uint64_t count;
+	uint64_t* current_block;
+	uint64_t count = 0;
 	int first_value = bit_is_set(b, from);
 
-	for (count=0; len > 0 && bit_has_value(b, from+count, first_value); count++, len--)
-		;
-
-	/* FIXME: debug this later */
-	/*
-	for (; (from+count) % 64 != 0 && len > 0; len--)
-		if (bit_has_value(b, from+count, first_value))
+	for ( ; (from+count) % 64 != 0 && len > 0; len--) {
+		if (bit_has_value(b, from+count, first_value)) {
 			count++;
-		else
+		} else {
 			return count;
-	for (; len >= 64; len-=64) {
-		if (*((uint64_t*)(b + ((from+count)/8))) == UINT64_MAX)
-			count += 64;
-		else
-			break;
+		}
 	}
-	for (; len > 0; len--)
-		if (bit_is_set(b, from+count))
+
+	for ( ; len >= 64 ; len -= 64 ) {
+		current_block = (uint64_t*) (b + ((from+count)/8));
+		if (*current_block == ( first_value ? UINT64_MAX : 0 ) ) {
+			count += 64;
+		} else {
+			break;
+		}
+	}
+
+	for ( ; len > 0; len-- ) {
+		if ( bit_has_value(b, from+count, first_value) ) {
 			count++;
-*/
+		}
+	}
+
 	return count;
 }
 
