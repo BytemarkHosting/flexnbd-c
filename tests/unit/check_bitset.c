@@ -149,14 +149,19 @@ END_TEST
 START_TEST( test_bitset_set )
 {
 	struct bitset_mapping* map;
-	uint64_t *num;
 
 	map = bitset_alloc(64, 1);
-	num = (uint64_t*) map->bits;
 
-	ck_assert_int_eq( 0x0000000000000000, *num );
+	assert_bitset_is( map, 0x0000000000000000 );
 	bitset_set( map );
-	ck_assert_int_eq( 0xffffffffffffffff, *num );
+	assert_bitset_is( map, 0xffffffffffffffff );
+	free( map );
+
+	map = bitset_alloc( 6400, 100 );
+	assert_bitset_is( map, 0x0000000000000000 );
+	bitset_set( map );
+	assert_bitset_is( map, 0xffffffffffffffff );
+	free( map );
 }
 END_TEST
 

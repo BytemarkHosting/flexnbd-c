@@ -171,17 +171,17 @@ int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 
 
 	while (current < serve->size) {
-		int run = bitset_run_count(map, current, mirror_longest_write);
+		uint64_t run = bitset_run_count(map, current, mirror_longest_write);
 
 		if ( current + run > serve->size ) {
 			debug(
 				"Size not divisible by %i, adjusting final block",
 				block_allocation_resolution
 			);
-			run -= (( current + run ) - serve->size );
+			run = serve->size - current;
 		}
 
-		debug("mirror current=%ld, run=%d", current, run);
+		debug("mirror current=%"PRIu64", run=%"PRIu64, current, run);
 
 		/* FIXME: we could avoid sending sparse areas of the
 		 * disc here, and probably save a lot of bandwidth and

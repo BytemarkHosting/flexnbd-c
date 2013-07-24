@@ -79,7 +79,7 @@ void client_destroy( struct client *client )
  * allocated, we can proceed as normal and make one call to writeloop.
  *
  */
-void write_not_zeroes(struct client* client, uint64_t from, int len)
+void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 {
 	NULLCHECK( client );
 	NULLCHECK( client->serve );
@@ -96,7 +96,7 @@ void write_not_zeroes(struct client* client, uint64_t from, int len)
 		 * and end to get the exact number of bytes.
 		 */
 
-		int run = bitset_run_count(map, from, len);
+		uint64_t run = bitset_run_count(map, from, len);
 
 		debug("write_not_zeroes: from=%ld, len=%d, run=%d", from, len, run);
 
