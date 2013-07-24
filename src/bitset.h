@@ -34,16 +34,40 @@ static inline void bit_clear(char* b, uint64_t idx) {
 	//__sync_fetch_and_nand(b+(idx/8), char_with_bit_set(idx));
 }
 /** Sets ''len'' bits in array ''b'' starting at offset ''from'' */
-static inline void bit_set_range(char* b, uint64_t from, uint64_t len) {
-	for (; from%8 != 0 && len > 0; len--) { bit_set(b, from++); }
-	if (len >= 8) { memset(b+(from/8), 255, len/8); }
-	for (; len > 0; len--) { bit_set(b, from++); }
+static inline void bit_set_range(char* b, uint64_t from, uint64_t len)
+{
+	for ( ; from%8 != 0 && len > 0 ; len-- ) {
+		bit_set( b, from++ );
+	}
+
+	if (len >= 8) {
+		memset(b+(from/8), 255, len/8 );
+		from += len;
+		len = (len%8);
+		from -= len;
+	}
+
+	for ( ; len > 0 ; len-- ) {
+		bit_set( b, from++ );
+	}
 }
 /** Clears ''len'' bits in array ''b'' starting at offset ''from'' */
-static inline void bit_clear_range(char* b, uint64_t from, uint64_t len) {
-	for (; from%8 != 0 && len > 0; len--) {	bit_clear(b, from++); }
-	if (len >= 8) { memset(b+(from/8), 0, len/8); }
-	for (; len > 0; len--) { bit_clear(b, from++); }
+static inline void bit_clear_range(char* b, uint64_t from, uint64_t len)
+{
+	for ( ; from%8 != 0 && len > 0 ; len-- ) {
+		bit_clear( b, from++ );
+	}
+
+	if (len >= 8) {
+		memset(b+(from/8), 0, ( len/8 ) + 1);
+		from += len;
+		len = (len%8);
+		from -= len;
+	}
+
+	for ( ; len > 0 ; len-- ) {
+		bit_clear( b, from++ );
+	}
 }
 
 /** Counts the number of contiguous bits in array ''b'', starting at ''from''
