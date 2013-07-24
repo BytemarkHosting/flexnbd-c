@@ -634,7 +634,7 @@ int proxy_write_to_downstream( struct proxier* proxy, int state )
  */
 void proxy_session( struct proxier* proxy )
 {
-	uint64_t state_started;
+	uint64_t state_started = monotonic_time_ms();
 	int old_state = EXIT;
 	int state;
 	int connect_to_upstream_cooldown = 0;
@@ -752,13 +752,19 @@ void proxy_session( struct proxier* proxy )
 				}
 				/* Leaving state untouched will retry connecting to upstream -
 				 * so introduce a bit of sleep  */
-				if ( state == CONNECT_TO_UPSTREAM )  {
+				if ( state == CONNECT_TO_UPSTREAM ) {
 					connect_to_upstream_cooldown = 1;
 				}
 
 				break;
 			case READ_INIT_FROM_UPSTREAM:
 				state = proxy_read_init_from_upstream( proxy, state );
+
+				if ( state == CONNECT_TO_UPSTREAM ) {
+					connect_to_upstream_cooldown = 1;
+				}
+
+				break;
 			case WRITE_TO_UPSTREAM:
 				if ( FD_ISSET( proxy->upstream_fd, &wfds ) ) {
 					state = proxy_write_to_upstream( proxy, state );
