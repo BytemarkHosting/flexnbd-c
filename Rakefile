@@ -43,6 +43,8 @@ TEST_MODULES = Dir["tests/unit/check_*.c"].map { |n|
 if DEBUG
   LDFLAGS << ["-g"]
   CCFLAGS << ["-g -DDEBUG"]
+else
+  CCFLAGS << "-O2"
 end
 
 desc "Build the binary and man page"
