@@ -8,39 +8,39 @@
 #include <pthread.h>
 
 
-static inline char char_with_bit_set(int num) { return 1<<(num%8); }
+static inline char char_with_bit_set(uint64_t num) { return 1<<(num%8); }
 
 /** Return 1 if the bit at ''idx'' in array ''b'' is set */
-static inline int bit_is_set(char* b, int idx) {
+static inline int bit_is_set(char* b, uint64_t idx) {
 	return (b[idx/8] & char_with_bit_set(idx)) != 0;
 }
 /** Return 1 if the bit at ''idx'' in array ''b'' is clear */
-static inline int bit_is_clear(char* b, int idx) {
+static inline int bit_is_clear(char* b, uint64_t idx) {
 	return !bit_is_set(b, idx);
 }
 /** Tests whether the bit at ''idx'' in array ''b'' has value ''value'' */
-static inline int bit_has_value(char* b, int idx, int value) {
+static inline int bit_has_value(char* b, uint64_t idx, int value) {
 	if (value) { return bit_is_set(b, idx); }
 	else { return bit_is_clear(b, idx); }
 }
 /** Sets the bit ''idx'' in array ''b'' */
-static inline void bit_set(char* b, int idx) {
+static inline void bit_set(char* b, uint64_t idx) {
 	b[idx/8] |= char_with_bit_set(idx);
 	//__sync_fetch_and_or(b+(idx/8), char_with_bit_set(idx));
 }
 /** Clears the bit ''idx'' in array ''b'' */
-static inline void bit_clear(char* b, int idx) {
+static inline void bit_clear(char* b, uint64_t idx) {
 	b[idx/8] &= ~char_with_bit_set(idx);
 	//__sync_fetch_and_nand(b+(idx/8), char_with_bit_set(idx));
 }
 /** Sets ''len'' bits in array ''b'' starting at offset ''from'' */
-static inline void bit_set_range(char* b, int from, int len) {
+static inline void bit_set_range(char* b, uint64_t from, uint64_t len) {
 	for (; from%8 != 0 && len > 0; len--) { bit_set(b, from++); }
 	if (len >= 8) { memset(b+(from/8), 255, len/8); }
 	for (; len > 0; len--) { bit_set(b, from++); }
 }
 /** Clears ''len'' bits in array ''b'' starting at offset ''from'' */
-static inline void bit_clear_range(char* b, int from, int len) {
+static inline void bit_clear_range(char* b, uint64_t from, uint64_t len) {
 	for (; from%8 != 0 && len > 0; len--) {	bit_clear(b, from++); }
 	if (len >= 8) { memset(b+(from/8), 0, len/8); }
 	for (; len > 0; len--) { bit_clear(b, from++); }
@@ -50,8 +50,8 @@ static inline void bit_clear_range(char* b, int from, int len) {
   * up to a maximum number of bits ''len''.  Returns the number of contiguous
   * bits that are the same as the first one specified.
   */
-static inline int bit_run_count(char* b, int from, int len) {
-	int count;
+static inline int bit_run_count(char* b, uint64_t from, uint64_t len) {
+	uint64_t count;
 	int first_value = bit_is_set(b, from);
 
 	for (count=0; len > 0 && bit_has_value(b, from+count, first_value); count++, len--)
@@ -109,7 +109,7 @@ static inline struct bitset_mapping* bitset_alloc(
 }
 
 #define INT_FIRST_AND_LAST \
-  int first = from/set->resolution, \
+  uint64_t first = from/set->resolution, \
       last = (from+len-1)/set->resolution, \
       bitlen = last-first+1
 
@@ -172,15 +172,19 @@ static inline void bitset_clear(
 /** Counts the number of contiguous bytes that are represented as a run in
   * the bit field.
   */
-static inline int bitset_run_count(
+static inline uint64_t bitset_run_count(
 	struct bitset_mapping* set,
 	uint64_t from,
 	uint64_t len)
 {
-	/* now fix in case len goes past the end of the memory we have
-	 * control of */
-	int run;
-	len = len+from>set->size ? set->size-from : len;
+	uint64_t run;
+
+	/* Clip our requests to the end of the bitset,  avoiding uint underflow. */
+	if ( from > set->size ) {
+		return 0;
+	}
+	len = ( len + from ) > set->size ? ( set->size - from ) : len;
+
 	INT_FIRST_AND_LAST;
 	BITSET_LOCK;
 	run = (bit_run_count(set->bits, first, bitlen) * set->resolution) -
