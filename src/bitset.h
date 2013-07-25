@@ -59,7 +59,7 @@ static inline void bit_clear_range(char* b, uint64_t from, uint64_t len)
 	}
 
 	if (len >= 8) {
-		memset(b+(from/8), 0, ( len/8 ) + 1);
+		memset(b+(from/8), 0, len/8 );
 		from += len;
 		len = (len%8);
 		from -= len;

@@ -149,6 +149,7 @@ END_TEST
 START_TEST( test_bitset_set )
 {
 	struct bitset_mapping* map;
+	uint64_t run;
 
 	map = bitset_alloc(64, 1);
 
@@ -162,6 +163,15 @@ START_TEST( test_bitset_set )
 	bitset_set( map );
 	assert_bitset_is( map, 0xffffffffffffffff );
 	free( map );
+
+	// Now do something large and representative
+	map = bitset_alloc( 53687091200, 4096 );
+	bitset_set( map );
+
+	run = bitset_run_count( map, 0, 53687091200 );
+	ck_assert_int_eq( run, 53687091200 );
+
+
 }
 END_TEST
 
@@ -170,6 +180,7 @@ START_TEST( test_bitset_clear )
 {
 	struct bitset_mapping* map;
 	uint64_t *num;
+	uint64_t run;
 
 	map = bitset_alloc(64, 1);
 	num = (uint64_t*) map->bits;
@@ -178,6 +189,40 @@ START_TEST( test_bitset_clear )
 	bitset_set( map );
 	bitset_clear( map );
 	ck_assert_int_eq( 0x0000000000000000, *num );
+
+	free( map );
+
+	// Now do something large and representative
+	map = bitset_alloc( 53687091200, 4096 );
+	bitset_set( map );
+	bitset_clear( map );
+	run = bitset_run_count( map, 0, 53687091200 );
+	ck_assert_int_eq( run, 53687091200 );
+}
+END_TEST
+
+START_TEST( test_bitset_set_range )
+{
+	struct bitset_mapping* map = bitset_alloc( 64, 1 );
+	assert_bitset_is( map, 0x0000000000000000 );
+
+	bitset_set_range( map, 8, 8 );
+	assert_bitset_is( map, 0x000000000000ff00 );
+
+	free( map );
+}
+END_TEST
+
+START_TEST( test_bitset_clear_range )
+{
+	struct bitset_mapping* map = bitset_alloc( 64, 1 );
+	bitset_set( map );
+	assert_bitset_is( map, 0xffffffffffffffff );
+
+	bitset_clear_range( map, 8, 8 );
+	assert_bitset_is( map, 0xffffffffffff00ff );
+
+	free( map );
 }
 END_TEST
 
@@ -263,6 +308,8 @@ Suite* bitset_suite(void)
 	tcase_add_test(tc_bitset, test_bitset_set);
 	tcase_add_test(tc_bitset, test_bitset_clear);
 	tcase_add_test(tc_bitset, test_bitset_run_count);
+	tcase_add_test(tc_bitset, test_bitset_set_range);
+	tcase_add_test(tc_bitset, test_bitset_clear_range);
 	suite_add_tcase(s, tc_bit);
 	suite_add_tcase(s, tc_bitset);
 
