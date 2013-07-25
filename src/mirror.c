@@ -106,10 +106,6 @@ void mirror_reset( struct mirror * mirror )
 	NULLCHECK( mirror->dirty_map );
 	mirror_set_state( mirror, MS_INIT );
 	bitset_set(mirror->dirty_map);
-
-	uint64_t run = bitset_run_count(mirror->dirty_map, 0, mirror->dirty_map->size);
-	warn( "bitset_run_count: %"PRIu64, run);
-
 }
 
 
