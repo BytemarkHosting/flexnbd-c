@@ -41,6 +41,13 @@
  * If is_migrating is true, then a number of other attributes may appear,
  * relating to the progress of the migration.
  *
+ * migration_duration:
+ *   How long the migration has been running for, in ms.
+ *
+ * migration_speed:
+ *   Network transfer speed, in bytes/second. This only takes dirty bytes
+ *   into account.
+ *
  * migration_pass:
  *  When migrating, we perform a number of passes over the file. This indicates
  *  the current pass.
@@ -53,6 +60,7 @@
  *  For the current pass, how many clean bytes? These are bytes we don't need
  *  to send to the destination. Once all the bytes are clean, the migration is
  *  done.
+ *
  */
 
 
@@ -70,6 +78,8 @@ struct status {
 	uint64_t pass_dirty_bytes;
 	uint64_t pass_clean_bytes;
 
+	uint64_t migration_duration;
+	uint64_t migration_speed;
 };
 
 /** Create a status object for the given server. */

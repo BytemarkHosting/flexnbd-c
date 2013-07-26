@@ -67,7 +67,11 @@ struct mirror {
 	union mysockaddr *   connect_from;
 	int                  client;
 	const char *         filename;
+
+	/* Not used yet. Will be a limiter, used to restrict migration speed.
+	 * only dirty bytes (those going over the network) will be considered */
 	off64_t              max_bytes_per_second;
+
 	enum mirror_finish_action action_at_finish;
 
 	char                 *mapped;
@@ -82,6 +86,14 @@ struct mirror {
 
 	/* The current mirror pass. We put this here so status can query it */
 	int pass;
+
+	/* Number of dirty and clean bytes for the entire  migration */
+	uint64_t all_dirty;
+	uint64_t all_clean;
+
+	/* The time (from monotonic_time_ms()) the migration was started. Can be
+	 * used to calculate bps, etc. */
+	uint64_t migration_started;
 
 	/* The number of dirty (had to send to dest) and clean (could skip) bytes
 	 * for this pass. Add them together and subtract from size to get remaining

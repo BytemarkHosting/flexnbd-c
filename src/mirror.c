@@ -106,6 +106,12 @@ void mirror_reset( struct mirror * mirror )
 	NULLCHECK( mirror->dirty_map );
 	mirror_set_state( mirror, MS_INIT );
 	bitset_set(mirror->dirty_map);
+	mirror->all_dirty = 0;
+	mirror->all_clean = 0;
+	mirror->pass = 0;
+	mirror->this_pass_dirty = 0;
+	mirror->this_pass_clean = 0;
+	mirror->migration_started = 0;
 }
 
 
@@ -216,9 +222,11 @@ int mirror_pass(struct server * serve, int is_last_pass, uint64_t *written)
 			if (!is_last_pass) { server_unlock_io( serve ); }
 
 			m->this_pass_dirty += run;
+			m->all_dirty += run;
 			*written += run;
 		} else {
 			m->this_pass_clean += run;
+			m->all_clean += run;
 		}
 		current += run;
 
@@ -365,6 +373,8 @@ void mirror_run( struct server *serve )
 	uint64_t written;
 
 	info("Starting mirror" );
+
+	m->migration_started = monotonic_time_ms();
 	for (m->pass=0; m->pass < mirror_maximum_passes-1; m->pass++) {
 		m->this_pass_clean = 0;
 		m->this_pass_dirty = 0;

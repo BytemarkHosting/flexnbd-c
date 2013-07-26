@@ -19,7 +19,22 @@ struct status * status_create( struct server * serve )
 		status->migration_pass = serve->mirror->pass;
 		status->pass_dirty_bytes = serve->mirror->this_pass_dirty;
 		status->pass_clean_bytes = serve->mirror->this_pass_clean;
+
+		status->migration_duration = monotonic_time_ms();
+
+		if ( ( serve->mirror->migration_started ) < status->migration_duration ) {
+			status->migration_duration -= serve->mirror->migration_started;
+		} else {
+			status->migration_duration = 0;
+		}
+		status->migration_duration /= 1000;
+
+		status->migration_speed = serve->mirror->all_dirty / ( status->migration_duration + 1 );
+
+
 	}
+
+
 
 	server_unlock_start_mirror( serve );
 
@@ -46,6 +61,8 @@ int status_write( struct status * status, int fd )
 		PRINT_INT( migration_pass );
 		PRINT_UINT64( pass_dirty_bytes );
 		PRINT_UINT64( pass_clean_bytes );
+		PRINT_UINT64( migration_speed );
+		PRINT_UINT64( migration_duration );
 	}
 
 	dprintf(fd, "\n");

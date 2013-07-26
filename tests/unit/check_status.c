@@ -119,16 +119,33 @@ START_TEST( test_gets_size )
 }
 END_TEST
 
-START_TEST( test_gets_pass_statistics )
+START_TEST( test_gets_migration_statistics )
 {
 	struct server * server = mock_mirroring_server();
 	server->mirror->this_pass_clean = 2048;
 	server->mirror->this_pass_dirty = 4096;
+	server->mirror->all_dirty = 16384;
+
+	/* we have a bit of a time dependency here */
+	server->mirror->migration_started = monotonic_time_ms();
 
 	struct status * status = status_create( server );
 
 	fail_unless( 2048 == status->pass_clean_bytes, "pass_clean_bytes wasn't gathered" );
 	fail_unless( 4096 == status->pass_dirty_bytes, "pass_dirty_bytes wasn't gathered" );
+
+	fail_unless (
+		0 == status->migration_duration ||
+		1 == status->migration_duration ||
+		2 == status->migration_duration,
+		"migration_duration is unreasonable!"
+	);
+
+	fail_unless(
+		16384 / ( status->migration_duration + 1 ) == status->migration_speed,
+		"migration_speed not calculated correctly"
+	);
+
 
 	status_destroy( status );
 	destroy_mock_server( server );
@@ -255,7 +272,7 @@ START_TEST( test_renders_migration_pass )
 }
 END_TEST
 
-START_TEST( test_renders_pass_statistics )
+START_TEST( test_renders_migration_statistics )
 {
 	struct status status;
 	int fds[2];
@@ -266,15 +283,23 @@ START_TEST( test_renders_pass_statistics )
 	status.is_mirroring = 0;
 	status.pass_dirty_bytes = 2048;
 	status.pass_clean_bytes = 4096;
+	status.migration_duration = 8;
+	status.migration_speed = 40000000;
+
 	status_write( &status, fds[1] );
 
 	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
 			"Couldn't read the result" );
 	found = strstr( buf, "pass_dirty_bytes" );
-	fail_if( NULL != found, "migration pass output when not migrating" );
+	fail_if( NULL != found, "pass_dirty_bytes output when not migrating" );
 
 	found = strstr( buf, "pass_clean_bytes" );
-	fail_if( NULL != found, "migration pass output when not migrating" );
+	fail_if( NULL != found, "pass_clean_bytes output when not migrating" );
+
+	found = strstr( buf, "migration_duration" );
+	fail_if( NULL != found, "migration_duration output when not migrating" );
+	found = strstr( buf, "migration_speed" );
+	fail_if( NULL != found, "migration_speed output when not migrating" );
 
 	status.is_mirroring = 1;
 	status_write( &status, fds[1] );
@@ -282,10 +307,13 @@ START_TEST( test_renders_pass_statistics )
 	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
 			"Couldn't read the result" );
 	found = strstr( buf, "pass_dirty_bytes=2048" );
-	fail_if( NULL == found, "migration pass not output when not migrating" );
+	fail_if( NULL == found, "pass_dirty_bytes not output when migrating" );
 	found = strstr( buf, "pass_clean_bytes=4096" );
-	fail_if( NULL == found, "migration pass not output when not migrating" );
-
+	fail_if( NULL == found, "pass_clean_bytes not output when migrating" );
+	found = strstr( buf, "migration_duration=8" );
+	fail_if( NULL == found, "migration_duration not output when migrating" );
+	found = strstr( buf, "migration_speed=40000000" );
+	fail_if( NULL == found, "migration_speed not output when migrating" );
 }
 END_TEST
 
@@ -302,7 +330,7 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_gets_pid);
 	tcase_add_test(tc_create, test_gets_size);
 	tcase_add_test(tc_create, test_gets_migration_pass);
-	tcase_add_test(tc_create, test_gets_pass_statistics);
+	tcase_add_test(tc_create, test_gets_migration_statistics);
 
 
 	tcase_add_test(tc_render, test_renders_has_control);
@@ -310,7 +338,7 @@ Suite *status_suite(void)
 	tcase_add_test(tc_render, test_renders_pid);
 	tcase_add_test(tc_render, test_renders_size);
 	tcase_add_test(tc_render, test_renders_migration_pass);
-	tcase_add_test(tc_render, test_renders_pass_statistics);
+	tcase_add_test(tc_render, test_renders_migration_statistics);
 
 	suite_add_tcase(s, tc_create);
 	suite_add_tcase(s, tc_render);
