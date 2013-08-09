@@ -209,6 +209,11 @@ START_TEST( test_bitset_set_range )
 	bitset_set_range( map, 8, 8 );
 	assert_bitset_is( map, 0x000000000000ff00 );
 
+	bitset_clear( map );
+	assert_bitset_is( map, 0x0000000000000000 );
+	bitset_set_range( map, 0, 0 );
+	assert_bitset_is( map, 0x0000000000000000 );
+
 	free( map );
 }
 END_TEST
@@ -221,6 +226,11 @@ START_TEST( test_bitset_clear_range )
 
 	bitset_clear_range( map, 8, 8 );
 	assert_bitset_is( map, 0xffffffffffff00ff );
+
+	bitset_set( map );
+	assert_bitset_is( map, 0xffffffffffffffff );
+	bitset_clear_range( map, 0, 0 );
+	assert_bitset_is( map, 0xffffffffffffffff );
 
 	free( map );
 }
