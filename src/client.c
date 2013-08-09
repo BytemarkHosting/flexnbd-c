@@ -256,8 +256,9 @@ int fd_write_reply( int fd, char *handle, int error )
 	memcpy( reply.handle, handle, 8 );
 
 	nbd_h2r_reply( &reply, &reply_raw );
+	debug( "Replying with %s, %d", handle, error );
 
-	if( -1 == write( fd, &reply_raw, sizeof( reply_raw ) ) ) {
+	if( -1 == writeloop( fd, &reply_raw, sizeof( reply_raw ) ) ) {
 		switch( errno ) {
 			case ECONNRESET:
 				error( "Connection reset while writing reply" );
@@ -365,7 +366,7 @@ int client_request_needs_reply( struct client * client,
 	 * forever.
 	 */
 	if (request.magic != REQUEST_MAGIC) {
-		warn("Bad magic %08x from client", request.magic);
+		warn("Bad magic 0x%08x from client", request.magic);
 		client_write_reply( client, &request, EBADMSG );
 		client->disconnect = 1; // no need to flush
 		return 0;

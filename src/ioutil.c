@@ -121,7 +121,12 @@ int writeloop(int filedes, const void *buffer, size_t size)
 	size_t written=0;
 	while (written < size) {
 		ssize_t result = write(filedes, buffer+written, size-written);
-		if (result == -1) { return -1; }
+		if (result == -1) {
+			if ( errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK ) {
+				continue; // busy-wait
+			}
+			return -1; // failure
+		}
 		written += result;
 	}
 	return 0;
@@ -132,8 +137,17 @@ int readloop(int filedes, void *buffer, size_t size)
 	size_t readden=0;
 	while (readden < size) {
 		ssize_t result = read(filedes, buffer+readden, size-readden);
-		if (result == 0 /* EOF */ || result == -1 /* error */) {
+
+		if ( result == 0 /* EOF */ ) {
+			warn( "end-of-file detected while reading" );
 			return -1;
+		}
+
+		if ( result == -1 ) {
+			if ( errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK ) {
+				continue; // busy-wait
+			}
+			return -1; // failure
 		}
 		readden += result;
 	}

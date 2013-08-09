@@ -4,6 +4,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include "nbdtypes.h"
 
 int socket_connect(struct sockaddr* to, struct sockaddr* from);
 int socket_nbd_read_hello(int fd, off64_t * size);
