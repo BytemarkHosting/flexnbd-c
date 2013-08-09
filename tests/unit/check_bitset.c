@@ -100,7 +100,7 @@ START_TEST(test_bit_runs)
 	ptr = 0;
 
 	for (i=0; i < 20; i += 1) {
-		int run = bit_run_count(buffer, ptr, 2048-ptr);
+		int run = bit_run_count(buffer, ptr, 2048-ptr, NULL);
 		fail_unless(
 			run == runs[i],
 			"run %d should have been %d, was %d",

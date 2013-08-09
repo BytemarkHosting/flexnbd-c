@@ -72,12 +72,17 @@ static inline void bit_clear_range(char* b, uint64_t from, uint64_t len)
 
 /** Counts the number of contiguous bits in array ''b'', starting at ''from''
   * up to a maximum number of bits ''len''.  Returns the number of contiguous
-  * bits that are the same as the first one specified.
+  * bits that are the same as the first one specified. If ''run_is_set'' is
+  * non-NULL, the value of that bit is placed into it.
   */
-static inline uint64_t bit_run_count(char* b, uint64_t from, uint64_t len) {
+static inline uint64_t bit_run_count(char* b, uint64_t from, uint64_t len, int *run_is_set) {
 	uint64_t* current_block;
 	uint64_t count = 0;
 	int first_value = bit_is_set(b, from);
+
+	if ( run_is_set != NULL ) {
+		*run_is_set = first_value;
+	}
 
 	for ( ; (from+count) % 64 != 0 && len > 0; len--) {
 		if (bit_has_value(b, from+count, first_value)) {
@@ -196,14 +201,15 @@ static inline void bitset_clear(
 	bitset_clear_range(set, 0, set->size);
 }
 
-
-/** Counts the number of contiguous bytes that are represented as a run in
-  * the bit field.
+/** As per bitset_run_count but also tells you whether the run it found was set
+  * or unset, atomically.
   */
-static inline uint64_t bitset_run_count(
+static inline uint64_t bitset_run_count_ex(
 	struct bitset_mapping* set,
 	uint64_t from,
-	uint64_t len)
+	uint64_t len,
+	int* run_is_set
+)
 {
 	uint64_t run;
 
@@ -216,11 +222,25 @@ static inline uint64_t bitset_run_count(
 	INT_FIRST_AND_LAST;
 
 	BITSET_LOCK;
-	run = bit_run_count(set->bits, first, bitlen) * set->resolution;
+	run = bit_run_count(set->bits, first, bitlen, run_is_set) * set->resolution;
 	run -= (from % set->resolution);
+
+
+
 	BITSET_UNLOCK;
 
 	return run;
+}
+
+/** Counts the number of contiguous bytes that are represented as a run in
+  * the bit field.
+  */
+static inline uint64_t bitset_run_count(
+	struct bitset_mapping* set,
+	uint64_t from,
+	uint64_t len)
+{
+	return bitset_run_count_ex( set, from, len, NULL );
 }
 
 /** Tests whether the bit field is clear for the given file offset.
