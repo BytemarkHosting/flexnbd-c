@@ -22,7 +22,7 @@ TEST_SOURCES = FileList['tests/unit/*.c']
 TEST_OBJECTS = TEST_SOURCES.pathmap( "%{^tests/unit,build/tests}X.o" )
 
 LIBS    = %w( pthread )
-LDFLAGS = ["-lrt"]
+LDFLAGS = ["-lrt -lev"]
 CCFLAGS = %w(
              -D_GNU_SOURCE=1
              -Wall

@@ -40,7 +40,7 @@ enum mirror_state;
  * between the end of the written data and the start of the NBD reply.
  */
 #define MS_REQUEST_LIMIT_SECS 4
-
+#define MS_REQUEST_LIMIT_SECS_F 4.0
 
 enum mirror_finish_action {
 	ACTION_EXIT,
