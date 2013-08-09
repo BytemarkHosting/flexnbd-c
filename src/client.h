@@ -10,7 +10,7 @@
  * the time from one write to the next, it is the gap between the end of
  * one write and the start of the next.
  */
-#define CLIENT_MAX_WAIT_SECS 5
+#define CLIENT_MAX_WAIT_SECS 120
 
 /** CLIENT_HANDLER_TIMEOUT
  * This is the length of time (in seconds) any request can be outstanding for.
