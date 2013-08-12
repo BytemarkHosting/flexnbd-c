@@ -853,13 +853,14 @@ void server_abandon_mirror( struct server * serve )
 	NULLCHECK( serve );
 	if ( serve->mirror_super ) {
 		/* FIXME: AWOOGA!  RACE!
-		 * We can set signal_abandon after mirror_super has
-		 * checked it, but before the reset.  This would lead to
-		 * a hang.  However, mirror_reset doesn't change the
-		 * signal_abandon flag, so it'll just terminate early on
-		 * the next pass.
-		 * */
-		serve->mirror->signal_abandon = 1;
+		 * We can set abandon_signal after mirror_super has checked it, but
+		 * before the reset. However, mirror_reset doesn't clear abandon_signal
+		 * so it'll just terminate early on the next pass. */
+		ERROR_UNLESS(
+			self_pipe_signal( serve->mirror->abandon_signal ),
+			"Failed to signal abandon to mirror"
+		);
+
 		pthread_t tid = serve->mirror_super->thread;
 		pthread_join( tid, NULL );
 		debug( "Mirror thread %p pthread_join returned", tid );

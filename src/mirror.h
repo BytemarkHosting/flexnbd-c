@@ -52,6 +52,7 @@ enum mirror_state {
 	MS_UNKNOWN,
 	MS_INIT,
 	MS_GO,
+	MS_ABANDONED,
 	MS_DONE,
 	MS_FAIL_CONNECT,
 	MS_FAIL_REJECTED,
@@ -61,8 +62,10 @@ enum mirror_state {
 
 struct mirror {
 	pthread_t            thread;
-	/* set to 1, then join thread to make mirror terminate early */
-	int                  signal_abandon;
+
+	/* Signal to this then join the thread if you want to abandon mirroring */
+	struct self_pipe *   abandon_signal;
+
 	union mysockaddr *   connect_to;
 	union mysockaddr *   connect_from;
 	int                  client;
@@ -126,5 +129,6 @@ struct mirror_super * mirror_super_create(
 		struct mbox * state_mbox
 		);
 void * mirror_super_runner( void * serve_uncast );
+
 #endif
 
