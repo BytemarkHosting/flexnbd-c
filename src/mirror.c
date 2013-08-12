@@ -698,7 +698,7 @@ void mirror_run( struct server *serve )
 
 	ev_init( &ctrl.abandon_watcher, mirror_abandon_cb );
 	ev_io_set( &ctrl.abandon_watcher, ctrl.mirror->abandon_signal->read_fd, EV_READ );
-	ctrl.write_watcher.data = (void*) &ctrl;
+	ctrl.abandon_watcher.data = (void*) &ctrl;
 	ev_io_start( ctrl.ev_loop, &ctrl.abandon_watcher );
 
 	ERROR_UNLESS(
