@@ -275,6 +275,8 @@ void control_write_mirror_response( enum mirror_state mirror_state, int client_f
 		case MS_FAIL_SIZE_MISMATCH:
 			write_socket( "1: Remote size does not match local size" );
 			break;
+		case MS_ABANDONED:
+			write_socket( "1: Mirroring abandoned" );
 		case MS_GO:
 		case MS_DONE: /* Yes, I know we know better, but it's simpler this way */
 			write_socket( "0: Mirror started" );
