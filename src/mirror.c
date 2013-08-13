@@ -82,8 +82,8 @@ struct mirror_ctrl {
 struct mirror * mirror_alloc(
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
-		int max_Bps,
-		int action_at_finish,
+		uint64_t max_Bps,
+		enum mirror_finish_action action_at_finish,
 		struct mbox * commit_signal)
 {
 	struct mirror * mirror;
@@ -178,7 +178,7 @@ struct mirror * mirror_create(
 		const char * filename,
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
-		int max_Bps,
+		uint64_t max_Bps,
 		int action_at_finish,
 		struct mbox * commit_signal)
 {
@@ -816,8 +816,8 @@ struct mirror_super * mirror_super_create(
 		const char * filename,
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
-		int max_Bps,
-		int action_at_finish,
+		uint64_t max_Bps,
+		enum mirror_finish_action action_at_finish,
 		struct mbox * state_mbox)
 {
 	struct mirror_super * super = xmalloc( sizeof( struct mirror_super) );

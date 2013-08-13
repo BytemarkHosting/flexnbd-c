@@ -73,7 +73,7 @@ struct mirror {
 
 	/* Not used yet. Will be a limiter, used to restrict migration speed.
 	 * only dirty bytes (those going over the network) will be considered */
-	off64_t              max_bytes_per_second;
+	uint64_t              max_bytes_per_second;
 
 	enum mirror_finish_action action_at_finish;
 
@@ -124,8 +124,8 @@ struct mirror_super * mirror_super_create(
 		const char * filename,
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
-		int max_Bps,
-		int action_at_finish,
+		uint64_t max_Bps,
+		enum mirror_finish_action action_at_finish,
 		struct mbox * state_mbox
 		);
 void * mirror_super_runner( void * serve_uncast );

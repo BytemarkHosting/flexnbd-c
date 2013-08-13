@@ -319,7 +319,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	struct flexnbd * flexnbd = client->flexnbd;
 	union mysockaddr *connect_to = xmalloc( sizeof( union mysockaddr ) );
 	union mysockaddr *connect_from = NULL;
-	uint64_t max_Bps = 0;
+	uint64_t max_Bps = UINT64_MAX;
 	int action_at_finish;
 	int raw_port;
 
@@ -367,7 +367,15 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	}
 
 	if (linesc > 4) {
-		max_Bps = atoi(lines[4]);
+		errno = 0;
+		max_Bps = strtoull( lines[4], NULL, 10 );
+		if ( errno == ERANGE ) {
+			write_socket( "1: max_bps out of range" );
+			return -1;
+		} else if ( errno != 0 ) {
+			write_socket( "1: max_bps couldn't be parsed" );
+			return -1;
+		}
 	}
 
 
