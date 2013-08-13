@@ -277,6 +277,7 @@ void control_write_mirror_response( enum mirror_state mirror_state, int client_f
 			break;
 		case MS_ABANDONED:
 			write_socket( "1: Mirroring abandoned" );
+			break;
 		case MS_GO:
 		case MS_DONE: /* Yes, I know we know better, but it's simpler this way */
 			write_socket( "0: Mirror started" );
