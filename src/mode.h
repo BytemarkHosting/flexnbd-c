@@ -23,6 +23,7 @@ void mode(char* mode, int argc, char **argv);
 #define OPT_CONNECT_ADDR "conn-addr"
 #define OPT_CONNECT_PORT "conn-port"
 #define OPT_KILLSWITCH "killswitch"
+#define OPT_MAX_SPEED "max-speed"
 
 #define CMD_SERVE  "serve"
 #define CMD_LISTEN "listen"
@@ -30,10 +31,11 @@ void mode(char* mode, int argc, char **argv);
 #define CMD_WRITE  "write"
 #define CMD_ACL    "acl"
 #define CMD_MIRROR "mirror"
+#define CMD_MIRROR_SPEED "mirror-speed"
 #define CMD_BREAK  "break"
 #define CMD_STATUS "status"
 #define CMD_HELP   "help"
-#define LEN_CMD_MAX 7
+#define LEN_CMD_MAX 13
 
 #define PATH_LEN_MAX 1024
 #define ADDR_LEN_MAX 64
@@ -54,6 +56,7 @@ void mode(char* mode, int argc, char **argv);
 #define GETOPT_CONNECT_ADDR GETOPT_ARG( OPT_CONNECT_ADDR, 'C' )
 #define GETOPT_CONNECT_PORT GETOPT_ARG( OPT_CONNECT_PORT, 'P' )
 #define GETOPT_KILLSWITCH   GETOPT_ARG( OPT_KILLSWITCH,   'k' )
+#define GETOPT_MAX_SPEED    GETOPT_ARG( OPT_MAX_SPEED, 'm' )
 
 #define OPT_VERBOSE "verbose"
 #define SOPT_VERBOSE "v"
@@ -82,7 +85,8 @@ void mode(char* mode, int argc, char **argv);
 	"\t--" OPT_SOCK  ",-s <SOCK>\tPath to the control socket.\n"
 #define BIND_LINE \
 	 "\t--" OPT_BIND ",-b <BIND-ADDR>\tBind the local socket to a particular IP address.\n"
-
+#define MAX_SPEED_LINE \
+	 "\t--" OPT_MAX_SPEED ",-m <bps>\tMaximum speed of the migration, in bytes/sec.\n"
 
 char * help_help_text;
 

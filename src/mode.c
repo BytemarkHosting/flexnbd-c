@@ -113,6 +113,24 @@ static char acl_help_text[] =
 	VERBOSE_LINE
 	QUIET_LINE;
 
+static struct option mirror_speed_options[] = {
+	GETOPT_HELP,
+	GETOPT_SOCK,
+	GETOPT_MAX_SPEED,
+	GETOPT_QUIET,
+	GETOPT_VERBOSE,
+	{0}
+};
+static char mirror_speed_short_options[] = "hs:m:" SOPT_QUIET SOPT_VERBOSE;
+static char mirror_speed_help_text[] =
+	"Usage: flexnbd " CMD_MIRROR_SPEED " <options>\n\n"
+	"Set the maximum speed of a migration from a mirring server listening on SOCK.\n\n"
+	HELP_LINE
+	SOCK_LINE
+	MAX_SPEED_LINE
+	VERBOSE_LINE
+	QUIET_LINE;
+
 static struct option mirror_options[] = {
 	GETOPT_HELP,
 	GETOPT_SOCK,
@@ -179,6 +197,7 @@ char help_help_text_arr[] =
 	"\tflexnbd write\n"
 	"\tflexnbd acl\n"
 	"\tflexnbd mirror\n"
+	"\tflexnbd mirror-speed\n"
 	"\tflexnbd break\n"
 	"\tflexnbd status\n"
 	"\tflexnbd help\n\n"
@@ -331,6 +350,36 @@ void read_sock_param( int c, char **sock, char *help_text )
 void read_acl_param( int c, char **sock )
 {
 	read_sock_param( c, sock, acl_help_text );
+}
+
+void read_mirror_speed_param(
+		int c,
+		char **sock,
+		char **max_speed
+)
+{
+	switch( c ) {
+		case 'h':
+			fprintf( stdout, "%s\n", mirror_speed_help_text );
+			exit( 0 );
+			break;
+		case 's':
+			*sock = optarg;
+			break;
+		case 'm':
+			*max_speed = optarg;
+			break;
+		case 'q':
+			log_level = QUIET_LOG_LEVEL;
+			break;
+		case 'v':
+			log_level = VERBOSE_LOG_LEVEL;
+			break;
+		default:
+			exit_err( mirror_speed_help_text );
+			break;
+
+	}
 }
 
 void read_mirror_param(
@@ -655,6 +704,33 @@ int mode_acl( int argc, char *argv[] )
 }
 
 
+int mode_mirror_speed( int argc, char *argv[] )
+{
+	int c;
+	char *sock = NULL;
+	char *speed = NULL;
+
+	while( 1 ) {
+		c = getopt_long( argc, argv, mirror_speed_short_options, mirror_speed_options, NULL );
+		if ( -1 == c ) { break; }
+		read_mirror_speed_param( c, &sock, &speed );
+	}
+
+	if ( NULL == sock ) {
+		fprintf( stderr, "--sock is required.\n" );
+		exit_err( mirror_speed_help_text );
+	}
+
+	if ( NULL == speed ) {
+		fprintf( stderr, "--max-speed is required.\n");
+		exit_err( mirror_speed_help_text );
+	}
+
+	do_remote_command( "mirror_max_bps", sock, 1, &speed );
+	return 0;
+}
+
+
 int mode_mirror( int argc, char *argv[] )
 {
 	int c;
@@ -787,6 +863,8 @@ void mode(char* mode, int argc, char **argv)
 	}
 	else if ( IS_CMD( CMD_ACL, mode ) ) {
 		mode_acl( argc, argv );
+	} else if ( IS_CMD ( CMD_MIRROR_SPEED, mode ) ) {
+		mode_mirror_speed( argc, argv );
 	}
 	else if ( IS_CMD( CMD_MIRROR, mode ) ) {
 		mode_mirror( argc, argv );

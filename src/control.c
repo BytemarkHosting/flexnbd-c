@@ -310,7 +310,6 @@ enum mirror_state control_client_mirror_wait(
 	return mirror_state;
 }
 
-
 #define write_socket(msg) write(client->socket, (msg "\n"), strlen((msg))+1)
 /** Command parser to start mirror process from socket input */
 int control_mirror(struct control_client* client, int linesc, char** lines)
@@ -437,8 +436,41 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 	return 0;
 }
 
-#undef write_socket
+int control_mirror_max_bps( struct control_client* client, int linesc, char** lines )
+{
+	NULLCHECK( client );
+	NULLCHECK( client->flexnbd );
 
+	struct server* serve = flexnbd_server( client->flexnbd );
+	uint64_t max_Bps;
+
+	if ( !serve->mirror_super ) {
+		write_socket( "1: Not currently mirroring" );
+		return -1;
+	}
+
+	if ( linesc != 1 ) {
+		write_socket( "1: Bad format" );
+		return -1;
+	}
+
+	errno = 0;
+	max_Bps = strtoull( lines[0], NULL, 10 );
+	if ( errno == ERANGE ) {
+		write_socket( "1: max_bps out of range" );
+		return -1;
+	} else if ( errno != 0 ) {
+		write_socket( "1: max_bps couldn't be parsed" );
+		return -1;
+	}
+
+	serve->mirror->max_bytes_per_second = max_Bps;
+	write_socket( "0: updated" );
+
+	return 0;
+}
+
+#undef write_socket
 
 /** Command parser to alter access control list from socket input */
 int control_acl(struct control_client* client, int linesc, char** lines)
@@ -580,6 +612,11 @@ void control_respond(struct control_client * client)
 		info("status command received" );
 		if (control_status(client, linesc-1, lines+1) < 0) {
 			debug("status command failed");
+		}
+	} else if ( strcmp( lines[0], "mirror_max_bps" ) == 0 ) {
+		info( "mirror_max_bps command received" );
+		if( control_mirror_max_bps( client, linesc-1, lines+1 ) < 0 ) {
+			debug( "mirror_max_bps command failed" );
 		}
 	}
 	else {

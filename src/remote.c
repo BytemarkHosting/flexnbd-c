@@ -17,7 +17,7 @@ void print_response( const char * response )
 	exit_status = atoi(response);
 	response_text = strchr( response, ':' );
 
-	FATAL_IF_NULL( response_text, 
+	FATAL_IF_NULL( response_text,
 			"Error parsing server response: '%s'", response );
 
 	out = exit_status > 0 ? stderr : stdout;
@@ -32,19 +32,19 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 	int remote = socket(AF_UNIX, SOCK_STREAM, 0);
 	struct sockaddr_un address;
 	char response[max_response];
-	
+
 	memset(&address, 0, sizeof(address));
-	
+
 	FATAL_IF_NEGATIVE(remote, "Couldn't create client socket");
-	
+
 	address.sun_family = AF_UNIX;
 	strncpy(address.sun_path, socket_name, sizeof(address.sun_path));
-	
+
 	FATAL_IF_NEGATIVE(
 		connect(remote, (struct sockaddr*) &address, sizeof(address)),
 		"Couldn't connect to %s", socket_name
 	);
-	
+
 	write(remote, command, strlen(command));
 	write(remote, &newline, 1);
 	for (i=0; i<argc; i++) {
@@ -54,16 +54,16 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 		write(remote, &newline, 1);
 	}
 	write(remote, &newline, 1);
-	
+
 	FATAL_IF_NEGATIVE(
 		read_until_newline(remote, response, max_response),
 		"Couldn't read response from %s", socket_name
 	);
-	
+
 	print_response( response );
 
 	exit(atoi(response));
-	
+
 	close(remote);
 }
 
