@@ -192,14 +192,19 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 
 	struct nbd_request_raw request_raw;
 	fd_set                 fds;
-	struct timeval         tv = {CLIENT_MAX_WAIT_SECS, 0};
-	struct timeval *       ptv;
+	struct timeval *       ptv = NULL;
 	int                    fd_count;
 
-	/* We want a timeout if this is an inbound migration, but not
-	 * otherwise
+	/* We want a timeout if this is an inbound migration, but not otherwise.
+	 * This is compile-time selectable, as it will break mirror max_bps
 	 */
-	ptv = server_is_in_control( client->serve ) ? NULL : &tv;
+#ifdef HAS_LISTEN_TIMEOUT
+	struct timeval         tv = {CLIENT_MAX_WAIT_SECS, 0};
+
+	if ( !server_is_in_control( client->serve ) ) {
+		ptv = &tv;
+	}
+#endif
 
 	FD_ZERO(&fds);
 	FD_SET(client->socket, &fds);

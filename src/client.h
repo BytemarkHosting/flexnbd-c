@@ -4,6 +4,8 @@
 #include <signal.h>
 #include <time.h>
 
+#ifdef HAS_LISTEN_TIMEOUT
+
 /** CLIENT_MAX_WAIT_SECS
  * This is the length of time an inbound migration will wait for a fresh
  * write before assuming the source has Gone Away.  Note: it is *not*
@@ -11,6 +13,8 @@
  * one write and the start of the next.
  */
 #define CLIENT_MAX_WAIT_SECS 5
+
+#endif
 
 /** CLIENT_HANDLER_TIMEOUT
  * This is the length of time (in seconds) any request can be outstanding for.

@@ -21,12 +21,13 @@ class TestDestErrorHandling  < Test::Unit::TestCase
     assert_no_control
   end
 
-
+=begin
+  # This is disabled while CLIENT_MAX_WAIT_SECS is removed
   def test_hello_goes_astray_causes_timeout_error
     run_fake( "source/hang_after_hello" )
     assert_no_control
   end
-
+=end
 
   def test_sigterm_has_bad_exit_status
     @env.nbd1.can_die(1)
@@ -99,3 +100,4 @@ class TestDestErrorHandling  < Test::Unit::TestCase
   end
 
 end # class TestDestErrorHandling
+
