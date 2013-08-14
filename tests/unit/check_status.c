@@ -125,6 +125,7 @@ START_TEST( test_gets_migration_statistics )
 	server->mirror->this_pass_clean = 2048;
 	server->mirror->this_pass_dirty = 4096;
 	server->mirror->all_dirty = 16384;
+	server->mirror->max_bytes_per_second = 32768;
 
 	/* we have a bit of a time dependency here */
 	server->mirror->migration_started = monotonic_time_ms();
@@ -145,6 +146,8 @@ START_TEST( test_gets_migration_statistics )
 		16384 / ( status->migration_duration + 1 ) == status->migration_speed,
 		"migration_speed not calculated correctly"
 	);
+
+	fail_unless( 32768 == status->migration_speed_limit, "migration_speed_limit not read" );
 
 
 	status_destroy( status );
@@ -285,6 +288,7 @@ START_TEST( test_renders_migration_statistics )
 	status.pass_clean_bytes = 4096;
 	status.migration_duration = 8;
 	status.migration_speed = 40000000;
+	status.migration_speed_limit = 40000001;
 
 	status_write( &status, fds[1] );
 
@@ -300,6 +304,8 @@ START_TEST( test_renders_migration_statistics )
 	fail_if( NULL != found, "migration_duration output when not migrating" );
 	found = strstr( buf, "migration_speed" );
 	fail_if( NULL != found, "migration_speed output when not migrating" );
+	found = strstr( buf, "migration_speed_limit" );
+	fail_if( NULL != found, "migration_speed_limit output when not migrating" );
 
 	status.is_mirroring = 1;
 	status_write( &status, fds[1] );
@@ -314,6 +320,18 @@ START_TEST( test_renders_migration_statistics )
 	fail_if( NULL == found, "migration_duration not output when migrating" );
 	found = strstr( buf, "migration_speed=40000000" );
 	fail_if( NULL == found, "migration_speed not output when migrating" );
+	found = strstr( buf, "migration_speed_limit=40000001" );
+	fail_if( NULL == found, "migration_speed_limit not output when migrating" );
+
+	status.migration_speed_limit = UINT64_MAX;
+	status_write( &status, fds[1] );
+
+	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
+			"Couldn't read the result" );
+
+	found = strstr( buf, "migration_speed_limit" );
+	fail_if( NULL != found, "migration_speed_limit output when no migration limit was set" );
+
 }
 END_TEST
 

@@ -28,13 +28,9 @@ struct status * status_create( struct server * serve )
 			status->migration_duration = 0;
 		}
 		status->migration_duration /= 1000;
-
 		status->migration_speed = serve->mirror->all_dirty / ( status->migration_duration + 1 );
-
-
+		status->migration_speed_limit = serve->mirror->max_bytes_per_second;
 	}
-
-
 
 	server_unlock_start_mirror( serve );
 
@@ -63,6 +59,9 @@ int status_write( struct status * status, int fd )
 		PRINT_UINT64( pass_clean_bytes );
 		PRINT_UINT64( migration_speed );
 		PRINT_UINT64( migration_duration );
+		if ( status->migration_speed_limit < UINT64_MAX ) {
+			PRINT_UINT64( migration_speed_limit );
+		};
 	}
 
 	dprintf(fd, "\n");

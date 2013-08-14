@@ -80,6 +80,7 @@ struct status {
 
 	uint64_t migration_duration;
 	uint64_t migration_speed;
+	uint64_t migration_speed_limit;
 };
 
 /** Create a status object for the given server. */
