@@ -710,6 +710,9 @@ void mirror_run( struct server *serve )
 	/* Start by writing xfer 0 to the listener */
 	ev_io_start( ctrl.ev_loop, &ctrl.write_watcher );
 
+	/* We want to timeout during the first write as well as subsequent ones */
+	ev_timer_again( ctrl.ev_loop, &ctrl.timeout_watcher );
+
 	/* Everything up to here is blocking. We switch to non-blocking so we
 	 * can handle rate-limiting and weird error conditions better. TODO: We
 	 * should expand the event loop upwards so we can do the same there too */
