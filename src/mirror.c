@@ -541,8 +541,6 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 		return;
 	}
 
-	info( "count is %li, left was %"PRIu64, count, left );
-
 	if ( count == 0 ) {
 		warn( "EOF reading response from server!" );
 		ev_break( loop, EVBREAK_ONE );
