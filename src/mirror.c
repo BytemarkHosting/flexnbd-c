@@ -861,6 +861,16 @@ void* mirror_runner(void* serve_params_uncast)
 	}
 
 	mirror_run( serve );
+
+	/* On success, this is unnecessary, and harmless ( mirror_cleanup does it
+	 * for us ). But if we've failed and are going to retry on the next run, we
+	 * must close this socket here to have any chance of it succeeding.
+	 */
+	if ( !mirror->client < 0 ) {
+		sock_try_close( mirror->client );
+		mirror->client = -1;
+	}
+
 abandon_mirror:
 	return NULL;
 }
