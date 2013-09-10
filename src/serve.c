@@ -40,6 +40,7 @@ struct server * server_create (
 	out->success = success;
 	out->max_nbd_clients = max_nbd_clients;
 	out->use_killswitch = use_killswitch;
+	out->allow_new_clients = 1;
 
 	out->nbd_client = xmalloc( max_nbd_clients * sizeof( struct client_tbl_entry ) );
 	out->tcp_backlog = 10; /* does this need to be settable? */
@@ -499,7 +500,7 @@ void server_audit_clients( struct server * serve)
 	 * won't have been audited against the later acl.  This isn't a
 	 * problem though, because in order to update the acl
 	 * server_replace_acl must have been called, so the
-	 * server_accept ioop will see a second acl_updated signal as
+	 * server_accept loop will see a second acl_updated signal as
 	 * soon as it hits select, and a second audit will be run.
 	 */
 	for( i = 0; i < serve->max_nbd_clients; i++ ) {
@@ -664,8 +665,14 @@ int server_accept( struct server * params )
 
 	if ( FD_ISSET( params->server_fd, &fds ) ){
 		client_fd = accept( params->server_fd, &client_address.generic, &socklen );
-		debug("Accepted nbd client socket fd %d", client_fd);
-		accept_nbd_client(params, client_fd, &client_address);
+
+		if ( params->allow_new_clients ) {
+			debug("Accepted nbd client socket fd %d", client_fd);
+			accept_nbd_client(params, client_fd, &client_address);
+		} else {
+			debug( "New NBD client socket %d not allowed", client_fd );
+			sock_try_close( client_fd );
+		}
 	}
 
 	return should_continue;
@@ -735,6 +742,44 @@ void serve_init_allocation_map(struct server* params)
 }
 
 
+void server_forbid_new_clients( struct server * serve )
+{
+	serve->allow_new_clients = 1;
+	return;
+}
+
+void server_close_and_join_clients( struct server * serve )
+{
+	server_close_clients( serve );
+}
+
+void server_allow_new_clients( struct server * serve )
+{
+	serve->allow_new_clients = 0;
+	return;
+}
+
+void server_join_clients( struct server * serve ) {
+	int i;
+	void* status;
+
+	for (i=0; i < serve->max_nbd_clients; i++) {
+		pthread_t thread_id = serve->nbd_client[i].thread;
+		int err = 0;
+
+		if (thread_id != 0) {
+			debug( "joining thread %p", thread_id );
+			if ( 0 == (err = pthread_join( thread_id, &status ) ) ) {
+				serve->nbd_client[i].thread = 0;
+			} else {
+				warn( "Error %s (%i) joining thread %p", strerror( err ), err, thread_id );
+			}
+		}
+	}
+
+	return;
+}
+
 /* Tell the server to close all the things. */
 void serve_signal_close( struct server * serve )
 {
@@ -775,11 +820,9 @@ void serve_cleanup(struct server* params,
 		int fatal __attribute__ ((unused)) )
 {
 	NULLCHECK( params );
+	void* status;
 
 	info("cleaning up");
-
-	int i;
-	void* status;
 
 	if (params->server_fd){ close(params->server_fd); }
 
@@ -802,14 +845,7 @@ void serve_cleanup(struct server* params,
 	}
 	if ( need_mirror_lock ) { server_unlock_start_mirror( params ); }
 
-	for (i=0; i < params->max_nbd_clients; i++) {
-		pthread_t thread_id = params->nbd_client[i].thread;
-
-		if (thread_id != 0) {
-			debug("joining thread %p", thread_id);
-			pthread_join(thread_id, &status);
-		}
-	}
+	server_join_clients( params );
 
 	if ( server_start_mirror_locked( params ) ) {
 		server_unlock_start_mirror( params );

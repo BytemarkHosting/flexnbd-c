@@ -407,7 +407,7 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 int mirror_exceeds_max_bps( struct mirror *mirror )
 {
 	uint64_t duration_ms = monotonic_time_ms() - mirror->migration_started;
-	uint64_t mig_speed = mirror->all_dirty / ( (duration_ms / 1000 ) + 1 );
+	uint64_t mig_speed = mirror->all_dirty / ( ( duration_ms / 1000 ) + 1 );
 
 	debug( "current_bps: %"PRIu64"; max_bps: %"PRIu64, mig_speed, mirror->max_bytes_per_second );
 
@@ -467,7 +467,7 @@ static void mirror_write_cb( struct ev_loop *loop, ev_io *w, int revents )
 		// or we might clear a bit that had been set by another write.
 		if ( !server_io_locked( ctrl->serve ) ) {
 			server_lock_io( ctrl->serve );
-			debug( "In block block" );
+			debug( "In lock block" );
 		}
 
 	}
@@ -623,11 +623,16 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 			m->this_pass_clean = 0;
 
 			debug( "mirror start pass=%d", m->pass );
-			/* This is the start of our next pass. If it happens to be the
-			 * final pass, we need to lock server I/O so that other writes
-			 * don't race with our call to mirror_setup_next_xfer() below */
 			if ( m->pass == mirror_last_pass ) {
+				/* This is the start of our next pass. If it happens to be the
+				 * final pass, we need to wait for all the clients to exit before
+				 * continuing */
 				debug( "In lock block for last pass" );
+				/* FIXME: this could block */
+				server_forbid_new_clients( ctrl->serve );
+				server_close_clients( ctrl->serve );
+
+				// FIXME: In theory, we won't need this any more...
 				server_lock_io( ctrl->serve );
 			}
 		}
@@ -708,7 +713,9 @@ void mirror_run( struct server *serve )
 	NULLCHECK( serve );
 	NULLCHECK( serve->mirror );
 
-	serve->mirror->migration_started = monotonic_time_ms();
+	struct mirror *m = serve->mirror;
+
+	m->migration_started = monotonic_time_ms();
 	info("Starting mirror" );
 
 	/* mirror_setup_next_xfer won't be able to cope with this, so special-case
@@ -730,15 +737,16 @@ void mirror_run( struct server *serve )
 	memset( &ctrl, 0, sizeof( struct mirror_ctrl ) );
 
 	ctrl.serve  = serve;
-	ctrl.mirror = serve->mirror;
+	ctrl.mirror = m;
+
 
 	ctrl.ev_loop = EV_DEFAULT;
 
 	/* gcc warns on -O2. clang is fine. Seems to be the fault of ev.h */
-	ev_io_init( &ctrl.read_watcher, mirror_read_cb, ctrl.mirror->client, EV_READ  );
+	ev_io_init( &ctrl.read_watcher, mirror_read_cb, m->client, EV_READ  );
 	ctrl.read_watcher.data = (void*) &ctrl;
 
-	ev_io_init( &ctrl.write_watcher, mirror_write_cb, ctrl.mirror->client, EV_WRITE );
+	ev_io_init( &ctrl.write_watcher, mirror_write_cb, m->client, EV_WRITE );
 	ctrl.write_watcher.data = (void*) &ctrl;
 
 	ev_init( &ctrl.timeout_watcher, mirror_timeout_cb );
@@ -749,7 +757,7 @@ void mirror_run( struct server *serve )
 	ctrl.limit_watcher.data = (void*) &ctrl;
 
 	ev_init( &ctrl.abandon_watcher, mirror_abandon_cb );
-	ev_io_set( &ctrl.abandon_watcher, ctrl.mirror->abandon_signal->read_fd, EV_READ );
+	ev_io_set( &ctrl.abandon_watcher, m->abandon_signal->read_fd, EV_READ );
 	ctrl.abandon_watcher.data = (void*) &ctrl;
 	ev_io_start( ctrl.ev_loop, &ctrl.abandon_watcher );
 
@@ -767,27 +775,33 @@ void mirror_run( struct server *serve )
 	/* Everything up to here is blocking. We switch to non-blocking so we
 	 * can handle rate-limiting and weird error conditions better. TODO: We
 	 * should expand the event loop upwards so we can do the same there too */
-	sock_set_nonblock( ctrl.mirror->client, 1 );
+	sock_set_nonblock( m->client, 1 );
 	info( "Entering event loop" );
 	ev_run( ctrl.ev_loop, 0 );
 	info( "Exited event loop" );
 	/* Parent code might expect a non-blocking socket */
-	sock_set_nonblock( ctrl.mirror->client, 0 );
+	sock_set_nonblock( m->client, 0 );
 
 
 	/* Errors in the event loop don't track I/O lock state or try to restore
 	 * it to something sane - they just terminate the event loop with state !=
-	 * MS_DONE. We unlock here if it's locked.
+	 * MS_DONE. We unlock I/O and re-allow new clients here if necessary.
 	 */
 	if ( server_io_locked( serve ) ) {
 		server_unlock_io( serve );
 	}
 
-	if ( serve->mirror->commit_state != MS_DONE ) {
+	if ( m->action_at_finish == ACTION_NOTHING || m->commit_state != MS_DONE ) {
+		server_allow_new_clients( serve );
+	}
+
+	/* Returning here says "mirroring complete" to the runner. The error
+	 * call retries the migration from scratch. */
+
+	if ( m->commit_state != MS_DONE ) {
 		error( "Event loop exited, but mirroring is not complete" );
 	}
 
-	/* returning here says "mirroring complete" to the runner */
 	return;
 }
 

@@ -87,8 +87,11 @@ struct server {
 	int                  max_nbd_clients;
 	struct client_tbl_entry *nbd_client;
 
-	/* Should clients use the killswitch? */
+	/** Should clients use the killswitch? */
 	int use_killswitch;
+
+	/** If this isn't set, newly accepted clients will be closed immediately */
+	int allow_new_clients;
 
 
 	/* Marker for whether this server has control over the data in
@@ -134,6 +137,15 @@ void server_abandon_mirror( struct server * serve );
 void server_prevent_mirror_start( struct server *serve );
 void server_allow_mirror_start( struct server *serve );
 int server_mirror_can_start( struct server *serve );
+
+/* These three functions are used by mirror around the final pass, to close
+ * existing clients and prevent new ones from being around
+ */
+
+void server_forbid_new_clients( struct server *serve );
+void server_close_clients( struct server *serve );
+void server_join_clients( struct server *serve );
+void server_allow_new_clients( struct server *serve );
 
 void server_unlink( struct server * serve );
 
