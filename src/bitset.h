@@ -175,14 +175,10 @@ static inline void bitset_set_range(
 
 
 /** Set every bit in the bitset. */
-static inline void bitset_set(
-	struct bitset_mapping* set
-)
+static inline void bitset_set( struct bitset_mapping* set )
 {
 	bitset_set_range(set, 0, set->size);
 }
-
-
 
 /** Clear the bits in a bitset which correspond to the given bytes in the
   * larger file.
@@ -200,9 +196,7 @@ static inline void bitset_clear_range(
 
 
 /** Clear every bit in the bitset. */
-static inline void bitset_clear(
-		struct bitset_mapping *set
-)
+static inline void bitset_clear( struct bitset_mapping *set )
 {
 	bitset_clear_range(set, 0, set->size);
 }
@@ -230,9 +224,6 @@ static inline uint64_t bitset_run_count_ex(
 	BITSET_LOCK;
 	run = bit_run_count(set->bits, first, bitlen, run_is_set) * set->resolution;
 	run -= (from % set->resolution);
-
-
-
 	BITSET_UNLOCK;
 
 	return run;
@@ -251,20 +242,14 @@ static inline uint64_t bitset_run_count(
 
 /** Tests whether the bit field is clear for the given file offset.
   */
-static inline int bitset_is_clear_at(
-	struct bitset_mapping* set,
-	uint64_t at
-)
+static inline int bitset_is_clear_at( struct bitset_mapping* set, uint64_t at )
 {
 	return bit_is_clear(set->bits, at/set->resolution);
 }
 
 /** Tests whether the bit field is set for the given file offset.
   */
-static inline int bitset_is_set_at(
-	struct bitset_mapping* set,
-	uint64_t at
-)
+static inline int bitset_is_set_at( struct bitset_mapping* set, uint64_t at )
 {
 	return bit_is_set(set->bits, at/set->resolution);
 }
