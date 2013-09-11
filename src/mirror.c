@@ -206,7 +206,7 @@ void mirror_destroy( struct mirror *mirror )
 	self_pipe_destroy( mirror->abandon_signal );
 	free(mirror->connect_to);
 	free(mirror->connect_from);
-	free(mirror->dirty_map);
+	bitset_free( mirror->dirty_map );
 	free(mirror);
 }
 

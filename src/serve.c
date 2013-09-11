@@ -830,7 +830,7 @@ void serve_cleanup(struct server* params,
 	pthread_cancel(params->allocation_map_builder_thread);
 	pthread_join(params->allocation_map_builder_thread, &status);
 	if (params->allocation_map) {
-		free(params->allocation_map);
+		bitset_free( params->allocation_map );
 	}
 
 	int need_mirror_lock;

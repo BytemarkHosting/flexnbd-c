@@ -141,6 +141,12 @@ static inline struct bitset_mapping* bitset_alloc(
 	return bitset;
 }
 
+static inline void bitset_free( struct bitset_mapping * set )
+{
+	/* TODO: free our mutex... */
+	free( set );
+}
+
 #define INT_FIRST_AND_LAST \
   uint64_t first = from/set->resolution, \
       last = ((from+len)-1)/set->resolution, \
