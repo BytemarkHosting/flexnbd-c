@@ -261,6 +261,38 @@ static inline void bitset_stream_dequeue(
 	return;
 }
 
+static inline int bitset_stream_size( struct bitset_mapping * set )
+{
+	int size;
+
+	pthread_mutex_lock( &set->stream->mutex );
+	size = set->stream->size;
+	pthread_mutex_unlock( &set->stream->mutex );
+
+	return size;
+}
+
+static inline uint64_t bitset_stream_queued_bytes(
+	struct bitset_mapping * set,
+	enum bitset_stream_events event
+)
+{
+	uint64_t total = 0;
+	int i;
+
+	pthread_mutex_lock( &set->stream->mutex );
+
+	for ( i = set->stream->out; i < set->stream->in ; i++ ) {
+		if ( set->stream->entries[i].event == event ) {
+			total += set->stream->entries[i].len;
+		}
+	}
+
+	pthread_mutex_unlock( &set->stream->mutex );
+
+	return total;
+}
+
 static inline void bitset_stream_on( struct bitset_mapping * set )
 {
 	BITSET_LOCK;

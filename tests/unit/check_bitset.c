@@ -310,7 +310,7 @@ START_TEST( test_bitset_set_range_doesnt_push_to_stream )
 {
 	struct bitset_mapping *map = bitset_alloc( 64, 1 );
 	bitset_set_range( map, 0, 64 );
-	ck_assert_int_eq( map->stream->size, 0 );
+	ck_assert_int_eq( 0, bitset_stream_size( map ) );
 	bitset_free( map );
 }
 END_TEST
@@ -319,7 +319,7 @@ START_TEST( test_bitset_clear_range_doesnt_push_to_stream )
 {
 	struct bitset_mapping *map = bitset_alloc( 64, 1 );
 	bitset_clear_range( map, 0, 64 );
-	ck_assert_int_eq( map->stream->size, 0 );
+	ck_assert_int_eq( 0, bitset_stream_size( map ) );
 	bitset_free( map );
 }
 END_TEST
@@ -354,7 +354,7 @@ START_TEST(test_bitset_stream_off)
 	bitset_stream_off( map );
 
 	ck_assert_int_eq( 0, map->stream_enabled );
-	ck_assert_int_eq( 2, map->stream->size );
+	ck_assert_int_eq( 2, bitset_stream_size( map ) );
 
 	bitset_stream_dequeue( map, NULL ); // ON
 	bitset_stream_dequeue( map, &result ); // OFF
@@ -376,7 +376,7 @@ START_TEST(test_bitset_stream_with_set_range)
 	bitset_stream_on( map );
 	bitset_set_range( map, 0, 32 );
 
-	ck_assert_int_eq( 2, map->stream->size );
+	ck_assert_int_eq( 2, bitset_stream_size( map ) );
 
 	bitset_stream_dequeue( map, NULL ); // ON
 	bitset_stream_dequeue( map, &result ); // SET
@@ -397,7 +397,7 @@ START_TEST(test_bitset_stream_with_clear_range)
 
 	bitset_stream_on( map );
 	bitset_clear_range( map, 0, 32 );
-	ck_assert_int_eq( 2, map->stream->size );
+	ck_assert_int_eq( 2, bitset_stream_size( map ) );
 
 	bitset_stream_dequeue( map, NULL ); // ON
 	bitset_stream_dequeue( map, &result ); // UNSET
@@ -406,6 +406,47 @@ START_TEST(test_bitset_stream_with_clear_range)
 	ck_assert_int_eq( 0, result.from );
 	ck_assert_int_eq( 32, result.len );
 
+	bitset_free( map );
+}
+END_TEST
+
+START_TEST(test_bitset_stream_size)
+{
+	struct bitset_mapping *map = bitset_alloc( 64, 1 );
+	bitset_stream_on( map );
+	bitset_set_range( map, 0, 32 );
+	bitset_set_range( map, 16, 32 );
+	bitset_set_range( map, 7, 16 );
+
+	bitset_clear_range( map, 0, 32 );
+	bitset_clear_range( map, 16, 32 );
+	bitset_clear_range( map, 48, 16 );
+	bitset_stream_off( map );
+
+	ck_assert_int_eq( 8, bitset_stream_size( map ) );
+
+	bitset_free( map );
+}
+END_TEST
+
+START_TEST(test_bitset_stream_queued_bytes)
+{
+	struct bitset_mapping *map = bitset_alloc( 64, 1 );
+	bitset_stream_on( map );
+	bitset_set_range( map, 0, 32 );
+	bitset_set_range( map, 16, 32 );
+	bitset_set_range( map, 7, 16 );
+
+	bitset_clear_range( map, 0, 32 );
+	bitset_clear_range( map, 16, 32 );
+	bitset_clear_range( map, 48, 16 );
+	bitset_clear_range( map, 0, 2 );
+	bitset_stream_off( map );
+
+	ck_assert_int_eq( 64, bitset_stream_queued_bytes( map, BITSET_STREAM_ON ) );
+	ck_assert_int_eq( 80, bitset_stream_queued_bytes( map, BITSET_STREAM_SET ) );
+	ck_assert_int_eq( 82, bitset_stream_queued_bytes( map, BITSET_STREAM_UNSET ) );
+	ck_assert_int_eq( 64, bitset_stream_queued_bytes( map, BITSET_STREAM_OFF ) );
 	bitset_free( map );
 }
 END_TEST
@@ -439,6 +480,8 @@ Suite* bitset_suite(void)
 	tcase_add_test(tc_bitset_stream, test_bitset_stream_off);
 	tcase_add_test(tc_bitset_stream, test_bitset_stream_with_set_range);
 	tcase_add_test(tc_bitset_stream, test_bitset_stream_with_clear_range);
+	tcase_add_test(tc_bitset_stream, test_bitset_stream_size);
+	tcase_add_test(tc_bitset_stream, test_bitset_stream_queued_bytes);
 	suite_add_tcase(s, tc_bitset_stream);
 
 	return s;
