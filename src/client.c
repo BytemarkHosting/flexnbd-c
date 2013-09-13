@@ -132,6 +132,12 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 			debug("writing the lot: from=%ld, run=%d", from, run);
 			/* already allocated, just write it all */
 			DO_READ(client->mapped + from, run);
+			/* We know from our earlier call to  bitset_run_count that the
+			 * bitset is all-1s at this point, but we need to dirty it for the
+			 * sake of the event stream - the actual bytes have changed, and we
+			 * are interested in that fact.
+			 */
+			bitset_set_range( map, from, run );
 			server_dirty(client->serve, from, run);
 			len  -= run;
 			from += run;
@@ -167,6 +173,10 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 					 * sparseness as possible.
 					 */
 				}
+				/* When the block is all_zeroes, no bytes have changed, so we
+				 * don't need to put an event into the bitset stream. This may
+				 * be surprising in the future.
+				 */
 
 				len  -= blockrun;
 				run  -= blockrun;

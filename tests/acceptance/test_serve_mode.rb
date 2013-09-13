@@ -44,6 +44,29 @@ class TestServeMode < Test::Unit::TestCase
     end
   end
 
+  def test_long_write_on_top_of_short_write_is_respected
+
+    connect_to_server do |client|
+      # Start with a file of all-zeroes.
+      client.write( 0, "\x00" * @env.file1.size )
+      rsp = client.read_response
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 0, rsp[:error]
+
+      client.write( 0, "\xFF" )
+      rsp = client.read_response
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 0, rsp[:error]
+
+      client.write( 0, "\xFF\xFF" )
+      rsp = client.read_response
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 0, rsp[:error]
+    end
+
+    assert_equal "\xFF\xFF", @env.file1.read (0, 2 )
+  end
+
 
   def test_read_request_out_of_bounds_receives_error_response
     connect_to_server do |client|

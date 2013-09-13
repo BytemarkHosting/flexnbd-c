@@ -705,6 +705,8 @@ void* build_allocation_map_thread(void* serve_uncast)
 		 * All that happens if we leave it is that it gradually builds up an
 		 * *incomplete* record of writes. Nobody will use it, as
 		 * allocation_map_built == 0 for the lifetime of the process.
+		 *
+		 * The stream functionality can still be relied on.
 		 */
 		warn( "Didn't build allocation map for %s", serve->filename );
 	}
