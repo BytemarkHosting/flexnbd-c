@@ -831,9 +831,6 @@ void serve_cleanup(struct server* params,
 	/* need to stop background build if we're killed very early on */
 	pthread_cancel(params->allocation_map_builder_thread);
 	pthread_join(params->allocation_map_builder_thread, &status);
-	if (params->allocation_map) {
-		bitset_free( params->allocation_map );
-	}
 
 	int need_mirror_lock;
 	need_mirror_lock = !server_start_mirror_locked( params );
@@ -848,6 +845,10 @@ void serve_cleanup(struct server* params,
 	if ( need_mirror_lock ) { server_unlock_start_mirror( params ); }
 
 	server_join_clients( params );
+
+	if (params->allocation_map) {
+		bitset_free( params->allocation_map );
+	}
 
 	if ( server_start_mirror_locked( params ) ) {
 		server_unlock_start_mirror( params );
