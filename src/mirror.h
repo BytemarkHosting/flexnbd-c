@@ -71,8 +71,8 @@ struct mirror {
 	int                  client;
 	const char *         filename;
 
-	/* Not used yet. Will be a limiter, used to restrict migration speed.
-	 * only dirty bytes (those going over the network) will be considered */
+	/* Limiter, used to restrict migration speed Only dirty bytes (those going
+	 * over the network) are considered */
 	uint64_t              max_bytes_per_second;
 
 	enum mirror_finish_action action_at_finish;
