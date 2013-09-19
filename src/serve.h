@@ -117,7 +117,6 @@ struct server * server_create(
 		int success );
 void server_destroy( struct server * );
 int server_is_closed(struct server* serve);
-void server_dirty(struct server *serve, off64_t from, int len);
 void server_lock_io( struct server * serve);
 void server_unlock_io( struct server* serve );
 void serve_signal_close( struct server *serve );

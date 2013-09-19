@@ -119,16 +119,6 @@ void server_unlink( struct server * serve )
 
 }
 
-
-void server_dirty(struct server *serve, off64_t from, int len)
-{
-	NULLCHECK( serve );
-
-	if (serve->mirror) {
-		bitset_set_range(serve->mirror->dirty_map, from, len);
-	}
-}
-
 #define SERVER_LOCK( s, f, msg ) \
 	do { NULLCHECK( s ); \
 	 FATAL_IF( 0 != flexthread_mutex_lock( s->f ), msg ); } while (0)

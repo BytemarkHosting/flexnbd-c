@@ -78,7 +78,9 @@ struct mirror {
 	enum mirror_finish_action action_at_finish;
 
 	char                 *mapped;
-	struct bitset_mapping *dirty_map;
+
+	/* Keep an eye on where in the current pass we are */
+	uint64_t pass_offset;
 
 	enum mirror_state    commit_state;
 

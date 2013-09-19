@@ -138,7 +138,6 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 			 * are interested in that fact.
 			 */
 			bitset_set_range( map, from, run );
-			server_dirty(client->serve, from, run);
 			len  -= run;
 			from += run;
 		}
@@ -165,7 +164,6 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 				if ( !all_zeros ) {
 					memcpy(client->mapped+from, zerobuffer, blockrun);
 					bitset_set_range(map, from, blockrun);
-					server_dirty(client->serve, from, blockrun);
 					/* at this point we could choose to
 					 * short-cut the rest of the write for
 					 * faster I/O but by continuing to do it
@@ -467,8 +465,6 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 			request.len
 		);
 
-		/* Ensure this updated block is written in the event of a mirror op */
-		server_dirty(client->serve, request.from, request.len);
 		/* the allocation_map is shared between client threads, and may be
 		 * being built. We need to reflect the write in it, as it may be in
 		 * a position the builder has already gone over.

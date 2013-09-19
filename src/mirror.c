@@ -76,8 +76,17 @@ struct mirror_ctrl {
 	ev_timer limit_watcher;
 	ev_io abandon_watcher;
 
+	/* We set this if the bitset stream is getting uncomfortably full, and unset
+	 * once it's emptier */
+	int clear_events;
+
+	/* This is set once all clients have been closed, to let the mirror know
+	 * it's safe to finish once the queue is empty */
+	int last_pass;
+
 	/* Use this to keep track of what we're copying at any moment */
 	struct xfer xfer;
+
 };
 
 struct mirror * mirror_alloc(
@@ -149,8 +158,6 @@ void mirror_init( struct mirror * mirror, const char * filename )
 		madvise( mirror->mapped, size, MADV_SEQUENTIAL ),
 		SHOW_ERRNO( "Failed to madvise() %s", filename )
 	);
-
-	mirror->dirty_map = bitset_alloc(size, 4096);
 }
 
 
@@ -158,11 +165,7 @@ void mirror_init( struct mirror * mirror, const char * filename )
 void mirror_reset( struct mirror * mirror )
 {
 	NULLCHECK( mirror );
-	NULLCHECK( mirror->dirty_map );
 	mirror_set_state( mirror, MS_INIT );
-
-	/* See the caveats in mirror_run if you change this! */
-	bitset_set(mirror->dirty_map);
 
 	mirror->all_dirty = 0;
 	mirror->all_clean = 0;
@@ -170,6 +173,7 @@ void mirror_reset( struct mirror * mirror )
 	mirror->this_pass_dirty = 0;
 	mirror->this_pass_clean = 0;
 	mirror->migration_started = 0;
+	mirror->pass_offset = 0;
 
 	return;
 }
@@ -206,7 +210,6 @@ void mirror_destroy( struct mirror *mirror )
 	self_pipe_destroy( mirror->abandon_signal );
 	free(mirror->connect_to);
 	free(mirror->connect_from);
-	bitset_free( mirror->dirty_map );
 	free(mirror);
 }
 
@@ -226,13 +229,16 @@ static const int mirror_maximum_passes = 7;
 #define mirror_last_pass (mirror_maximum_passes - 1)
 
 
-/* THIS FUNCTION MUST ONLY BE CALLED WITH THE SERVER'S IO LOCKED. */
+/* This must not be called if there's any chance of further I/O. Methods to
+ * ensure this include:
+ *   - call server_lock_io()
+ *   - call server_forbid_new_clients() followed by a successful server_close_clients() ; server_join_clients()
+ */
 void mirror_on_exit( struct server * serve )
 {
 	/* If we're still here, we can shut the server down.
 	 *
-	 * It doesn't matter if we get new client connections before
-	 * now, the IO lock will stop them from doing anything.
+	 *
 	 */
 	debug("serve_signal_close");
 	serve_signal_close( serve );
@@ -346,46 +352,61 @@ int mirror_should_quit( struct mirror * mirror )
 	}
 }
 
-/* Iterates through the bitmap, finding a dirty run to form the basis of the
+/*
+ * If there's an event in the bitset stream of the serve allocation map, we
+ * use it to construct the next transfer request, covering precisely the area
+ * that has changed. If there are no events, we take the next
+ * TODO: should we detect short events and lengthen them to reduce overhead?
+ *
+ * iterates through the bitmap, finding a dirty run to form the basis of the
  * next transfer, then puts it together. */
 int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 {
 	struct mirror* mirror = ctrl->mirror;
-	uint64_t current, run, size = ctrl->serve->size;
-	int found = 0;
+	struct server* serve = ctrl->serve;
+	struct bitset_stream_entry e = { .event = BITSET_STREAM_UNSET };
+	uint64_t current = mirror->pass_offset, run = 0, size = serve->size;
 
-	do {
-		int run_is_set = 0;
-		current = mirror->this_pass_dirty + mirror->this_pass_clean;
+	/* Technically, we'd be interested in UNSET events too, but they are never
+	 * generated. TODO if that changes.
+	 *
+	 * We use ctrl->clear_events to start emptying the stream when it's half
+	 * full, and stop when it's a quarter full. This stops a busy client from
+	 * stalling a migration forever. FIXME: made-up numbers.
+	 */
+	if ( bitset_stream_size( serve->allocation_map ) > BITSET_STREAM_SIZE / 2 ) {
+		ctrl->clear_events = 1;
+	}
 
-		run = bitset_run_count_ex(
-			mirror->dirty_map, current, mirror_longest_write, &run_is_set
-		);
+	while ( ( ctrl->last_pass || ctrl->clear_events ) && e.event != BITSET_STREAM_SET ) {
+		debug("Dequeueing event");
+		bitset_stream_dequeue( ctrl->serve->allocation_map, &e );
+		debug("Dequeued event %i, %zu, %zu", e.event, e.from, e.len);
 
-		if ( current + run > size ) {
-			debug(
-				"Size not divisible by %i, adjusting final block",
-				block_allocation_resolution
-			);
+		if ( bitset_stream_size( serve->allocation_map ) < BITSET_STREAM_SIZE / 4 ) {
+			ctrl->clear_events = 0;
+		}
+	}
+
+	if ( e.event == BITSET_STREAM_SET ) {
+		current = e.from;
+		run = e.len;
+	} else if ( !ctrl->last_pass && current < serve->size ) {
+		current = mirror->pass_offset;
+		run = mirror_longest_write;
+
+		/* Adjust final block if necessary */
+		if ( current + run > serve->size ) {
 			run = size - current;
 		}
+		mirror->pass_offset += run;
+	}
 
-		/* FIXME: we could avoid sending sparse areas of the disc here, and
-		 * probably save a lot of bandwidth and time (if we know the destination
-		 * starts off zeroed). */
-		if ( run_is_set ) {
-			found = 1;
-		} else {
-			mirror->this_pass_clean += run;
-			mirror->all_clean += run;
-		}
-	} while ( !found && current + run < size );
-
-	/* current and run specify our next transfer */
-	if ( !found ) {
+	if ( run == 0 ) {
 		return 0;
 	}
-	debug( "Next dirty block: current=%"PRIu64", run=%"PRIu64, current, run );
+
+	debug( "Next transfer: current=%"PRIu64", run=%"PRIu64, current, run );
 	struct nbd_request req = {
 		.magic = REQUEST_MAGIC,
 		.type = REQUEST_WRITE,
@@ -418,7 +439,7 @@ int mirror_exceeds_max_bps( struct mirror *mirror )
 	return 0;
 }
 
-// ONLY CALL THIS WHEN SERVER IO IS LOCKED
+// ONLY CALL THIS AFTER CLOSING CLIENTS
 void mirror_complete( struct server *serve )
 {
 	/* FIXME: Pretty sure this is broken, if action != !QUIT. Just moving code
@@ -459,17 +480,6 @@ static void mirror_write_cb( struct ev_loop *loop, ev_io *w, int revents )
 	} else {
 		data_loc = ctrl->mirror->mapped  + xfer->from + ( xfer->written - hdr_size );
 		to_write = xfer->len - ( ctrl->xfer.written - hdr_size );
-
-		// If we're in the last pass, we'll be locked anyway. If we're not in
-		// the last pass, we want to be locked for every write() call that
-		// we issue, to avoid the blocks being updated while we work. In
-		// particular, bitset_run_clear() must be called while the I/O is locked
-		// or we might clear a bit that had been set by another write.
-		if ( !server_io_locked( ctrl->serve ) ) {
-			server_lock_io( ctrl->serve );
-			debug( "In lock block" );
-		}
-
 	}
 
 	// Actually read some bytes
@@ -484,24 +494,11 @@ static void mirror_write_cb( struct ev_loop *loop, ev_io *w, int revents )
 	debug( "to_write was %"PRIu64", xfer->written was %"PRIu64, to_write, xfer->written );
 	ctrl->xfer.written += count;
 
-	// We write some bytes, so reset the timer
+	// We wrote some bytes, so reset the timer
 	ev_timer_again( ctrl->ev_loop, &ctrl->timeout_watcher );
 
 	// All bytes written, so now we need to read the NBD reply back.
 	if ( ctrl->xfer.written == ctrl->xfer.len + hdr_size ) {
-
-		// We can, however, clear the run here. If it turns out that the
-		// NBD request has been rejected, we're discarding it anyway, so the
-		// wrong data won't get used. If the request is a success, any blocks
-		// written to while waiting for the reply will be copied in the next
-		// pass; if it's the final pass, I/O remains locked.
-		debug( "Clearing bitset from=%"PRIu64" run=%"PRIu64", ctr->xfer.from, ctrl->xfer.len" );
-		bitset_clear_range( ctrl->mirror->dirty_map, ctrl->xfer.from, ctrl->xfer.len );
-
-		if ( ctrl->mirror->pass != mirror_last_pass ) {
-			debug( "Leaving lock block" );
-			server_unlock_io( ctrl->serve );
-		}
 		ev_io_start( loop, &ctrl->read_watcher  );
 		ev_io_stop(  loop, &ctrl->write_watcher );
 	}
@@ -591,54 +588,50 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	/* This next bit could take a little while, which is fine */
 	ev_timer_stop( ctrl->ev_loop, &ctrl->timeout_watcher );
 
-	do {
-		// This pass complete
-		if ( m->this_pass_dirty + m->this_pass_clean == ctrl->serve->size ) {
-			debug( "Pass %d completed", m->pass );
-			/* Set up the next transfer, which may be n+1 in the current pass,
-			 * or 0 in a new pass. If we can't find another transfer to do, that
-			 * means the pass is complete. Advance pass and re-run the end-of-
-			 * pass logic to complete migration ( pass == mirror_last_pass ), or
-			 * move onto the last pass ( pass < mirror_last_pass, by virtue of
-			 * this_pass_dirty being 0 ).
-			 */
+	int finished_setup = 0;
 
-			 // last pass completed
-			if ( m->pass >= mirror_last_pass ) {
-				/* This was the last pass, so finish. */
+	/* Set up the next transfer, which may be pass_offset + mirror_longest_write
+	 * or an event from the bitset stream. When pass_offset hits serve->size,
+	 * we disable new clients from connecting, disconnect existing clients, and
+	 * wait for the bitset stream to empty. At that point, we know that source
+	 * and destination have the same data, so can finish.
+	 */
+	do {
+		if ( m->pass_offset == ctrl->serve->size ) {
+			debug( "Pass %d completed", m->pass );
+
+			if ( ctrl->last_pass ) {
 				mirror_complete( ctrl->serve );
 				ev_break( loop, EVBREAK_ONE );
 				return;
-			}
-
-			// this was not the last pass - set up for the next run.
-			if ( m->this_pass_dirty < mirror_last_pass_after_bytes_written ) {
-				/* Quiet disc, so skip to the final pass */
-				m->pass = mirror_last_pass;
 			} else {
-				m->pass++;
-			}
-			// FIXME: Can status race with us if it inspects state here?
-			m->this_pass_dirty = 0;
-			m->this_pass_clean = 0;
+				// FIXME: Can status race with us if it inspects state here?
+				m->this_pass_dirty = 0;
+				m->this_pass_clean = 0;
+				ctrl->last_pass++;
+				m->pass++; // TODO: remove this in favour of last_pass?
 
-			debug( "mirror start pass=%d", m->pass );
-			if ( m->pass == mirror_last_pass ) {
-				/* This is the start of our next pass. If it happens to be the
-				 * final pass, we need to wait for all the clients to exit before
-				 * continuing */
-				debug( "In lock block for last pass" );
-				/* FIXME: this could block */
+				/* Prevent further I/O from happening.
+				 * FIXME: We should actually only do this if the amount of data
+				 * left to transfer is under a certain threshold. As-is, we have
+				 * no control over length of I/O freeze - it's entirely
+				 * dependent on amount of traffic from the guest. More traffic =
+				 * longer downtime.
+				 */
 				server_forbid_new_clients( ctrl->serve );
 				server_close_clients( ctrl->serve );
-
-				// FIXME: In theory, we won't need this any more...
-				server_lock_io( ctrl->serve );
+				server_join_clients( ctrl->serve );
 			}
+
+		} else {
+			/* Use mirror_setup_next_xfer to find out what to read next */
+			finished_setup = mirror_setup_next_xfer( ctrl );
 		}
-	}  while ( !mirror_setup_next_xfer( ctrl ) );
+	} while ( !finished_setup );
 
 	ev_io_stop( loop, &ctrl->read_watcher );
+
+	/* FIXME: Should we ignore the bwlimit after server_close_clients has been called? */
 
 	if ( mirror_exceeds_max_bps( m ) ) {
 		/* We're over the bandwidth limit, so don't move onto the next transfer
@@ -719,17 +712,13 @@ void mirror_run( struct server *serve )
 	info("Starting mirror" );
 
 	/* mirror_setup_next_xfer won't be able to cope with this, so special-case
-	 * it here.
-	 * TODO: Another case we won't be able to handle is a non-zero-sized image
-	 * where none of the blocks are set in the first pass. As it happens, we
-	 * start with all blocks set and then pare them down, so it doesn't happen
-	 * in the current codebase - but watch out for the future!
+	 * it here. There can't be any writes going on, so don't bother locking
+	 * anything.
+	 *
 	 */
 	if ( serve->size == 0 ) {
 		info( "0-byte image special case" );
-		server_lock_io( serve );
 		mirror_complete( serve );
-		server_unlock_io( serve );
 		return;
 	}
 
@@ -738,7 +727,6 @@ void mirror_run( struct server *serve )
 
 	ctrl.serve  = serve;
 	ctrl.mirror = m;
-
 
 	ctrl.ev_loop = EV_DEFAULT;
 
@@ -776,21 +764,21 @@ void mirror_run( struct server *serve )
 	 * can handle rate-limiting and weird error conditions better. TODO: We
 	 * should expand the event loop upwards so we can do the same there too */
 	sock_set_nonblock( m->client, 1 );
+
+	bitset_stream_on( serve->allocation_map );
+
 	info( "Entering event loop" );
 	ev_run( ctrl.ev_loop, 0 );
 	info( "Exited event loop" );
+
 	/* Parent code might expect a non-blocking socket */
 	sock_set_nonblock( m->client, 0 );
 
 
 	/* Errors in the event loop don't track I/O lock state or try to restore
 	 * it to something sane - they just terminate the event loop with state !=
-	 * MS_DONE. We unlock I/O and re-allow new clients here if necessary.
+	 * MS_DONE. We re-allow new clients here if necessary.
 	 */
-	if ( server_io_locked( serve ) ) {
-		server_unlock_io( serve );
-	}
-
 	if ( m->action_at_finish == ACTION_NOTHING || m->commit_state != MS_DONE ) {
 		server_allow_new_clients( serve );
 	}
@@ -800,6 +788,11 @@ void mirror_run( struct server *serve )
 
 	if ( m->commit_state != MS_DONE ) {
 		error( "Event loop exited, but mirroring is not complete" );
+
+		/* mirror_reset will be called before a retry, so keeping hold of events
+		 * between now and our next mirroring attempt is not useful
+		 */
+		bitset_stream_off( serve->allocation_map );
 	}
 
 	return;
@@ -845,7 +838,6 @@ void* mirror_runner(void* serve_params_uncast)
 	NULLCHECK( serve );
 	NULLCHECK( serve->mirror );
 	struct mirror * mirror = serve->mirror;
-	NULLCHECK( mirror->dirty_map );
 
 	error_set_handler( (cleanup_handler *) mirror_cleanup, serve );
 
