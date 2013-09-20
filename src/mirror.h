@@ -79,8 +79,8 @@ struct mirror {
 
 	char                 *mapped;
 
-	/* Keep an eye on where in the current pass we are */
-	uint64_t pass_offset;
+	/* We need to send every byte at least once; we do so by  */
+	uint64_t offset;
 
 	enum mirror_state    commit_state;
 
@@ -89,20 +89,20 @@ struct mirror {
 	 */
 	struct mbox *        commit_signal;
 
-	/* The current mirror pass. We put this here so status can query it */
-	int pass;
-
-	/* Number of dirty and clean bytes for the entire  migration */
-	uint64_t all_dirty;
-	uint64_t all_clean;
-
 	/* The time (from monotonic_time_ms()) the migration was started. Can be
 	 * used to calculate bps, etc. */
 	uint64_t migration_started;
 
+
+	/* The current mirror pass. We put this here so status can query it. FIXME: remove */
+	int pass;
+
+	/* Number of dirty and clean bytes for the entire  migration. FIXME: Remove */
+	uint64_t all_dirty;
+	uint64_t all_clean;
+
 	/* The number of dirty (had to send to dest) and clean (could skip) bytes
-	 * for this pass. Add them together and subtract from size to get remaining
-	 * bytes. */
+	 * for this pass. FIXME: No longer used, so need removing */
 	uint64_t this_pass_dirty;
 	uint64_t this_pass_clean;
 };

@@ -82,7 +82,7 @@ struct mirror_ctrl {
 
 	/* This is set once all clients have been closed, to let the mirror know
 	 * it's safe to finish once the queue is empty */
-	int last_pass;
+	int clients_closed;
 
 	/* Use this to keep track of what we're copying at any moment */
 	struct xfer xfer;
@@ -173,7 +173,7 @@ void mirror_reset( struct mirror * mirror )
 	mirror->this_pass_dirty = 0;
 	mirror->this_pass_clean = 0;
 	mirror->migration_started = 0;
-	mirror->pass_offset = 0;
+	mirror->offset = 0;
 
 	return;
 }
@@ -365,7 +365,7 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 	struct mirror* mirror = ctrl->mirror;
 	struct server* serve = ctrl->serve;
 	struct bitset_stream_entry e = { .event = BITSET_STREAM_UNSET };
-	uint64_t current = mirror->pass_offset, run = 0, size = serve->size;
+	uint64_t current = mirror->offset, run = 0, size = serve->size;
 
 	/* Technically, we'd be interested in UNSET events too, but they are never
 	 * generated. TODO if that changes.
@@ -378,12 +378,19 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 		ctrl->clear_events = 1;
 	}
 
-	while ( ( ctrl->last_pass || ctrl->clear_events ) && e.event != BITSET_STREAM_SET ) {
+
+	while ( ( mirror->offset == serve->size || ctrl->clear_events ) && e.event != BITSET_STREAM_SET ) {
+		uint64_t events =  bitset_stream_size( serve->allocation_map );
+
+		if ( events == 0 ) {
+			break;
+		}
+
 		debug("Dequeueing event");
 		bitset_stream_dequeue( ctrl->serve->allocation_map, &e );
 		debug("Dequeued event %i, %zu, %zu", e.event, e.from, e.len);
 
-		if ( bitset_stream_size( serve->allocation_map ) < BITSET_STREAM_SIZE / 4 ) {
+		if ( events < ( BITSET_STREAM_SIZE / 4 ) ) {
 			ctrl->clear_events = 0;
 		}
 	}
@@ -391,18 +398,16 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 	if ( e.event == BITSET_STREAM_SET ) {
 		current = e.from;
 		run = e.len;
-	} else if ( !ctrl->last_pass && current < serve->size ) {
-		current = mirror->pass_offset;
+	} else if ( current < serve->size ) {
+		current = mirror->offset;
 		run = mirror_longest_write;
 
 		/* Adjust final block if necessary */
 		if ( current + run > serve->size ) {
 			run = size - current;
 		}
-		mirror->pass_offset += run;
-	}
-
-	if ( run == 0 ) {
+		mirror->offset += run;
+	} else {
 		return 0;
 	}
 
@@ -425,11 +430,15 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 	return 1;
 }
 
-int mirror_exceeds_max_bps( struct mirror *mirror )
+uint64_t mirror_current_bps( struct mirror * mirror )
 {
-	uint64_t duration_ms = monotonic_time_ms() - mirror->migration_started;
-	uint64_t mig_speed = mirror->all_dirty / ( ( duration_ms / 1000 ) + 1 );
+ 	uint64_t duration_ms = monotonic_time_ms() - mirror->migration_started;
+	return mirror->all_dirty / ( ( duration_ms / 1000 ) + 1 );
+}
 
+int mirror_exceeds_max_bps( struct mirror * mirror )
+{
+	uint64_t mig_speed = mirror_current_bps( mirror );
 	debug( "current_bps: %"PRIu64"; max_bps: %"PRIu64, mig_speed, mirror->max_bytes_per_second );
 
 	if ( mig_speed > mirror->max_bytes_per_second ) {
@@ -437,6 +446,20 @@ int mirror_exceeds_max_bps( struct mirror *mirror )
 	}
 
 	return 0;
+}
+
+/* Given historic bps measurements and number of bytes left to transfer, give
+ * an estimate of how many seconds are remaining before the migration is
+ * complete, assuming no new bytes are written.
+ */
+uint64_t mirror_estimate_time( struct server * serve )
+{
+	uint64_t bytes_to_xfer =
+	  bitset_stream_size( serve->allocation_map ) +
+	  ( serve->size - serve->mirror->offset );
+
+	debug("Bytes left to transfer: %"PRIu64, bytes_to_xfer );
+	return bytes_to_xfer / ( mirror_current_bps( serve->mirror ) + 1 );
 }
 
 // ONLY CALL THIS AFTER CLOSING CLIENTS
@@ -588,46 +611,40 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	/* This next bit could take a little while, which is fine */
 	ev_timer_stop( ctrl->ev_loop, &ctrl->timeout_watcher );
 
-	int finished_setup = 0;
-
-	/* Set up the next transfer, which may be pass_offset + mirror_longest_write
-	 * or an event from the bitset stream. When pass_offset hits serve->size,
-	 * we disable new clients from connecting, disconnect existing clients, and
-	 * wait for the bitset stream to empty. At that point, we know that source
-	 * and destination have the same data, so can finish.
+	/* Set up the next transfer, which may be offset + mirror_longest_write
+	 * or an event from the bitset stream. When offset hits serve->size,
+	 * xfers will be constructed solely from the event stream. Once our estimate
+	 * of time left reaches a sensible number (or the event stream empties),
+	 * we stop new clients from connecting, disconnect existing ones, then
+	 * continue emptying the bitstream. Once it's empty again, we're finished.
 	 */
-	do {
-		if ( m->pass_offset == ctrl->serve->size ) {
-			debug( "Pass %d completed", m->pass );
+	int next_xfer = mirror_setup_next_xfer( ctrl );
+	debug( "next_xfer: %d", next_xfer );
 
-			if ( ctrl->last_pass ) {
-				mirror_complete( ctrl->serve );
-				ev_break( loop, EVBREAK_ONE );
-				return;
-			} else {
-				// FIXME: Can status race with us if it inspects state here?
-				m->this_pass_dirty = 0;
-				m->this_pass_clean = 0;
-				ctrl->last_pass++;
-				m->pass++; // TODO: remove this in favour of last_pass?
+	/* Regardless of time estimates, if there's no waiting transfer, we can
+	 *  */
+	if ( !ctrl->clients_closed && ( !next_xfer || mirror_estimate_time( ctrl->serve ) < 60 ) ) {
+		info( "Closing clients to allow mirroring to converge" );
+		server_forbid_new_clients( ctrl->serve );
+		server_close_clients( ctrl->serve );
+		server_join_clients( ctrl->serve );
+		ctrl->clients_closed = 1;
 
-				/* Prevent further I/O from happening.
-				 * FIXME: We should actually only do this if the amount of data
-				 * left to transfer is under a certain threshold. As-is, we have
-				 * no control over length of I/O freeze - it's entirely
-				 * dependent on amount of traffic from the guest. More traffic =
-				 * longer downtime.
-				 */
-				server_forbid_new_clients( ctrl->serve );
-				server_close_clients( ctrl->serve );
-				server_join_clients( ctrl->serve );
-			}
-
-		} else {
-			/* Use mirror_setup_next_xfer to find out what to read next */
-			finished_setup = mirror_setup_next_xfer( ctrl );
+		/* One more try - a new event may have been pushed since our last check
+		 */
+		if ( !next_xfer ) {
+			next_xfer = mirror_setup_next_xfer( ctrl );
 		}
-	} while ( !finished_setup );
+	}
+
+	if ( ctrl->clients_closed && !next_xfer ) {
+		mirror_complete( ctrl->serve );
+		ev_break( loop, EVBREAK_ONE );
+		return;
+	}
+
+	/* This is a guard Just In Case */
+	ERROR_IF( !next_xfer, "Unknown problem - no next transfer to do!" );
 
 	ev_io_stop( loop, &ctrl->read_watcher );
 
