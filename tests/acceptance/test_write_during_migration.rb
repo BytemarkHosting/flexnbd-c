@@ -125,12 +125,14 @@ class TestWriteDuringMigration < Test::Unit::TestCase
         wait_for_quit()
         src_writer.join
 
+        # puts `md5sum #{@source_file} #{@dest_file}`
+
         # Ensure each block matches
         File.open(@source_file, "r") do |source|
           File.open(@dest_file, "r") do |dest|
             0.upto( @size / 4096 ) do |block_num|
               s_data = source.read( 4096 )
-              d_data = source.read( 4096 )
+              d_data = dest.read( 4096 )
 
               assert s_data == d_data, "Block #{block_num} mismatch!"
 
