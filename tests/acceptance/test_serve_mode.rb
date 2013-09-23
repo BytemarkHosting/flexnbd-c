@@ -64,7 +64,7 @@ class TestServeMode < Test::Unit::TestCase
       assert_equal 0, rsp[:error]
     end
 
-    assert_equal "\xFF\xFF", @env.file1.read (0, 2 )
+    assert_equal "\xFF\xFF", @env.file1.read( 0, 2 )
   end
 
 
