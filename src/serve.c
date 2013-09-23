@@ -860,6 +860,33 @@ int server_is_mirroring( struct server * serve )
 	return !!serve->mirror_super;
 }
 
+uint64_t server_mirror_bytes_remaining( struct server * serve )
+{
+	if ( server_is_mirroring( serve ) ) {
+		uint64_t bytes_to_xfer =
+			bitset_stream_size( serve->allocation_map ) +
+			( serve->size - serve->mirror->offset );
+
+		return bytes_to_xfer;
+	}
+
+	return 0;
+}
+
+/* Given historic bps measurements and number of bytes left to transfer, give
+ * an estimate of how many seconds are remaining before the migration is
+ * complete, assuming no new bytes are written.
+ */
+
+uint64_t server_mirror_eta( struct server * serve )
+{
+	if ( server_is_mirroring( serve ) ) {
+		uint64_t bytes_to_xfer = server_mirror_bytes_remaining( serve );
+		return bytes_to_xfer / ( mirror_current_bps( serve->mirror ) + 1 );
+	}
+
+	return 0;
+}
 
 void mirror_super_destroy( struct mirror_super * super );
 

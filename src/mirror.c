@@ -447,20 +447,6 @@ int mirror_exceeds_max_bps( struct mirror * mirror )
 	return 0;
 }
 
-/* Given historic bps measurements and number of bytes left to transfer, give
- * an estimate of how many seconds are remaining before the migration is
- * complete, assuming no new bytes are written.
- */
-uint64_t mirror_estimate_time( struct server * serve )
-{
-	uint64_t bytes_to_xfer =
-	  bitset_stream_size( serve->allocation_map ) +
-	  ( serve->size - serve->mirror->offset );
-
-	debug("Bytes left to transfer: %"PRIu64, bytes_to_xfer );
-	return bytes_to_xfer / ( mirror_current_bps( serve->mirror ) + 1 );
-}
-
 // ONLY CALL THIS AFTER CLOSING CLIENTS
 void mirror_complete( struct server *serve )
 {
@@ -622,7 +608,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 
 	/* Regardless of time estimates, if there's no waiting transfer, we can
 	 *  */
-	if ( !ctrl->clients_closed && ( !next_xfer || mirror_estimate_time( ctrl->serve ) < 60 ) ) {
+	if ( !ctrl->clients_closed && ( !next_xfer || server_mirror_eta( ctrl->serve ) < 60 ) ) {
 		info( "Closing clients to allow mirroring to converge" );
 		server_forbid_new_clients( ctrl->serve );
 		server_close_clients( ctrl->serve );

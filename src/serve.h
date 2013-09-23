@@ -123,6 +123,10 @@ void server_unlock_acl( struct server *serve );
 void server_lock_start_mirror( struct server *serve );
 void server_unlock_start_mirror( struct server *serve );
 int server_is_mirroring( struct server * serve );
+
+uint64_t server_mirror_bytes_remaining( struct server * serve );
+uint64_t server_mirror_eta( struct server * serve );
+
 void server_abandon_mirror( struct server * serve );
 void server_prevent_mirror_start( struct server *serve );
 void server_allow_mirror_start( struct server *serve );
