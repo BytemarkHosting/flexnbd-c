@@ -560,7 +560,6 @@ int client_serve_request(struct client* client)
 		return client->disconnect;
 	}
 
-	server_lock_io( client->serve );
 	{
 		if ( !server_is_closed( client->serve ) ) {
 			/* We arm / disarm around client_reply() to catch cases where the
@@ -581,7 +580,6 @@ int client_serve_request(struct client* client)
 			stop = 0;
 		}
 	}
-	server_unlock_io( client->serve );
 
 
 	return stop;
@@ -616,7 +614,6 @@ void client_cleanup(struct client* client,
 		client->fileno = -1;
 	}
 
-	if ( server_io_locked( client->serve ) ) { server_unlock_io( client->serve ); }
 	if ( server_acl_locked( client->serve ) ) { server_unlock_acl( client->serve ); }
 
 }
