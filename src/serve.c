@@ -860,7 +860,7 @@ uint64_t server_mirror_bytes_remaining( struct server * serve )
 {
 	if ( server_is_mirroring( serve ) ) {
 		uint64_t bytes_to_xfer =
-			bitset_stream_size( serve->allocation_map ) +
+			bitset_stream_queued_bytes( serve->allocation_map, BITSET_STREAM_SET ) +
 			( serve->size - serve->mirror->offset );
 
 		return bytes_to_xfer;
