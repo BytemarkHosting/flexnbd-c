@@ -665,7 +665,11 @@ void* build_allocation_map_thread(void* serve_uncast)
 		 * *incomplete* record of writes. Nobody will use it, as
 		 * allocation_map_built == 0 for the lifetime of the process.
 		 *
-		 * The stream functionality can still be relied on.
+		 * The stream functionality can still be relied on. We don't need to
+		 * worry about mirroring waiting for the allocation map to finish,
+		 * because we already copy every byte at least once. If that changes in
+		 * the future, we'll need to wait for the allocation map to finish or
+		 * fail before we can complete the migration.
 		 */
 		warn( "Didn't build allocation map for %s", serve->filename );
 	}
