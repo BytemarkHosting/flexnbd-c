@@ -29,8 +29,6 @@ struct server {
 	union mysockaddr     bind_to;
 	/** (static) file name to serve */
 	char*                filename;
-	/** file name of INCOMPLETE flag */
-	char*                filename_incomplete;
 	/** TCP backlog for listen() */
 	int                  tcp_backlog;
 	/** (static) file name of UNIX control socket (or NULL if none) */

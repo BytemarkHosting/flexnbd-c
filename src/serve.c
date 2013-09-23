@@ -65,9 +65,6 @@ struct server * server_create (
 	parse_port( s_port, &out->bind_to.v4 );
 
 	out->filename = s_file;
-	out->filename_incomplete = xmalloc(strlen(s_file)+11+1);
-	strcpy(out->filename_incomplete, s_file);
-	strcpy(out->filename_incomplete + strlen(s_file), ".INCOMPLETE");
 
 	out->l_acl = flexthread_mutex_create();
 	out->l_start_mirror = flexthread_mutex_create();
@@ -97,8 +94,6 @@ void server_destroy( struct server * serve )
 		acl_destroy( serve->acl );
 		serve->acl = NULL;
 	}
-
-	free( serve->filename_incomplete );
 
 	free( serve->nbd_client );
 	free( serve );

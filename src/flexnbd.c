@@ -213,14 +213,6 @@ int flexnbd_default_deny( struct flexnbd * flexnbd )
 }
 
 
-char * flexnbd_incomplete_filename( struct flexnbd * flexnbd )
-{
-	NULLCHECK( flexnbd );
-	struct server * serve = flexnbd_server( flexnbd );
-
-	return serve->filename_incomplete;
-}
-
 void make_writable( const char * filename )
 {
 	NULLCHECK( filename );
