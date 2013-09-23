@@ -326,6 +326,20 @@ int cleanup_and_find_client_slot(struct server* params)
 	return slot;
 }
 
+int server_count_clients( struct server *params )
+{
+	NULLCHECK( params );
+	int i, count = 0;
+
+	for ( i = 0 ; i < params->max_nbd_clients ; i++ ) {
+		if ( params->nbd_client[i].thread != 0 ) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
 
 /** Check whether the address client_address is allowed or not according
  * to the current acl.  If params->acl is NULL, the result will be 1,

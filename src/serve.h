@@ -137,6 +137,9 @@ void server_close_clients( struct server *serve );
 void server_join_clients( struct server *serve );
 void server_allow_new_clients( struct server *serve );
 
+/* Returns a count (ish) of the number of currently-running client threads */
+int server_count_clients( struct server *params );
+
 void server_unlink( struct server * serve );
 
 int do_serve( struct server *, struct self_pipe * );
