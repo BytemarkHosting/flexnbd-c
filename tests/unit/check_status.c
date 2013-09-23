@@ -9,6 +9,8 @@ struct server* mock_server(void)
 {
 	struct server* out = xmalloc( sizeof( struct server ) );
 	out->l_start_mirror = flexthread_mutex_create();
+	out->nbd_client = xmalloc( sizeof( struct client_tbl_entry ) * 4 );
+	out->max_nbd_clients = 4;
 	return out;
 }
 
@@ -27,6 +29,7 @@ void destroy_mock_server( struct server* serve )
 	}
 
 	flexthread_mutex_destroy( serve->l_start_mirror );
+	free( serve->nbd_client );
 	free( serve );
 }
 
@@ -70,6 +73,43 @@ START_TEST( test_gets_is_mirroring )
 	fail_unless( status->is_mirroring, "is_mirroring wasn't set" );
 	status_destroy( status );
 	destroy_mock_server( server );
+}
+END_TEST
+
+START_TEST( test_gets_clients_allowed )
+{
+	struct server * server = mock_server();
+	struct status * status = status_create( server );
+
+	fail_if( status->clients_allowed, "clients_allowed was set" );
+	status_destroy( status );
+
+	server->allow_new_clients = 1;
+	status = status_create( server );
+
+	fail_unless( status->clients_allowed, "clients_allowed was not set" );
+	status_destroy( status );
+	destroy_mock_server( server );
+
+}
+END_TEST
+
+START_TEST( test_gets_num_clients )
+{
+	struct server * server = mock_server();
+	struct status * status = status_create( server );
+
+	fail_if( status->num_clients != 0, "num_clients was wrong" );
+	status_destroy( status );
+
+	server->nbd_client[0].thread = 1;
+	server->nbd_client[1].thread = 1;
+	status = status_create( server );
+
+	fail_unless( status->num_clients == 2, "num_clients was wrong" );
+	status_destroy( status );
+	destroy_mock_server( server );
+
 }
 END_TEST
 
@@ -156,57 +196,95 @@ START_TEST( test_gets_migration_statistics )
 END_TEST
 
 
+#define RENDER_TEST_SETUP \
+	struct status status; \
+	int fds[2];           \
+	pipe( fds );
+
+void fail_unless_rendered( int fd, char *fragment )
+{
+	char buf[1024] = {0};
+	char emsg[1024] = {0};
+	char *found = NULL;
+
+	sprintf(emsg, "Fragment: %s not found", fragment );
+
+	fail_unless( read_until_newline( fd, buf, 1024 ) > 0, "Couldn't read" );
+	found = strstr( buf, fragment );
+	fail_if( NULL == found, emsg );
+
+	return;
+}
+
+void fail_if_rendered( int fd, char *fragment )
+{
+	char buf[1024] = {0};
+	char emsg[1024] = {0};
+	char *found = NULL;
+
+	sprintf(emsg, "Fragment: %s found", fragment );
+
+	fail_unless( read_until_newline( fd, buf, 1024 ) > 0, "Couldn't read" );
+	found = strstr( buf, fragment );
+	fail_unless( NULL == found, emsg );
+
+	return;
+}
+
 START_TEST( test_renders_has_control )
 {
-	struct status status;
-	int fds[2];
-	pipe(fds);
-	char buf[1024] = {0};
+	RENDER_TEST_SETUP
 
 	status.has_control = 1;
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-
-	char *found = strstr( buf, "has_control=true" );
-	fail_if( NULL == found, "has_control=true not found" );
+	fail_unless_rendered( fds[0], "has_control=true" );
 
 	status.has_control = 0;
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	found = strstr( buf, "has_control=false" );
-	fail_if( NULL == found, "has_control=false not found" );
-
+	fail_unless_rendered( fds[0], "has_control=false" );
 }
 END_TEST
 
 
 START_TEST( test_renders_is_mirroring )
 {
-	struct status status;
-	int fds[2];
-	pipe(fds);
-	char buf[1024] = {0};
+	RENDER_TEST_SETUP
 
 	status.is_mirroring = 1;
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-
-	char *found = strstr( buf, "is_mirroring=true" );
-	fail_if( NULL == found, "is_mirroring=true not found" );
+	fail_unless_rendered( fds[0], "is_mirroring=true" );
 
 	status.is_mirroring = 0;
 	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "is_mirroring=false" );
+}
+END_TEST
 
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	found = strstr( buf, "is_mirroring=false" );
-	fail_if( NULL == found, "is_mirroring=false not found" );
+START_TEST( test_renders_clients_allowed )
+{
+	RENDER_TEST_SETUP
+
+	status.clients_allowed = 1;
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "clients_allowed=true" );
+
+	status.clients_allowed = 0;
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "clients_allowed=false" );
+}
+END_TEST
+
+START_TEST( test_renders_num_clients )
+{
+	RENDER_TEST_SETUP
+
+	status.num_clients = 0;
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "num_clients=0" );
+
+	status.num_clients = 4000;
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "num_clients=4000" );
 
 }
 END_TEST
@@ -214,74 +292,42 @@ END_TEST
 
 START_TEST( test_renders_pid )
 {
-	struct status status;
-	int fds[2];
-	pipe(fds);
-	char buf[1024] = {0};
+	RENDER_TEST_SETUP
 
 	status.pid = 42;
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	char *found = strstr( buf, "pid=42" );
-	fail_if( NULL == found, "pid=42 not found" );
+	fail_unless_rendered( fds[0], "pid=42" );
 }
 END_TEST
 
 START_TEST( test_renders_size )
 {
-	struct status status;
-	int fds[2];
-	pipe(fds);
-	char buf[1024] = {0};
+	RENDER_TEST_SETUP
 
 	status.size = ( (uint64_t)1 << 33 );
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	char *found = strstr( buf, "size=8589934592" );
-	fail_if( NULL == found, "size=8589934592 not found" );
+	fail_unless_rendered( fds[0], "size=8589934592" );
 }
 END_TEST
 
 START_TEST( test_renders_migration_pass )
 {
-	struct status status;
-	int fds[2];
-	pipe(fds);
-	char buf[1024] = {0};
-	char *found;
+	RENDER_TEST_SETUP
 
 	status.is_mirroring = 0;
 	status.migration_pass = 1;
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	found = strstr( buf, "migration_pass" );
-	fail_if( NULL != found, "migration pass output when not migrating" );
+	fail_if_rendered( fds[0], "migration_pass" );
 
 	status.is_mirroring = 1;
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	found = strstr( buf, "migration_pass=1" );
-	fail_if( NULL == found, "migration pass not output when not migrating" );
-
-
+	fail_unless_rendered( fds[0], "migration_pass=1" );
 }
 END_TEST
 
 START_TEST( test_renders_migration_statistics )
 {
-	struct status status;
-	int fds[2];
-	pipe(fds);
-	char buf[1024] = {0};
-	char *found;
+	RENDER_TEST_SETUP
 
 	status.is_mirroring = 0;
 	status.pass_dirty_bytes = 2048;
@@ -291,47 +337,41 @@ START_TEST( test_renders_migration_statistics )
 	status.migration_speed_limit = 40000001;
 
 	status_write( &status, fds[1] );
+	fail_if_rendered( fds[0], "pass_dirty_bytes" );
 
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	found = strstr( buf, "pass_dirty_bytes" );
-	fail_if( NULL != found, "pass_dirty_bytes output when not migrating" );
+	status_write( &status, fds[1] );
+	fail_if_rendered( fds[0], "pass_clean_bytes" );
 
-	found = strstr( buf, "pass_clean_bytes" );
-	fail_if( NULL != found, "pass_clean_bytes output when not migrating" );
+	status_write( &status, fds[1] );
+	fail_if_rendered( fds[0], "migration_duration" );
 
-	found = strstr( buf, "migration_duration" );
-	fail_if( NULL != found, "migration_duration output when not migrating" );
-	found = strstr( buf, "migration_speed" );
-	fail_if( NULL != found, "migration_speed output when not migrating" );
-	found = strstr( buf, "migration_speed_limit" );
-	fail_if( NULL != found, "migration_speed_limit output when not migrating" );
+	status_write( &status, fds[1] );
+	fail_if_rendered( fds[0], "migration_speed" );
+
+	status_write( &status, fds[1] );
+	fail_if_rendered( fds[0], "migration_speed_limit" );
 
 	status.is_mirroring = 1;
-	status_write( &status, fds[1] );
 
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-	found = strstr( buf, "pass_dirty_bytes=2048" );
-	fail_if( NULL == found, "pass_dirty_bytes not output when migrating" );
-	found = strstr( buf, "pass_clean_bytes=4096" );
-	fail_if( NULL == found, "pass_clean_bytes not output when migrating" );
-	found = strstr( buf, "migration_duration=8" );
-	fail_if( NULL == found, "migration_duration not output when migrating" );
-	found = strstr( buf, "migration_speed=40000000" );
-	fail_if( NULL == found, "migration_speed not output when migrating" );
-	found = strstr( buf, "migration_speed_limit=40000001" );
-	fail_if( NULL == found, "migration_speed_limit not output when migrating" );
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "pass_dirty_bytes=2048" );
+
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "pass_clean_bytes=4096" );
+
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "migration_duration=8" );
+
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "migration_speed=40000000" );
+
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "migration_speed_limit=40000001" );
 
 	status.migration_speed_limit = UINT64_MAX;
+
 	status_write( &status, fds[1] );
-
-	fail_unless( read_until_newline( fds[0], buf, 1024 ) > 0,
-			"Couldn't read the result" );
-
-	found = strstr( buf, "migration_speed_limit" );
-	fail_if( NULL != found, "migration_speed_limit output when no migration limit was set" );
-
+	fail_if_rendered( fds[0], "migration_speed_limit" );
 }
 END_TEST
 
@@ -345,6 +385,8 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_status_create);
 	tcase_add_test(tc_create, test_gets_has_control);
 	tcase_add_test(tc_create, test_gets_is_mirroring);
+	tcase_add_test(tc_create, test_gets_clients_allowed);
+	tcase_add_test(tc_create, test_gets_num_clients);
 	tcase_add_test(tc_create, test_gets_pid);
 	tcase_add_test(tc_create, test_gets_size);
 	tcase_add_test(tc_create, test_gets_migration_pass);
@@ -353,6 +395,8 @@ Suite *status_suite(void)
 
 	tcase_add_test(tc_render, test_renders_has_control);
 	tcase_add_test(tc_render, test_renders_is_mirroring);
+	tcase_add_test(tc_render, test_renders_clients_allowed);
+	tcase_add_test(tc_render, test_renders_num_clients);
 	tcase_add_test(tc_render, test_renders_pid);
 	tcase_add_test(tc_render, test_renders_size);
 	tcase_add_test(tc_render, test_renders_migration_pass);

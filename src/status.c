@@ -12,6 +12,9 @@ struct status * status_create( struct server * serve )
 	status->size = serve->size;
 	status->has_control = serve->success;
 
+	status->clients_allowed = serve->allow_new_clients;
+	status->num_clients = server_count_clients( serve );
+
 	server_lock_start_mirror( serve );
 
 	status->is_mirroring = NULL != serve->mirror;
@@ -51,6 +54,8 @@ int status_write( struct status * status, int fd )
 	PRINT_INT( pid );
 	PRINT_UINT64( size );
 	PRINT_BOOL( is_mirroring );
+	PRINT_BOOL( clients_allowed );
+	PRINT_INT( num_clients );
 	PRINT_BOOL( has_control );
 
 	if ( status->is_mirroring ) {

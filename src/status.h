@@ -30,6 +30,14 @@
  * 	If the server is started in "serve" mode, this will never be
  * 	false.
  *
+ * clients_allowed:
+ *   This will be false if the server is not currently allowing new
+ *   connections, for instance, if we're in the migration endgame.
+ *
+ * num_clients:
+ *   This tells us how many clients are currently running. If we're in the
+ *   migration endgame, it should be 0
+ *
  * is_migrating:
  * 	This will be false when the server is started in either "listen"
  * 	or "serve" mode.  It will become true when a server in "serve"
@@ -73,6 +81,8 @@ struct status {
 	pid_t pid;
 	uint64_t size;
 	int has_control;
+	int clients_allowed;
+	int num_clients;
 	int is_mirroring;
 	int migration_pass;
 	uint64_t pass_dirty_bytes;
