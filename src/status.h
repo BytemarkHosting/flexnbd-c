@@ -46,6 +46,7 @@
  *	If the server is currently in "listen" mode, this will never be
  *	true.
  *
+ *
  * If is_migrating is true, then a number of other attributes may appear,
  * relating to the progress of the migration.
  *
@@ -69,6 +70,10 @@
  *  to send to the destination. Once all the bytes are clean, the migration is
  *  done.
  *
+ * migration_seconds_left:
+ *   Our current best estimate of how many seconds are left before the migration
+ *   migration is finished.
+ *
  */
 
 
@@ -91,6 +96,7 @@ struct status {
 	uint64_t migration_duration;
 	uint64_t migration_speed;
 	uint64_t migration_speed_limit;
+	uint64_t migration_seconds_left;
 };
 
 /** Create a status object for the given server. */

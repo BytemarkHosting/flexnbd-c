@@ -2,6 +2,7 @@
 #include "serve.h"
 #include "ioutil.h"
 #include "util.h"
+#include "bitset.h"
 
 #include <check.h>
 
@@ -11,6 +12,10 @@ struct server* mock_server(void)
 	out->l_start_mirror = flexthread_mutex_create();
 	out->nbd_client = xmalloc( sizeof( struct client_tbl_entry ) * 4 );
 	out->max_nbd_clients = 4;
+	out->size = 65536;
+
+	out->allocation_map = bitset_alloc( 65536, 4096 );
+
 	return out;
 }
 
@@ -18,7 +23,7 @@ struct server* mock_mirroring_server(void)
 {
 	struct server *out = mock_server();
 	out->mirror = xmalloc( sizeof( struct mirror ) );
-
+	out->mirror_super = xmalloc( sizeof( struct mirror_super ) );
 	return out;
 }
 
@@ -28,7 +33,13 @@ void destroy_mock_server( struct server* serve )
 		free( serve->mirror );
 	}
 
+	if ( NULL != serve->mirror_super ) {
+		free( serve->mirror_super );
+	}
+
 	flexthread_mutex_destroy( serve->l_start_mirror );
+
+	bitset_free( serve->allocation_map );
 	free( serve->nbd_client );
 	free( serve );
 }
@@ -166,6 +177,7 @@ START_TEST( test_gets_migration_statistics )
 	server->mirror->this_pass_dirty = 4096;
 	server->mirror->all_dirty = 16384;
 	server->mirror->max_bytes_per_second = 32768;
+	server->mirror->offset = 0;
 
 	/* we have a bit of a time dependency here */
 	server->mirror->migration_started = monotonic_time_ms();
@@ -189,6 +201,8 @@ START_TEST( test_gets_migration_statistics )
 
 	fail_unless( 32768 == status->migration_speed_limit, "migration_speed_limit not read" );
 
+	// ( size / current_bps ) + 1 happens to be 3 for this test
+	fail_unless( 3 == status->migration_seconds_left, "migration_seconds_left not gathered" );
 
 	status_destroy( status );
 	destroy_mock_server( server );
@@ -335,6 +349,7 @@ START_TEST( test_renders_migration_statistics )
 	status.migration_duration = 8;
 	status.migration_speed = 40000000;
 	status.migration_speed_limit = 40000001;
+	status.migration_seconds_left = 1;
 
 	status_write( &status, fds[1] );
 	fail_if_rendered( fds[0], "pass_dirty_bytes" );
@@ -350,6 +365,9 @@ START_TEST( test_renders_migration_statistics )
 
 	status_write( &status, fds[1] );
 	fail_if_rendered( fds[0], "migration_speed_limit" );
+
+	status_write( &status, fds[1] );
+	fail_if_rendered( fds[0], "migration_seconds_left" );
 
 	status.is_mirroring = 1;
 
@@ -367,6 +385,9 @@ START_TEST( test_renders_migration_statistics )
 
 	status_write( &status, fds[1] );
 	fail_unless_rendered( fds[0], "migration_speed_limit=40000001" );
+
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "migration_seconds_left=1" );
 
 	status.migration_speed_limit = UINT64_MAX;
 
