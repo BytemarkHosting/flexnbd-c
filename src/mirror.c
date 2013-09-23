@@ -762,7 +762,7 @@ void mirror_run( struct server *serve )
 	 * should expand the event loop upwards so we can do the same there too */
 	sock_set_nonblock( m->client, 1 );
 
-	bitset_stream_on( serve->allocation_map );
+	bitset_enable_stream( serve->allocation_map );
 
 	info( "Entering event loop" );
 	ev_run( ctrl.ev_loop, 0 );
@@ -789,7 +789,7 @@ void mirror_run( struct server *serve )
 		/* mirror_reset will be called before a retry, so keeping hold of events
 		 * between now and our next mirroring attempt is not useful
 		 */
-		bitset_stream_off( serve->allocation_map );
+		bitset_disable_stream( serve->allocation_map );
 	}
 
 	return;

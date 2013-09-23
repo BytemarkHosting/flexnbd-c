@@ -289,7 +289,7 @@ static inline uint64_t bitset_stream_queued_bytes(
 	return total;
 }
 
-static inline void bitset_stream_on( struct bitset * set )
+static inline void bitset_enable_stream( struct bitset * set )
 {
 	BITSET_LOCK;
 	set->stream_enabled = 1;
@@ -297,7 +297,7 @@ static inline void bitset_stream_on( struct bitset * set )
 	BITSET_UNLOCK;
 }
 
-static inline void bitset_stream_off( struct bitset * set  )
+static inline void bitset_disable_stream( struct bitset * set  )
 {
 	BITSET_LOCK;
 	bitset_stream_enqueue( set, BITSET_STREAM_OFF, 0, set->size );
