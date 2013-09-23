@@ -38,9 +38,6 @@ struct server {
 	/** size of file */
 	uint64_t 	     size;
 
-	/** Claims around any I/O to this file */
-	struct flexthread_mutex * l_io;
-
 	/** to interrupt accept loop and clients, write() to close_signal[1] */
 	struct self_pipe *   close_signal;
 
@@ -93,7 +90,6 @@ struct server {
 	/** If this isn't set, newly accepted clients will be closed immediately */
 	int allow_new_clients;
 
-
 	/* Marker for whether this server has control over the data in
 	 * the file, or if we're waiting to receive it from an inbound
 	 * migration which hasn't yet finished.
@@ -117,15 +113,12 @@ struct server * server_create(
 		int success );
 void server_destroy( struct server * );
 int server_is_closed(struct server* serve);
-void server_lock_io( struct server * serve);
-void server_unlock_io( struct server* serve );
 void serve_signal_close( struct server *serve );
 void serve_wait_for_close( struct server * serve );
 void server_replace_acl( struct server *serve, struct acl * acl);
 void server_control_arrived( struct server *serve );
 int server_is_in_control( struct server *serve );
 int server_default_deny( struct server * serve );
-int server_io_locked( struct server * serve );
 int server_acl_locked( struct server * serve );
 void server_lock_acl( struct server *serve );
 void server_unlock_acl( struct server *serve );

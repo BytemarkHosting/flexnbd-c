@@ -569,7 +569,6 @@ void control_client_cleanup(struct control_client* client,
 	if (client->socket) { close(client->socket); }
 
 	/* This is wrongness */
-	if ( server_io_locked( client->flexnbd->serve ) ) { server_unlock_io( client->flexnbd->serve ); }
 	if ( server_acl_locked( client->flexnbd->serve ) ) { server_unlock_acl( client->flexnbd->serve ); }
 
 	control_client_destroy( client );

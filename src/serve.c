@@ -69,8 +69,7 @@ struct server * server_create (
 	strcpy(out->filename_incomplete, s_file);
 	strcpy(out->filename_incomplete + strlen(s_file), ".INCOMPLETE");
 
-	out->l_io = flexthread_mutex_create();
-	out->l_acl= flexthread_mutex_create();
+	out->l_acl = flexthread_mutex_create();
 	out->l_start_mirror = flexthread_mutex_create();
 
 	out->mirror_can_start = 1;
@@ -93,7 +92,6 @@ void server_destroy( struct server * serve )
 
 	flexthread_mutex_destroy( serve->l_start_mirror );
 	flexthread_mutex_destroy( serve->l_acl );
-	flexthread_mutex_destroy( serve->l_io );
 
 	if ( serve->acl ) {
 		acl_destroy( serve->acl );
@@ -125,30 +123,6 @@ void server_unlink( struct server * serve )
 #define SERVER_UNLOCK( s, f, msg ) \
 	do { NULLCHECK( s ); \
 	 FATAL_IF( 0 != flexthread_mutex_unlock( s->f ), msg ); } while (0)
-
-void server_lock_io( struct server * serve)
-{
-	debug("IO locking");
-
-	SERVER_LOCK( serve, l_io, "Problem with I/O lock" );
-}
-
-void server_unlock_io( struct server* serve )
-{
-	debug("IO unlocking");
-
-	SERVER_UNLOCK( serve, l_io, "Problem with I/O unlock" );
-}
-
-
-/* This is only to be called from error handlers. */
-int server_io_locked( struct server * serve )
-{
-	NULLCHECK( serve );
-	return flexthread_mutex_held( serve->l_io );
-}
-
-
 
 void server_lock_acl( struct server *serve )
 {

@@ -231,8 +231,9 @@ static const int mirror_maximum_passes = 7;
 
 /* This must not be called if there's any chance of further I/O. Methods to
  * ensure this include:
- *   - call server_lock_io()
- *   - call server_forbid_new_clients() followed by a successful server_close_clients() ; server_join_clients()
+ *   - Ensure image size is 0
+ *   - call server_forbid_new_clients() followed by a successful
+ *     server_close_clients() ; server_join_clients()
  */
 void mirror_on_exit( struct server * serve )
 {
@@ -281,8 +282,6 @@ void mirror_cleanup( struct server * serve,
 		close( mirror->client );
 	}
 	mirror->client = -1;
-
-	if( server_io_locked( serve ) ){ server_unlock_io( serve ); }
 }
 
 
