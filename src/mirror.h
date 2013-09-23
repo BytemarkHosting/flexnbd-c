@@ -93,18 +93,8 @@ struct mirror {
 	 * used to calculate bps, etc. */
 	uint64_t migration_started;
 
-
-	/* The current mirror pass. We put this here so status can query it. FIXME: remove */
-	int pass;
-
-	/* Number of dirty and clean bytes for the entire  migration. FIXME: Remove */
+	/* Running count of all bytes we've transferred */
 	uint64_t all_dirty;
-	uint64_t all_clean;
-
-	/* The number of dirty (had to send to dest) and clean (could skip) bytes
-	 * for this pass. FIXME: No longer used, so need removing */
-	uint64_t this_pass_dirty;
-	uint64_t this_pass_clean;
 };
 
 

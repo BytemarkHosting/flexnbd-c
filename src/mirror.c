@@ -168,10 +168,6 @@ void mirror_reset( struct mirror * mirror )
 	mirror_set_state( mirror, MS_INIT );
 
 	mirror->all_dirty = 0;
-	mirror->all_clean = 0;
-	mirror->pass = 0;
-	mirror->this_pass_dirty = 0;
-	mirror->this_pass_clean = 0;
 	mirror->migration_started = 0;
 	mirror->offset = 0;
 
@@ -588,7 +584,6 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	/* transfer was completed, so now we need to either set up the next
 	 * transfer of this pass, set up the first transfer of the next pass, or
 	 * complete the migration */
-	m->this_pass_dirty += xfer->len;
 	m->all_dirty += xfer->len;
 	xfer->read = 0;
 	xfer->written = 0;
