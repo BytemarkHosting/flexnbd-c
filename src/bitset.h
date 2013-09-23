@@ -257,9 +257,9 @@ static inline void bitset_stream_dequeue(
 	return;
 }
 
-static inline int bitset_stream_size( struct bitset * set )
+static inline size_t bitset_stream_size( struct bitset * set )
 {
-	int size;
+	size_t size;
 
 	pthread_mutex_lock( &set->stream->mutex );
 	size = set->stream->size;
