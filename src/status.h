@@ -57,18 +57,8 @@
  *   Network transfer speed, in bytes/second. This only takes dirty bytes
  *   into account.
  *
- * migration_pass:
- *  When migrating, we perform a number of passes over the file. This indicates
- *  the current pass.
- *
- * pass_dirty_bytes:
- *  For the current pass, how many dirty bytes have we found so far? These are
- *  classed as bytes that we are required to send to the destination.
- *
- * pass_clean_bytes:
- *  For the current pass, how many clean bytes? These are bytes we don't need
- *  to send to the destination. Once all the bytes are clean, the migration is
- *  done.
+ * migration_speed_limit:
+ *   If set, the speed we're going to try to limit the migration to.
  *
  * migration_seconds_left:
  *   Our current best estimate of how many seconds are left before the migration
@@ -89,9 +79,6 @@ struct status {
 	int clients_allowed;
 	int num_clients;
 	int is_mirroring;
-	int migration_pass;
-	uint64_t pass_dirty_bytes;
-	uint64_t pass_clean_bytes;
 
 	uint64_t migration_duration;
 	uint64_t migration_speed;

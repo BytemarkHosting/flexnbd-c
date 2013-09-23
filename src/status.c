@@ -19,10 +19,6 @@ struct status * status_create( struct server * serve )
 
 	status->is_mirroring = NULL != serve->mirror;
 	if ( status->is_mirroring ) {
-		status->migration_pass = serve->mirror->pass;
-		status->pass_dirty_bytes = serve->mirror->this_pass_dirty;
-		status->pass_clean_bytes = serve->mirror->this_pass_clean;
-
 		status->migration_duration = monotonic_time_ms();
 
 		if ( ( serve->mirror->migration_started ) < status->migration_duration ) {
@@ -61,9 +57,6 @@ int status_write( struct status * status, int fd )
 	PRINT_BOOL( has_control );
 
 	if ( status->is_mirroring ) {
-		PRINT_INT( migration_pass );
-		PRINT_UINT64( pass_dirty_bytes );
-		PRINT_UINT64( pass_clean_bytes );
 		PRINT_UINT64( migration_speed );
 		PRINT_UINT64( migration_duration );
 		PRINT_UINT64( migration_seconds_left );

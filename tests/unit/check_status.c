@@ -124,26 +124,6 @@ START_TEST( test_gets_num_clients )
 }
 END_TEST
 
-START_TEST( test_gets_migration_pass )
-{
-	struct server * server = mock_server();
-	struct status * status = status_create( server );
-
-	fail_if( status->migration_pass != 0, "migration_pass was set" );
-	status_destroy( status );
-	destroy_mock_server( server );
-
-	server = mock_mirroring_server();
-	server->mirror->pass = 1;
-	status = status_create( server );
-
-	fail_unless( status->migration_pass == 1, "migration_pass wasn't set" );
-	status_destroy( status );
-	destroy_mock_server( server );
-}
-END_TEST
-
-
 START_TEST( test_gets_pid )
 {
 	struct server * server = mock_server();
@@ -173,8 +153,6 @@ END_TEST
 START_TEST( test_gets_migration_statistics )
 {
 	struct server * server = mock_mirroring_server();
-	server->mirror->this_pass_clean = 2048;
-	server->mirror->this_pass_dirty = 4096;
 	server->mirror->all_dirty = 16384;
 	server->mirror->max_bytes_per_second = 32768;
 	server->mirror->offset = 0;
@@ -183,9 +161,6 @@ START_TEST( test_gets_migration_statistics )
 	server->mirror->migration_started = monotonic_time_ms();
 
 	struct status * status = status_create( server );
-
-	fail_unless( 2048 == status->pass_clean_bytes, "pass_clean_bytes wasn't gathered" );
-	fail_unless( 4096 == status->pass_dirty_bytes, "pass_dirty_bytes wasn't gathered" );
 
 	fail_unless (
 		0 == status->migration_duration ||
@@ -324,38 +299,15 @@ START_TEST( test_renders_size )
 }
 END_TEST
 
-START_TEST( test_renders_migration_pass )
-{
-	RENDER_TEST_SETUP
-
-	status.is_mirroring = 0;
-	status.migration_pass = 1;
-	status_write( &status, fds[1] );
-	fail_if_rendered( fds[0], "migration_pass" );
-
-	status.is_mirroring = 1;
-	status_write( &status, fds[1] );
-	fail_unless_rendered( fds[0], "migration_pass=1" );
-}
-END_TEST
-
 START_TEST( test_renders_migration_statistics )
 {
 	RENDER_TEST_SETUP
 
 	status.is_mirroring = 0;
-	status.pass_dirty_bytes = 2048;
-	status.pass_clean_bytes = 4096;
 	status.migration_duration = 8;
 	status.migration_speed = 40000000;
 	status.migration_speed_limit = 40000001;
 	status.migration_seconds_left = 1;
-
-	status_write( &status, fds[1] );
-	fail_if_rendered( fds[0], "pass_dirty_bytes" );
-
-	status_write( &status, fds[1] );
-	fail_if_rendered( fds[0], "pass_clean_bytes" );
 
 	status_write( &status, fds[1] );
 	fail_if_rendered( fds[0], "migration_duration" );
@@ -370,12 +322,6 @@ START_TEST( test_renders_migration_statistics )
 	fail_if_rendered( fds[0], "migration_seconds_left" );
 
 	status.is_mirroring = 1;
-
-	status_write( &status, fds[1] );
-	fail_unless_rendered( fds[0], "pass_dirty_bytes=2048" );
-
-	status_write( &status, fds[1] );
-	fail_unless_rendered( fds[0], "pass_clean_bytes=4096" );
 
 	status_write( &status, fds[1] );
 	fail_unless_rendered( fds[0], "migration_duration=8" );
@@ -410,7 +356,6 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_gets_num_clients);
 	tcase_add_test(tc_create, test_gets_pid);
 	tcase_add_test(tc_create, test_gets_size);
-	tcase_add_test(tc_create, test_gets_migration_pass);
 	tcase_add_test(tc_create, test_gets_migration_statistics);
 
 
@@ -420,7 +365,6 @@ Suite *status_suite(void)
 	tcase_add_test(tc_render, test_renders_num_clients);
 	tcase_add_test(tc_render, test_renders_pid);
 	tcase_add_test(tc_render, test_renders_size);
-	tcase_add_test(tc_render, test_renders_migration_pass);
 	tcase_add_test(tc_render, test_renders_migration_statistics);
 
 	suite_add_tcase(s, tc_create);
