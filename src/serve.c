@@ -728,11 +728,6 @@ void server_forbid_new_clients( struct server * serve )
 	return;
 }
 
-void server_close_and_join_clients( struct server * serve )
-{
-	server_close_clients( serve );
-}
-
 void server_allow_new_clients( struct server * serve )
 {
 	serve->allow_new_clients = 1;
