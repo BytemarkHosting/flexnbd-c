@@ -12,7 +12,7 @@ ssize_t iobuf_read( int fd, struct iobuf* iobuf, size_t default_size );
 ssize_t iobuf_write( int fd, struct iobuf* iobuf );
 
 #include "serve.h"
-struct bitset_mapping; /* don't need whole of bitset.h here */
+struct bitset; /* don't need whole of bitset.h here */
 
 /** Scan the file opened in ''fd'', set bits in ''allocation_map''  that
   * correspond to which blocks are physically allocated on disc (or part-
@@ -20,7 +20,7 @@ struct bitset_mapping; /* don't need whole of bitset.h here */
   * than you've asked for, any block or part block will count as "allocated"
   * with the corresponding bit set.  Returns 1 if successful, 0 otherwise.
   */
-int build_allocation_map(struct bitset_mapping* allocation_map, int fd);
+int build_allocation_map(struct bitset * allocation_map, int fd);
 
 /** Repeat a write() operation that succeeds partially until ''size'' bytes
   * are written, or an error is returned, when it returns -1 as usual.

@@ -13,7 +13,7 @@
 #include "ioutil.h"
 
 
-int build_allocation_map(struct bitset_mapping* allocation_map, int fd)
+int build_allocation_map(struct bitset * allocation_map, int fd)
 {
 	/* break blocking ioctls down */
 	const unsigned long max_length  = 100*1024*1024;

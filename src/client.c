@@ -85,7 +85,7 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 	NULLCHECK( client->serve );
 	NULLCHECK( client->serve->allocation_map );
 
-	struct bitset_mapping *map = client->serve->allocation_map;
+	struct bitset * map = client->serve->allocation_map;
 
 	while (len > 0) {
 		/* so we have to calculate how much of our input to consider

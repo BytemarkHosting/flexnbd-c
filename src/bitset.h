@@ -146,7 +146,7 @@ struct bitset_stream {
   * represent one bit per chunk.  We also bundle a lock so that the set can be
   * written reliably by multiple threads.
   */
-struct bitset_mapping {
+struct bitset {
 	pthread_mutex_t lock;
 	uint64_t size;
 	int resolution;
@@ -155,17 +155,13 @@ struct bitset_mapping {
 	char bits[];
 };
 
-/** Allocate a bitset_mapping for a file of the given size, and chunks of the
+/** Allocate a bitset for a file of the given size, and chunks of the
   * given resolution.
   */
-static inline struct bitset_mapping* bitset_alloc(
-	uint64_t size,
-	int resolution
-)
+static inline struct bitset *bitset_alloc( uint64_t size, int resolution )
 {
-	struct bitset_mapping *bitset = xmalloc(
-		sizeof(struct bitset_mapping)+
-		(size+resolution-1)/resolution
+	struct bitset *bitset = xmalloc(
+		sizeof( struct bitset ) + ( size + resolution - 1 ) / resolution
 	);
 	bitset->size = size;
 	bitset->resolution = resolution;
@@ -181,7 +177,7 @@ static inline struct bitset_mapping* bitset_alloc(
 	return bitset;
 }
 
-static inline void bitset_free( struct bitset_mapping * set )
+static inline void bitset_free( struct bitset * set )
 {
 	/* TODO: free our mutex... */
 
@@ -204,7 +200,7 @@ static inline void bitset_free( struct bitset_mapping * set )
 
 
 static inline void bitset_stream_enqueue(
-	struct bitset_mapping * set,
+	struct bitset * set,
 	enum bitset_stream_events event,
 	uint64_t from,
 	uint64_t len
@@ -233,7 +229,7 @@ static inline void bitset_stream_enqueue(
 }
 
 static inline void bitset_stream_dequeue(
-	struct bitset_mapping * set,
+	struct bitset * set,
 	struct bitset_stream_entry * out
 )
 {
@@ -261,7 +257,7 @@ static inline void bitset_stream_dequeue(
 	return;
 }
 
-static inline int bitset_stream_size( struct bitset_mapping * set )
+static inline int bitset_stream_size( struct bitset * set )
 {
 	int size;
 
@@ -273,7 +269,7 @@ static inline int bitset_stream_size( struct bitset_mapping * set )
 }
 
 static inline uint64_t bitset_stream_queued_bytes(
-	struct bitset_mapping * set,
+	struct bitset * set,
 	enum bitset_stream_events event
 )
 {
@@ -293,7 +289,7 @@ static inline uint64_t bitset_stream_queued_bytes(
 	return total;
 }
 
-static inline void bitset_stream_on( struct bitset_mapping * set )
+static inline void bitset_stream_on( struct bitset * set )
 {
 	BITSET_LOCK;
 	set->stream_enabled = 1;
@@ -301,7 +297,7 @@ static inline void bitset_stream_on( struct bitset_mapping * set )
 	BITSET_UNLOCK;
 }
 
-static inline void bitset_stream_off( struct bitset_mapping * set  )
+static inline void bitset_stream_off( struct bitset * set  )
 {
 	BITSET_LOCK;
 	bitset_stream_enqueue( set, BITSET_STREAM_OFF, 0, set->size );
@@ -313,7 +309,7 @@ static inline void bitset_stream_off( struct bitset_mapping * set  )
   * file.
   */
 static inline void bitset_set_range(
-	struct bitset_mapping* set,
+	struct bitset * set,
 	uint64_t from,
 	uint64_t len)
 {
@@ -330,7 +326,7 @@ static inline void bitset_set_range(
 
 
 /** Set every bit in the bitset. */
-static inline void bitset_set( struct bitset_mapping* set )
+static inline void bitset_set( struct bitset * set )
 {
 	bitset_set_range(set, 0, set->size);
 }
@@ -339,7 +335,7 @@ static inline void bitset_set( struct bitset_mapping* set )
   * larger file.
   */
 static inline void bitset_clear_range(
-	struct bitset_mapping* set,
+	struct bitset * set,
 	uint64_t from,
 	uint64_t len)
 {
@@ -356,7 +352,7 @@ static inline void bitset_clear_range(
 
 
 /** Clear every bit in the bitset. */
-static inline void bitset_clear( struct bitset_mapping *set )
+static inline void bitset_clear( struct bitset * set )
 {
 	bitset_clear_range(set, 0, set->size);
 }
@@ -365,7 +361,7 @@ static inline void bitset_clear( struct bitset_mapping *set )
   * or unset, atomically.
   */
 static inline uint64_t bitset_run_count_ex(
-	struct bitset_mapping* set,
+	struct bitset * set,
 	uint64_t from,
 	uint64_t len,
 	int* run_is_set
@@ -393,7 +389,7 @@ static inline uint64_t bitset_run_count_ex(
   * the bit field.
   */
 static inline uint64_t bitset_run_count(
-	struct bitset_mapping* set,
+	struct bitset * set,
 	uint64_t from,
 	uint64_t len)
 {
@@ -402,14 +398,14 @@ static inline uint64_t bitset_run_count(
 
 /** Tests whether the bit field is clear for the given file offset.
   */
-static inline int bitset_is_clear_at( struct bitset_mapping* set, uint64_t at )
+static inline int bitset_is_clear_at( struct bitset * set, uint64_t at )
 {
 	return bit_is_clear(set->bits, at/set->resolution);
 }
 
 /** Tests whether the bit field is set for the given file offset.
   */
-static inline int bitset_is_set_at( struct bitset_mapping* set, uint64_t at )
+static inline int bitset_is_set_at( struct bitset * set, uint64_t at )
 {
 	return bit_is_set(set->bits, at/set->resolution);
 }
