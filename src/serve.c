@@ -40,7 +40,8 @@ struct server * server_create (
 	out->success = success;
 	out->max_nbd_clients = max_nbd_clients;
 	out->use_killswitch = use_killswitch;
-	out->allow_new_clients = 1;
+
+	server_allow_new_clients( out );
 
 	out->nbd_client = xmalloc( max_nbd_clients * sizeof( struct client_tbl_entry ) );
 	out->tcp_backlog = 10; /* does this need to be settable? */
@@ -723,7 +724,7 @@ void serve_init_allocation_map(struct server* params)
 
 void server_forbid_new_clients( struct server * serve )
 {
-	serve->allow_new_clients = 1;
+	serve->allow_new_clients = 0;
 	return;
 }
 
@@ -734,7 +735,7 @@ void server_close_and_join_clients( struct server * serve )
 
 void server_allow_new_clients( struct server * serve )
 {
-	serve->allow_new_clients = 0;
+	serve->allow_new_clients = 1;
 	return;
 }
 
