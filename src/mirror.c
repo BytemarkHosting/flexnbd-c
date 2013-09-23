@@ -551,7 +551,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	// We read some bytes, so reset the timer
 	ev_timer_again( ctrl->ev_loop, &ctrl->timeout_watcher );
 
-	debug( "Read %"PRIu64" bytes", count );
+	debug( "Read %i bytes", count );
 	debug( "left was %"PRIu64", xfer->read was %"PRIu64, left, xfer->read );
 	xfer->read += count;
 
