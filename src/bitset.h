@@ -116,6 +116,7 @@ enum bitset_stream_events {
   BITSET_STREAM_ON = 2,
   BITSET_STREAM_OFF = 3
 };
+#define BITSET_STREAM_EVENTS_ENUM_SIZE 4
 
 struct bitset_stream_entry {
 	enum bitset_stream_events event;
@@ -138,6 +139,7 @@ struct bitset_stream {
 	pthread_mutex_t mutex;
 	pthread_cond_t cond_not_full;
 	pthread_cond_t cond_not_empty;
+	uint64_t queued_bytes[BITSET_STREAM_EVENTS_ENUM_SIZE];
 };
 
 
@@ -217,6 +219,7 @@ static inline void bitset_stream_enqueue(
 	stream->entries[stream->in].event = event;
 	stream->entries[stream->in].from = from;
 	stream->entries[stream->in].len = len;
+	stream->queued_bytes[event] += len;
 
 	stream->size++;
 	stream->in++;
@@ -234,6 +237,7 @@ static inline void bitset_stream_dequeue(
 )
 {
 	struct bitset_stream * stream = set->stream;
+	struct bitset_stream_entry * dequeued;
 
 	pthread_mutex_lock( &stream->mutex );
 
@@ -241,12 +245,15 @@ static inline void bitset_stream_dequeue(
 		pthread_cond_wait( &stream->cond_not_empty, &stream->mutex );
 	}
 
+	dequeued = &stream->entries[stream->out];
+
 	if ( out != NULL ) {
-		out->event = stream->entries[stream->out].event;
-		out->from  = stream->entries[stream->out].from;
-		out->len   = stream->entries[stream->out].len;
+		out->event = dequeued->event;
+		out->from  = dequeued->from;
+		out->len   = dequeued->len;
 	}
 
+	stream->queued_bytes[dequeued->event] -= dequeued->len;
 	stream->size--;
 	stream->out++;
 	stream->out %= BITSET_STREAM_SIZE;
@@ -273,17 +280,10 @@ static inline uint64_t bitset_stream_queued_bytes(
 	enum bitset_stream_events event
 )
 {
-	uint64_t total = 0;
-	int i;
+	uint64_t total;
 
 	pthread_mutex_lock( &set->stream->mutex );
-
-	for ( i = set->stream->out; i < set->stream->in ; i++ ) {
-		if ( set->stream->entries[i].event == event ) {
-			total += set->stream->entries[i].len;
-		}
-	}
-
+	total = set->stream->queued_bytes[event];
 	pthread_mutex_unlock( &set->stream->mutex );
 
 	return total;
