@@ -96,54 +96,75 @@ class TestWriteDuringMigration < Test::Unit::TestCase
       dst_result = Process::waitpid2(@dst_proc)
       src_result = Process::waitpid2(@src_proc)
     end
-
   end
 
+  def source_writer
+    client = FlexNBD::FakeSource.new( "127.0.0.1", @source_port, "Timed out connecting" )
+    offsets = Range.new(0, (@size - @write_data.size) / 4096 ).to_a
+    loop do
+      begin
+        client.write(offsets[rand(offsets.size)] * 4096, @write_data)
+      rescue => err
+        # We expect a broken write at some point, so ignore it
+        break
+      end
+    end
+  end
+
+  def assert_both_sides_identical
+    # puts `md5sum #{@source_file} #{@dest_file}`
+
+    # Ensure each block matches
+    File.open(@source_file, "r") do |source|
+      File.open(@dest_file, "r") do |dest|
+        0.upto( @size / 4096 ) do |block_num|
+          s_data = source.read( 4096 )
+          d_data = dest.read( 4096 )
+
+          assert s_data == d_data, "Block #{block_num} mismatch!"
+
+          source.seek( 4096, IO::SEEK_CUR )
+          dest.seek( 4096, IO::SEEK_CUR )
+        end
+      end
+    end
+  end
 
   def test_write_during_migration
-
     Dir.mktmpdir() do |tmpdir|
       Dir.chdir( tmpdir ) do
         make_files()
 
         launch_servers()
 
-        src_writer = Thread.new do
-          client = FlexNBD::FakeSource.new( "127.0.0.1", @source_port, "Timed out connecting" )
-          offsets = Range.new(0, (@size - @write_data.size) / 4096 ).to_a
-          loop do
-            begin
-              client.write(offsets[rand(offsets.size)] * 4096, @write_data)
-            rescue => err
-              # We expect a broken write at some point, so ignore it
-              break
-            end
-          end
-        end
+        src_writer = Thread.new { source_writer }
 
         start_mirror()
         wait_for_quit()
         src_writer.join
-
-        # puts `md5sum #{@source_file} #{@dest_file}`
-
-        # Ensure each block matches
-        File.open(@source_file, "r") do |source|
-          File.open(@dest_file, "r") do |dest|
-            0.upto( @size / 4096 ) do |block_num|
-              s_data = source.read( 4096 )
-              d_data = dest.read( 4096 )
-
-              assert s_data == d_data, "Block #{block_num} mismatch!"
-
-              source.seek( 4096, IO::SEEK_CUR )
-              dest.seek( 4096, IO::SEEK_CUR )
-            end
-          end
-        end
+        assert_both_sides_identical
       end
     end
   end
+
+  def test_many_clients_during_migration
+    Dir.mktmpdir() do |tmpdir|
+      Dir.chdir( tmpdir ) do
+        make_files()
+
+        launch_servers()
+
+        src_writers_1 = (1..5).collect { Thread.new { source_writer } }
+
+        start_mirror()
+
+        src_writers_2 = (1..5).collect { Thread.new { source_writer } }
+
+        wait_for_quit()
+        ( src_writers_1 + src_writers_2 ).each {|t| t.join }
+        assert_both_sides_identical
+      end
+    end  end
 
 
 end
