@@ -226,7 +226,7 @@ static inline void bitset_stream_enqueue(
 	stream->in %= BITSET_STREAM_SIZE;
 
 	pthread_mutex_unlock( & stream->mutex );
-	pthread_cond_broadcast( &stream->cond_not_empty );
+	pthread_cond_signal( &stream->cond_not_empty );
 
 	return;
 }
@@ -259,7 +259,7 @@ static inline void bitset_stream_dequeue(
 	stream->out %= BITSET_STREAM_SIZE;
 
 	pthread_mutex_unlock( &stream->mutex );
-	pthread_cond_broadcast( &stream->cond_not_full );
+	pthread_cond_signal( &stream->cond_not_full );
 
 	return;
 }
