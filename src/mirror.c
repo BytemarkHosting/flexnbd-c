@@ -213,18 +213,6 @@ void mirror_destroy( struct mirror *mirror )
 /** The mirror code will split NBD writes, making them this long as a maximum */
 static const int mirror_longest_write = 8<<20;
 
-/** If, during a mirror pass, we have sent this number of bytes or fewer, we
- *  go to freeze the I/O and finish it off.  This is just a guess.
- */
-static const unsigned int mirror_last_pass_after_bytes_written = 100<<20;
-
-/** The largest number of full passes we'll do - the last one will always
- *  cause the I/O to freeze, however many bytes are left to copy.
- */
-static const int mirror_maximum_passes = 7;
-#define mirror_last_pass (mirror_maximum_passes - 1)
-
-
 /* This must not be called if there's any chance of further I/O. Methods to
  * ensure this include:
  *   - Ensure image size is 0
@@ -603,7 +591,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 
 	/* Regardless of time estimates, if there's no waiting transfer, we can
 	 *  */
-	if ( !ctrl->clients_closed && ( !next_xfer || server_mirror_eta( ctrl->serve ) < 60 ) ) {
+	if ( !ctrl->clients_closed && ( !next_xfer || server_mirror_eta( ctrl->serve ) < MS_CONVERGE_TIME_SECS ) ) {
 		info( "Closing clients to allow mirroring to converge" );
 		server_forbid_new_clients( ctrl->serve );
 		server_close_clients( ctrl->serve );

@@ -18,6 +18,18 @@ enum mirror_state;
  */
 #define MS_CONNECT_TIME_SECS 60
 
+/* MS_MAX_DOWNTIME_SECS
+ * The length of time a migration must be estimated to have remaining for us to
+ * disconnect clients for convergence
+ *
+ * TODO: Make this configurable so refusing-to-converge clients can be manually
+ *       fixed.
+ * TODO: Make this adaptive - 5 seconds is fine, as long as we can guarantee
+ *       that all migrations will be able to converge in time. We'd add a new
+ *       state between open and closed, where gradually-increasing latency is
+ *       added to client requests to allow the mirror to be faster.
+ */
+#define MS_CONVERGE_TIME_SECS 5
 
 /* MS_HELLO_TIME_SECS
  * The length of time the sender will wait for the NBD hello message
