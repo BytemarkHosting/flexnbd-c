@@ -70,6 +70,7 @@ struct mirror_ctrl {
 
 	/* libev stuff */
 	struct ev_loop *ev_loop;
+	ev_timer begin_watcher;
 	ev_io read_watcher;
 	ev_io write_watcher;
 	ev_timer timeout_watcher;
@@ -669,6 +670,7 @@ void mirror_abandon_cb( struct ev_loop *loop, ev_io *w, int revents )
 	return;
 }
 
+
 void mirror_limit_cb( struct ev_loop *loop, ev_timer *w, int revents )
 {
 	struct mirror_ctrl* ctrl = (struct mirror_ctrl*) w->data;
@@ -688,6 +690,36 @@ void mirror_limit_cb( struct ev_loop *loop, ev_timer *w, int revents )
 		ev_io_start( loop, &ctrl->write_watcher );
 		ev_timer_stop( loop, &ctrl->limit_watcher );
 		ev_timer_again( loop, &ctrl->timeout_watcher );
+	}
+
+	return;
+}
+
+/* We use this to periodically check whether the allocation map has built, and
+ * if it has, start migrating. If it's not finished, then enabling the bitset
+ * stream does not go well for us.
+ */
+void mirror_begin_cb( struct ev_loop *loop, ev_timer *w, int revents )
+{
+	struct mirror_ctrl* ctrl = (struct mirror_ctrl*) w->data;
+	NULLCHECK( ctrl );
+
+	if ( !(revents & EV_TIMER ) ) {
+		warn( "Mirror limit callback executed but no timer event signalled" );
+		return;
+	}
+
+	if ( ctrl->serve->allocation_map_built || ctrl->serve->allocation_map_not_built ) {
+		debug( "allocation map builder is finished, beginning migration" );
+		/* Start by writing xfer 0 to the listener */
+		ev_io_start( loop, &ctrl->write_watcher );
+		/* We want to timeout during the first write as well as subsequent ones */
+		ev_timer_again( loop, &ctrl->timeout_watcher );
+		/* We're now interested in events */
+		bitset_enable_stream( ctrl->serve->allocation_map );
+	} else {
+		/* not done yet, so wait another second */
+		ev_timer_again( loop, w );
 	}
 
 	return;
@@ -723,6 +755,10 @@ void mirror_run( struct server *serve )
 	ctrl.ev_loop = EV_DEFAULT;
 
 	/* gcc warns on -O2. clang is fine. Seems to be the fault of ev.h */
+	ev_init( &ctrl.begin_watcher, mirror_begin_cb );
+	ctrl.begin_watcher.repeat = 1.0; // We check bps every second. seems sane.
+	ctrl.begin_watcher.data = (void*) &ctrl;
+
 	ev_io_init( &ctrl.read_watcher, mirror_read_cb, m->client, EV_READ  );
 	ctrl.read_watcher.data = (void*) &ctrl;
 
@@ -746,18 +782,22 @@ void mirror_run( struct server *serve )
 		"Couldn't find first transfer for mirror!"
 	);
 
-	/* Start by writing xfer 0 to the listener */
-	ev_io_start( ctrl.ev_loop, &ctrl.write_watcher );
 
-	/* We want to timeout during the first write as well as subsequent ones */
-	ev_timer_again( ctrl.ev_loop, &ctrl.timeout_watcher );
+	if ( serve->allocation_map_built ) {
+		/* Start by writing xfer 0 to the listener */
+		ev_io_start( ctrl.ev_loop, &ctrl.write_watcher );
+		/* We want to timeout during the first write as well as subsequent ones */
+		ev_timer_again( ctrl.ev_loop, &ctrl.timeout_watcher );
+		bitset_enable_stream( serve->allocation_map );
+	} else {
+		debug( "Waiting for allocation map to be built" );
+		ev_timer_again( ctrl.ev_loop, &ctrl.begin_watcher );
+	}
 
 	/* Everything up to here is blocking. We switch to non-blocking so we
 	 * can handle rate-limiting and weird error conditions better. TODO: We
 	 * should expand the event loop upwards so we can do the same there too */
 	sock_set_nonblock( m->client, 1 );
-
-	bitset_enable_stream( serve->allocation_map );
 
 	info( "Entering event loop" );
 	ev_run( ctrl.ev_loop, 0 );

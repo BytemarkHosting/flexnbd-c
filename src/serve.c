@@ -686,6 +686,7 @@ void* build_allocation_map_thread(void* serve_uncast)
 		 * the future, we'll need to wait for the allocation map to finish or
 		 * fail before we can complete the migration.
 		 */
+		serve->allocation_map_not_built = 1;
 		warn( "Didn't build allocation map for %s", serve->filename );
 	}
 

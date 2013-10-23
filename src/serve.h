@@ -76,8 +76,10 @@ struct server {
 	struct bitset * allocation_map;
 	/* when starting up, this thread builds the allocation_map */
 	pthread_t               allocation_map_builder_thread;
+
 	/* when the thread has finished, it sets this to 1 */
 	volatile sig_atomic_t  allocation_map_built;
+	volatile sig_atomic_t  allocation_map_not_built;
 
 	int                  max_nbd_clients;
 	struct client_tbl_entry *nbd_client;
