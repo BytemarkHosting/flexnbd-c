@@ -819,12 +819,11 @@ void mirror_run( struct server *serve )
 	 * call retries the migration from scratch. */
 
 	if ( m->commit_state != MS_DONE ) {
-		error( "Event loop exited, but mirroring is not complete" );
-
 		/* mirror_reset will be called before a retry, so keeping hold of events
 		 * between now and our next mirroring attempt is not useful
 		 */
 		bitset_disable_stream( serve->allocation_map );
+		error( "Event loop exited, but mirroring is not complete" );
 	}
 
 	return;
