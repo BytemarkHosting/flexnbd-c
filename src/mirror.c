@@ -618,7 +618,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 
 	/* FIXME: Should we ignore the bwlimit after server_close_clients has been called? */
 
-	if ( mirror_exceeds_max_bps( m ) ) {
+	if ( mirror_exceeds_max_bps( m ) && bitset_stream_size( ctrl->serve->allocation_map ) < ( BITSET_STREAM_SIZE / 2 ) ) {
 		/* We're over the bandwidth limit, so don't move onto the next transfer
 		 * yet. Our limit_watcher will move us on once we're OK. timeout_watcher
 		 * was disabled further up, so don't need to stop it here too */
@@ -672,7 +672,7 @@ void mirror_limit_cb( struct ev_loop *loop, ev_timer *w, int revents )
 		return;
 	}
 
-	if ( mirror_exceeds_max_bps( ctrl->mirror ) ) {
+	if ( mirror_exceeds_max_bps( ctrl->mirror ) && bitset_stream_size( ctrl->serve->allocation_map ) < ( BITSET_STREAM_SIZE / 2 ) ) {
 		debug( "max_bps exceeded, waiting", ctrl->mirror->max_bytes_per_second );
 		ev_timer_again( loop, w );
 	} else {
