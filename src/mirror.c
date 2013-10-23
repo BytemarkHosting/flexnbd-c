@@ -357,7 +357,7 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 	 * full, and stop when it's a quarter full. This stops a busy client from
 	 * stalling a migration forever. FIXME: made-up numbers.
 	 */
-	if ( bitset_stream_size( serve->allocation_map ) > BITSET_STREAM_SIZE / 2 ) {
+	if ( mirror->offset < serve->size && bitset_stream_size( serve->allocation_map ) > BITSET_STREAM_SIZE / 2 ) {
 		ctrl->clear_events = 1;
 	}
 
@@ -572,9 +572,16 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	/* transfer was completed, so now we need to either set up the next
 	 * transfer of this pass, set up the first transfer of the next pass, or
 	 * complete the migration */
-	m->all_dirty += xfer->len;
 	xfer->read = 0;
 	xfer->written = 0;
+
+	/* We don't account for bytes written in this mode, to stop high-throughput
+	 * discs getting stuck in "drain the event queue!" mode forever
+	 */
+	if ( !ctrl->clear_events ) {
+		m->all_dirty += xfer->len;
+	}
+
 
 	/* This next bit could take a little while, which is fine */
 	ev_timer_stop( ctrl->ev_loop, &ctrl->timeout_watcher );
