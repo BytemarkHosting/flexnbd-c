@@ -134,7 +134,5 @@ struct mirror_super * mirror_super_create(
 		);
 void * mirror_super_runner( void * serve_uncast );
 
-uint64_t mirror_current_bps( struct mirror * mirror );
-
 #endif
 

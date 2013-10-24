@@ -336,6 +336,19 @@ int mirror_should_quit( struct mirror * mirror )
 	}
 }
 
+/* Bandwidth limiting - we hang around if bps is too high, unless we need to
+ * empty out the bitset stream a bit */
+int mirror_should_wait( struct mirror_ctrl *ctrl )
+{
+	int bps_over = server_mirror_bps( ctrl->serve ) >
+		ctrl->serve->mirror->max_bytes_per_second;
+
+	int stream_full = bitset_stream_size( ctrl->serve->allocation_map ) >
+		( BITSET_STREAM_SIZE / 2 );
+
+	return bps_over && !stream_full;
+}
+
 /*
  * If there's an event in the bitset stream of the serve allocation map, we
  * use it to construct the next transfer request, covering precisely the area
@@ -412,24 +425,6 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 	ctrl->xfer.read = 0;
 
 	return 1;
-}
-
-uint64_t mirror_current_bps( struct mirror * mirror )
-{
- 	uint64_t duration_ms = monotonic_time_ms() - mirror->migration_started;
-	return mirror->all_dirty / ( ( duration_ms / 1000 ) + 1 );
-}
-
-int mirror_exceeds_max_bps( struct mirror * mirror )
-{
-	uint64_t mig_speed = mirror_current_bps( mirror );
-	debug( "current_bps: %"PRIu64"; max_bps: %"PRIu64, mig_speed, mirror->max_bytes_per_second );
-
-	if ( mig_speed > mirror->max_bytes_per_second ) {
-		return 1;
-	}
-
-	return 0;
 }
 
 // ONLY CALL THIS AFTER CLOSING CLIENTS
@@ -626,7 +621,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 
 	/* FIXME: Should we ignore the bwlimit after server_close_clients has been called? */
 
-	if ( mirror_exceeds_max_bps( m ) && bitset_stream_size( ctrl->serve->allocation_map ) < ( BITSET_STREAM_SIZE / 2 ) ) {
+	if ( mirror_should_wait( ctrl ) ) {
 		/* We're over the bandwidth limit, so don't move onto the next transfer
 		 * yet. Our limit_watcher will move us on once we're OK. timeout_watcher
 		 * was disabled further up, so don't need to stop it here too */
@@ -681,7 +676,7 @@ void mirror_limit_cb( struct ev_loop *loop, ev_timer *w, int revents )
 		return;
 	}
 
-	if ( mirror_exceeds_max_bps( ctrl->mirror ) && bitset_stream_size( ctrl->serve->allocation_map ) < ( BITSET_STREAM_SIZE / 2 ) ) {
+	if ( mirror_should_wait( ctrl ) ) {
 		debug( "max_bps exceeded, waiting", ctrl->mirror->max_bytes_per_second );
 		ev_timer_again( loop, w );
 	} else {

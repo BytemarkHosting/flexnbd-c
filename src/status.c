@@ -27,7 +27,7 @@ struct status * status_create( struct server * serve )
 			status->migration_duration = 0;
 		}
 		status->migration_duration /= 1000;
-		status->migration_speed = serve->mirror->all_dirty / ( status->migration_duration + 1 );
+		status->migration_speed = server_mirror_bps( serve );
 		status->migration_speed_limit = serve->mirror->max_bytes_per_second;
 
 		status->migration_seconds_left = server_mirror_eta( serve );

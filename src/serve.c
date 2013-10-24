@@ -879,7 +879,19 @@ uint64_t server_mirror_eta( struct server * serve )
 {
 	if ( server_is_mirroring( serve ) ) {
 		uint64_t bytes_to_xfer = server_mirror_bytes_remaining( serve );
-		return bytes_to_xfer / ( mirror_current_bps( serve->mirror ) + 1 );
+		return bytes_to_xfer / ( server_mirror_bps( serve ) + 1 );
+	}
+
+	return 0;
+}
+
+uint64_t server_mirror_bps( struct server * serve )
+{
+	if ( server_is_mirroring( serve ) ) {
+	 	uint64_t duration_ms =
+	 		monotonic_time_ms() - serve->mirror->migration_started;
+
+		return serve->mirror->all_dirty / ( ( duration_ms / 1000 ) + 1 );
 	}
 
 	return 0;
