@@ -31,7 +31,7 @@ static int is_included_in_acl(int list_length, struct ip_and_mask (*list)[], uni
 	for (i=0; i < list_length; i++) {
 		struct ip_and_mask *entry = &(*list)[i];
 		int testbits;
-		unsigned char *raw_address1, *raw_address2;
+		unsigned char *raw_address1 = NULL, *raw_address2 = NULL;
 
 		debug("checking acl entry %d (%d/%d)", i, test->generic.sa_family, entry->ip.family);
 
