@@ -470,7 +470,7 @@ static void mirror_write_cb( struct ev_loop *loop, ev_io *w, int revents )
 		to_write = xfer->len - ( ctrl->xfer.written - hdr_size );
 	}
 
-	// Actually read some bytes
+	// Actually write some bytes
 	if ( ( count = write( ctrl->mirror->client, data_loc, to_write ) ) < 0 ) {
 		if ( errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR ) {
 			warn( SHOW_ERRNO( "Couldn't write to listener" ) );
@@ -480,10 +480,12 @@ static void mirror_write_cb( struct ev_loop *loop, ev_io *w, int revents )
 	}
 	debug( "Wrote %"PRIu64" bytes", count );
 	debug( "to_write was %"PRIu64", xfer->written was %"PRIu64, to_write, xfer->written );
-	ctrl->xfer.written += count;
 
-	// We wrote some bytes, so reset the timer
-	ev_timer_again( ctrl->ev_loop, &ctrl->timeout_watcher );
+	// We wrote some bytes, so reset the timer and keep track for the next pass
+	if ( count > 0 ) {
+		ctrl->xfer.written += count;
+		ev_timer_again( ctrl->ev_loop, &ctrl->timeout_watcher );
+	}
 
 	// All bytes written, so now we need to read the NBD reply back.
 	if ( ctrl->xfer.written == ctrl->xfer.len + hdr_size ) {
@@ -592,8 +594,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	int next_xfer = mirror_setup_next_xfer( ctrl );
 	debug( "next_xfer: %d", next_xfer );
 
-	/* Regardless of time estimates, if there's no waiting transfer, we can
-	 *  */
+	/* Regardless of time estimates, if there's no waiting transfer, we can start closing clients down. */
 	if ( !ctrl->clients_closed && ( !next_xfer || server_mirror_eta( ctrl->serve ) < MS_CONVERGE_TIME_SECS ) ) {
 		info( "Closing clients to allow mirroring to converge" );
 		server_forbid_new_clients( ctrl->serve );
@@ -601,8 +602,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 		server_join_clients( ctrl->serve );
 		ctrl->clients_closed = 1;
 
-		/* One more try - a new event may have been pushed since our last check
-		 */
+		/* One more try - a new event may have been pushed since our last check  */
 		if ( !next_xfer ) {
 			next_xfer = mirror_setup_next_xfer( ctrl );
 		}
