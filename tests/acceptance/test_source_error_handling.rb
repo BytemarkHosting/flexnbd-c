@@ -7,6 +7,9 @@ require 'environment'
 class TestSourceErrorHandling < Test::Unit::TestCase
 
   def setup
+    @old_env = ENV['FLEXNBD_MS_REQUEST_LIMIT_SECS']
+    ENV['FLEXNBD_MS_REQUEST_LIMIT_SECS'] = "4.0"
+
     @env = Environment.new
     @env.writefile1( "f" * 4 )
     @env.serve1
@@ -16,6 +19,7 @@ class TestSourceErrorHandling < Test::Unit::TestCase
   def teardown
     @env.nbd1.can_die(0)
     @env.cleanup
+    ENV['FLEXNBD_MS_REQUEST_LIMIT_SECS'] = @old_env
   end
 
 

@@ -20,7 +20,13 @@ t = Thread.start do
   client2.close
 end
 
-sleep( FlexNBD::MS_REQUEST_LIMIT_SECS + 2 )
+sleep_time = if ENV.has_key?('FLEXNBD_MS_REQUEST_LIMIT_SECS')
+  ENV['FLEXNBD_MS_REQUEST_LIMIT_SECS'].to_f
+else
+  FlexNBD::MS_REQUEST_LIMIT_SECS
+end
+
+sleep( sleep_time + 2.0 )
 client1.close
 
 t.join

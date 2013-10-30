@@ -762,7 +762,22 @@ void mirror_run( struct server *serve )
 	ctrl.write_watcher.data = (void*) &ctrl;
 
 	ev_init( &ctrl.timeout_watcher, mirror_timeout_cb );
-	ctrl.timeout_watcher.repeat = MS_REQUEST_LIMIT_SECS_F ;
+
+	char * env_request_limit = getenv( "FLEXNBD_MS_REQUEST_LIMIT_SECS" );
+	double timeout_limit = MS_REQUEST_LIMIT_SECS_F;
+
+	if ( NULL != env_request_limit ) {
+		char *endptr = NULL;
+		errno = 0;
+		double limit = strtod( env_request_limit, &endptr );
+		warn( SHOW_ERRNO( "Got %f from strtod", limit ) );
+
+		if ( errno == 0 ) {
+			timeout_limit = limit;
+		}
+	}
+
+	ctrl.timeout_watcher.repeat = timeout_limit;
 
 	ev_init( &ctrl.limit_watcher, mirror_limit_cb );
 	ctrl.limit_watcher.repeat = 1.0; // We check bps every second. seems sane.

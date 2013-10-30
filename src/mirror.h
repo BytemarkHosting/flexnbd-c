@@ -50,9 +50,12 @@ enum mirror_state;
  * request, this is the time between the end of the NBD request and the
  * start of the NBD reply.  For a write request, this is the time
  * between the end of the written data and the start of the NBD reply.
+ * Can be overridden by the environment variable:
+ * FLEXNBD_MS_REQUEST_LIMIT_SECS
  */
-#define MS_REQUEST_LIMIT_SECS 4
-#define MS_REQUEST_LIMIT_SECS_F 4.0
+
+#define MS_REQUEST_LIMIT_SECS 60
+#define MS_REQUEST_LIMIT_SECS_F 60.0
 
 enum mirror_finish_action {
 	ACTION_EXIT,
