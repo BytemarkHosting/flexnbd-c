@@ -954,4 +954,3 @@ int do_serve( struct server* params, struct self_pipe * open_signal )
 
 	return success;
 }
-

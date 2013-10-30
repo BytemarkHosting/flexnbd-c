@@ -71,7 +71,7 @@ int build_allocation_map(struct bitset * allocation_map, int fd)
 		}
 	}
 
-	debug("Successfully built allocation map");
+	info("Successfully built allocation map");
 	return 1;
 }
 
@@ -347,4 +347,3 @@ ssize_t iobuf_write( int fd, struct iobuf *iobuf )
 
 	return count;
 }
-

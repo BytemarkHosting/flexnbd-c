@@ -705,7 +705,7 @@ void mirror_begin_cb( struct ev_loop *loop, ev_timer *w, int revents )
 	}
 
 	if ( ctrl->serve->allocation_map_built || ctrl->serve->allocation_map_not_built ) {
-		debug( "allocation map builder is finished, beginning migration" );
+		info( "allocation map builder is finished, beginning migration" );
 		/* Start by writing xfer 0 to the listener */
 		ev_io_start( loop, &ctrl->write_watcher );
 		/* We want to timeout during the first write as well as subsequent ones */
@@ -1045,4 +1045,3 @@ void * mirror_super_runner( void * serve_uncast )
 
 	return NULL;
 }
-
