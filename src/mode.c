@@ -787,7 +787,7 @@ int mode_break( int argc, char *argv[] )
 
 	if ( NULL == sock ){
 		fprintf( stderr, "--sock is required.\n" );
-		exit_err( acl_help_text );
+		exit_err( break_help_text );
 	}
 
 	do_remote_command( "break", sock, argc - optind, argv + optind );
@@ -808,7 +808,7 @@ int mode_status( int argc, char *argv[] )
 
 	if ( NULL == sock ){
 		fprintf( stderr, "--sock is required.\n" );
-		exit_err( acl_help_text );
+		exit_err( status_help_text );
 	}
 
 	do_remote_command( "status", sock, argc - optind, argv + optind );
