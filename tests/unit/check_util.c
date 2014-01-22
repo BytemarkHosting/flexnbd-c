@@ -71,11 +71,12 @@ START_TEST( test_fatal_kills_process )
 		sleep(10);
 	} 
 	else {
-		int kidstatus;
-		int result;
-		result = waitpid( pid, &kidstatus, 0 );
+		int kidret, kidstatus, result;
+		result = waitpid( pid, &kidret, 0 );
 		fail_if(  result < 0, "Wait failed." );
-		fail_unless( kidstatus == 6, "Kid was not aborted." );
+		kidstatus = WEXITSTATUS( kidret );
+		ck_assert_int_eq( kidstatus, SIGABRT );
+//		fail_unless( kidstatus == 6, "Kid was not aborted." );
 	}
 
 }

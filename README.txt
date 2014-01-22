@@ -25,7 +25,7 @@ COMMANDS
 serve
 ~~~~~
   $ flexnbd serve --addr <ADDR> --port <PORT> --file <FILE>
-    [--sock <SOCK>] [--default-deny] [global option]* [acl entry]*
+    [--sock <SOCK>] [--default-deny] [-k] [global option]* [acl entry]*
 
 Serve a file. If any ACL entries are given (which should be IP
 addresses), only those clients listed will be permitted to connect.
@@ -54,6 +54,12 @@ Options
     How to interpret an empty ACL.  If --default-deny is given, an
     empty ACL will let no clients connect.  If it is not given, an
     empty ACL will let any client connect.
+
+*--killswitch, -k*:
+    If set, we implement a 2-minute timeout on NBD requests and
+    responses. If a request takes longer than that to complete,
+    the client is disconnected. This is useful to keep broken
+    clients from breaking migrations, among other things.
 
 listen
 ~~~~~~

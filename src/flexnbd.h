@@ -5,6 +5,7 @@
 #include "mirror.h"
 #include "serve.h"
 #include "proxy.h"
+#include "client.h"
 #include "self_pipe.h"
 #include "mbox.h"
 #include "control.h"

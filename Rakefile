@@ -33,9 +33,13 @@ CCFLAGS = %w(
             ) + # Added -Wno-missing-field-initializers to shut GCC up over {0} struct initialisers
             [ENV['CFLAGS']]
 
-LIBCHECK = File.exists?("/usr/lib/libcheck.a") ?
-  "/usr/lib/libcheck.a" :
+LIBCHECK = if File.exists?("/usr/lib/libcheck.a")
+  "/usr/lib/libcheck.a"
+elsif File.exists?("/usr/local/lib/libcheck.a")
   "/usr/local/lib/libcheck.a"
+else
+  "-lcheck"
+end
 
 TEST_MODULES = Dir["tests/unit/check_*.c"].map { |n|
   File.basename( n )[%r{check_(.+)\.c},1] }
@@ -114,7 +118,7 @@ end
 
 def gcc_compile( target, source )
   FileUtils.mkdir_p File.dirname( target )
-  sh "#{CC} -Isrc -c #{CCFLAGS.join(' ')} -o #{target} #{source} "
+  sh "#{CC} -I/usr/include/libev -Isrc -c #{CCFLAGS.join(' ')} -o #{target} #{source} "
 end
 
 def gcc_link(target, objects)

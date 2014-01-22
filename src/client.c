@@ -15,6 +15,20 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+
+// When this signal is invoked, we call shutdown() on the client fd, which
+// results in the thread being wound up
+void client_killswitch_hit(int signal __attribute__ ((unused)), siginfo_t *info, void *ptr __attribute__ ((unused)))
+{
+	int fd = info->si_value.sival_int;
+	warn( "Killswitch for fd %i activated, calling shutdown on socket", fd );
+
+	FATAL_IF(
+		-1 == shutdown( fd, SHUT_RDWR ),
+		"Failed to kill shutdown() the socket, killing the server"
+	 );
+}
+
 struct client *client_create( struct server *serve, int socket )
 {
 	NULLCHECK( serve );
@@ -24,6 +38,13 @@ struct client *client_create( struct server *serve, int socket )
 		.sigev_notify = SIGEV_SIGNAL,
 		.sigev_signo = CLIENT_KILLSWITCH_SIGNAL
 	};
+
+	/*
+	 * Our killswitch closes this socket, forcing read() and write() calls
+	 * blocked on it to return with an error. The thread then close()s the
+	 * socket itself, avoiding races.
+	 */
+	evp.sigev_value.sival_int = socket;
 
 	c = xmalloc( sizeof( struct client ) );
 	c->stopped = 0;
@@ -199,36 +220,6 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	NULLCHECK( out_request );
 
 	struct nbd_request_raw request_raw;
-	fd_set                 fds;
-	struct timeval *       ptv = NULL;
-	int                    fd_count;
-
-	/* We want a timeout if this is an inbound migration, but not otherwise.
-	 * This is compile-time selectable, as it will break mirror max_bps
-	 */
-#ifdef HAS_LISTEN_TIMEOUT
-	struct timeval         tv = {CLIENT_MAX_WAIT_SECS, 0};
-
-	if ( !server_is_in_control( client->serve ) ) {
-		ptv = &tv;
-	}
-#endif
-
-	FD_ZERO(&fds);
-	FD_SET(client->socket, &fds);
-	self_pipe_fd_set( client->stop_signal, &fds );
-	fd_count = sock_try_select(FD_SETSIZE, &fds, NULL, NULL, ptv);
-	if ( fd_count == 0 ) {
-		/* This "can't ever happen" */
-		if ( NULL == ptv ) { fatal( "No FDs selected, and no timeout!" ); }
-		else { error("Timed out waiting for I/O"); }
-	}
-	else if ( fd_count < 0 ) { fatal( "Select failed" ); }
-
-	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
-		debug("Client received stop signal.");
-		return 0;
-	}
 
 	if (fd_read_request(client->socket, &request_raw) == -1) {
 		*disconnected = 1;
@@ -553,6 +544,44 @@ int client_serve_request(struct client* client)
 	struct nbd_request    request = {0};
 	int                   stop = 1;
 	int                   disconnected = 0;
+	fd_set                fds;
+	int                   fd_count;
+
+	/* wait until there are some bytes on the fd before committing to reads
+	 * FIXME: this whole scheme is broken because we're using blocking reads.
+	 * read() can block directly after a select anyway, and it's possible that,
+	 * without the killswitch, we'd hang forever. With the killswitch, we just
+	 * hang for "a while". The Right Thing to do is to rewrite client.c to be
+	 * non-blocking.
+	 */
+
+	FD_ZERO(&fds);
+	FD_SET(client->socket, &fds);
+	self_pipe_fd_set( client->stop_signal, &fds );
+	fd_count = sock_try_select(FD_SETSIZE, &fds, NULL, NULL, NULL);
+	if ( fd_count == 0 ) {
+		/* This "can't ever happen" */
+		fatal( "No FDs selected, and no timeout!" );
+	}
+	else if ( fd_count < 0 ) { fatal( "Select failed" ); }
+
+	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
+		debug("Client received stop signal.");
+		return 0;
+	}
+
+
+	/* We arm / disarm around the whole request cycle. The reason for this is
+	 * that the remote peer could uncleanly die at any point; if we're stuck on
+	 * a blocking read(), then that will hang for (almost) forever. This is bad
+	 * in general, makes the server respond only to kill -9, and breaks
+	 * outward mirroring in a most unpleasant way.
+	 *
+	 * The replication is simple: open a connection to the flexnbd server, write
+	 * a single byte, and then wait.
+	 *
+	 */
+	client_arm_killswitch( client );
 
 	if ( !client_read_request( client, &request, &disconnected ) ) { return stop; }
 	if ( disconnected ) { return stop; }
@@ -562,25 +591,12 @@ int client_serve_request(struct client* client)
 
 	{
 		if ( !server_is_closed( client->serve ) ) {
-			/* We arm / disarm around client_reply() to catch cases where the
-			 * remote peer sends part of a write request data before dying,
-			 * and cases where we send part of read reply data before they die.
-			 *
-			 * That last is theoretical right now, but could break us in the
-			 * same way as a half-write (which causes us to sit in read forever)
-			 *
-			 * We only arm/disarm inside the server io lock because it's common
-			 * during migrations for us to be hanging on that mutex for quite
-			 * a while while the final pass happens - it's held for the entire
-			 * time.
-			 */
-			client_arm_killswitch( client );
 			client_reply( client, request );
-			client_disarm_killswitch( client );
 			stop = 0;
 		}
 	}
 
+	client_disarm_killswitch( client );
 
 	return stop;
 }
