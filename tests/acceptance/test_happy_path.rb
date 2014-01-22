@@ -102,7 +102,7 @@ class TestHappyPath < Test::Unit::TestCase
     assert_no_match( /unrecognized/, stderr )
 
 
-    Timeout.timeout(2) do @env.nbd1.join end
+    Timeout.timeout(10) do @env.nbd1.join end
 
     assert !File.file?( @env.filename1 )
   end
