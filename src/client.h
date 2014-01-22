@@ -4,18 +4,6 @@
 #include <signal.h>
 #include <time.h>
 
-#ifdef HAS_LISTEN_TIMEOUT
-
-/** CLIENT_MAX_WAIT_SECS
- * This is the length of time an inbound migration will wait for a fresh
- * write before assuming the source has Gone Away.  Note: it is *not*
- * the time from one write to the next, it is the gap between the end of
- * one write and the start of the next.
- */
-#define CLIENT_MAX_WAIT_SECS 5
-
-#endif
-
 /** CLIENT_HANDLER_TIMEOUT
  * This is the length of time (in seconds) any request can be outstanding for.
  * If we spend longer than this in a request, the whole server is killed.
@@ -24,8 +12,7 @@
 
 /** CLIENT_KILLSWITCH_SIGNAL
  * The signal number we use to kill the server when *any* killswitch timer
- * fires. We don't actually need to install a signal handler for it, the default
- * behaviour is perfectly fine.
+ * fires. The handler gets the fd of the client socket to work with.
  */
 #define CLIENT_KILLSWITCH_SIGNAL ( SIGRTMIN + 1 )
 
