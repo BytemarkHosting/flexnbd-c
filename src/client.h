@@ -58,6 +58,7 @@ struct client {
 
 };
 
+void client_killswitch_hit(int signal, siginfo_t *info, void *ptr);
 
 void* client_serve(void* client_uncast);
 struct client * client_create( struct server * serve, int socket );

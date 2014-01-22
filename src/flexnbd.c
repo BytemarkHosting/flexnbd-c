@@ -101,11 +101,23 @@ struct flexnbd * flexnbd_create_serving(
 			max_nbd_clients,
 			use_killswitch,
 			1);
-	flexnbd_create_shared( flexnbd,
-			s_ctrl_sock );
+	flexnbd_create_shared( flexnbd, s_ctrl_sock );
+
+	// Beats installing one handler per client instance
+	if ( use_killswitch ) {
+		struct sigaction act = {
+			.sa_sigaction = client_killswitch_hit,
+			.sa_flags = SA_RESTART | SA_SIGINFO
+		};
+
+		FATAL_UNLESS(
+			0 == sigaction( CLIENT_KILLSWITCH_SIGNAL, &act, NULL ),
+			"Installing client killswitch signal failed"
+		);
+	}
+
 	return flexnbd;
 }
-
 
 struct flexnbd * flexnbd_create_listening(
 		char* s_ip_address,
@@ -127,6 +139,10 @@ struct flexnbd * flexnbd_create_listening(
 			s_acl_entries,
 			1, 0, 0);
 	flexnbd_create_shared( flexnbd, s_ctrl_sock );
+
+	// listen can't use killswitch, as mirror may pause on sending things
+	// for a very long time.
+
 	return flexnbd;
 }
 
