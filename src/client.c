@@ -567,7 +567,7 @@ int client_serve_request(struct client* client)
 
 	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
 		debug("Client received stop signal.");
-		return 0;
+		return 1; // Don't try to serve more requests
 	}
 
 

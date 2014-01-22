@@ -76,8 +76,8 @@ START_TEST( test_read_request_quits_on_stop_signal )
 	
 	client_signal_stop( c );
 
-	int client_read_request( struct client *, struct nbd_request *);
-	fail_unless( 0 == client_read_request( c, &nbdr ), "Didn't quit on stop." );
+	int client_serve_request( struct client *);
+	fail_unless( 1 == client_serve_request( c ), "Didn't quit on stop." );
 
 	close( fds[0] );
 	close( fds[1] );
