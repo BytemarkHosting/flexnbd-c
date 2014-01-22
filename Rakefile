@@ -114,7 +114,7 @@ end
 
 def gcc_compile( target, source )
   FileUtils.mkdir_p File.dirname( target )
-  sh "#{CC} -Isrc -c #{CCFLAGS.join(' ')} -o #{target} #{source} "
+  sh "#{CC} -I/usr/include/libev -Isrc -c #{CCFLAGS.join(' ')} -o #{target} #{source} "
 end
 
 def gcc_link(target, objects)
