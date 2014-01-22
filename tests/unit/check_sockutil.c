@@ -72,6 +72,7 @@ START_TEST( test_sockaddr_address_string_doesnt_overflow_short_buffer )
 	char testbuf[128];
 	const char* result;
 
+	memset( testbuf, 0, 128 );
 	v4->sin_family = AF_INET;
 	v4->sin_port = htons( 4777 );
 	ck_assert_int_eq( 1, inet_pton( AF_INET, "192.168.0.1", &v4->sin_addr ));
