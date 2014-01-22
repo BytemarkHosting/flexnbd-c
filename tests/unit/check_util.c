@@ -74,9 +74,9 @@ START_TEST( test_fatal_kills_process )
 		int kidret, kidstatus, result;
 		result = waitpid( pid, &kidret, 0 );
 		fail_if(  result < 0, "Wait failed." );
-		kidstatus = WEXITSTATUS( kidret );
+		fail_unless( WIFSIGNALED( kidret ), "Process didn't exit via signal" );
+		kidstatus = WTERMSIG( kidret );
 		ck_assert_int_eq( kidstatus, SIGABRT );
-//		fail_unless( kidstatus == 6, "Kid was not aborted." );
 	}
 
 }
