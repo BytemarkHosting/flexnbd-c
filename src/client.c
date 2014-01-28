@@ -25,7 +25,7 @@ void client_killswitch_hit(int signal __attribute__ ((unused)), siginfo_t *info,
 
 	FATAL_IF(
 		-1 == shutdown( fd, SHUT_RDWR ),
-		"Failed to kill shutdown() the socket, killing the server"
+		SHOW_ERRNO( "Failed to shutdown() the socket, killing the server" )
 	 );
 }
 
@@ -577,15 +577,24 @@ int client_serve_request(struct client* client)
 	 * in general, makes the server respond only to kill -9, and breaks
 	 * outward mirroring in a most unpleasant way.
 	 *
+	 * Don't forget to disarm before exiting, no matter what!
+	 *
 	 * The replication is simple: open a connection to the flexnbd server, write
 	 * a single byte, and then wait.
 	 *
 	 */
 	client_arm_killswitch( client );
 
-	if ( !client_read_request( client, &request, &disconnected ) ) { return stop; }
-	if ( disconnected ) { return stop; }
-	if ( !client_request_needs_reply( client, request ) )  {
+	if ( !client_read_request( client, &request, &disconnected ) ) {
+		client_disarm_killswitch( client );
+		return stop;
+	}
+	if ( disconnected ) {
+		client_disarm_killswitch( client );
+		return stop;
+	}
+	if ( !client_request_needs_reply( client, request ) ) {
+		client_disarm_killswitch( client );
 		return client->disconnect;
 	}
 
@@ -597,7 +606,6 @@ int client_serve_request(struct client* client)
 	}
 
 	client_disarm_killswitch( client );
-
 	return stop;
 }
 
@@ -611,6 +619,9 @@ void client_cleanup(struct client* client,
 		int fatal __attribute__ ((unused)) )
 {
 	info("client cleanup for client %p", client);
+
+	/* If the thread hits an error, we need to ensure this is off */
+	client_disarm_killswitch( client );
 
 	if (client->socket) {
 		FATAL_IF_NEGATIVE( close(client->socket),
