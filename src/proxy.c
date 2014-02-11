@@ -797,6 +797,13 @@ void proxy_session( struct proxier* proxy )
 					proxy_session_state_names[state]
 				);
 				state = CONNECT_TO_UPSTREAM;
+
+				/* Since we've timed out, we won't have gone through the timeout logic
+				 * in the various state handlers that resets these appropriately... */
+				proxy->init.size = 0;
+				proxy->init.needle = 0;
+				proxy->rsp.size = 0;
+				proxy->rsp.needle = 0;
 			}
 		}
 	}
