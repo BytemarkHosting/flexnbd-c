@@ -246,7 +246,6 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	}
 
 	nbd_r2h_request( &request_raw, out_request );
-
 	return 1;
 }
 
@@ -260,7 +259,7 @@ int fd_write_reply( int fd, char *handle, int error )
 	memcpy( reply.handle, handle, 8 );
 
 	nbd_h2r_reply( &reply, &reply_raw );
-	debug( "Replying with %s, %d", handle, error );
+	debug( "Replying with handle=0x%08X, error=%"PRIu32, handle, error );
 
 	if( -1 == writeloop( fd, &reply_raw, sizeof( reply_raw ) ) ) {
 		switch( errno ) {
@@ -370,15 +369,15 @@ int client_request_needs_reply( struct client * client,
 	 * forever.
 	 */
 	if (request.magic != REQUEST_MAGIC) {
-		warn("Bad magic 0x%08x from client", request.magic);
+		warn("Bad magic 0x%08X from client", request.magic);
 		client_write_reply( client, &request, EBADMSG );
 		client->disconnect = 1; // no need to flush
 		return 0;
 	}
 
 	debug(
-		"request type=%"PRIu32", from=%"PRIu64", len=%"PRIu32,
-		request.type, request.from, request.len
+		"request type=%"PRIu32", from=%"PRIu64", len=%"PRIu32", handle=0x%08X",
+		request.type, request.from, request.len, request.handle
 	);
 
 	/* check it's not out of range */
@@ -407,7 +406,7 @@ int client_request_needs_reply( struct client * client,
 		return 0;
 
 	default:
-		fatal("Unknown request %08x", request.type);
+		fatal("Unknown request 0x%08X", request.type);
 	}
 	return 1;
 }
@@ -439,7 +438,7 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 
 void client_reply_to_write( struct client* client, struct nbd_request request )
 {
-	debug("request write %ld+%d", request.from, request.len);
+	debug("request write from=%"PRIu64", len=%"PRIu32", handle=0x%08X", request.from, request.len, request.handle);
 	if (client->serve->allocation_map_built) {
 		write_not_zeroes( client, request.from, request.len );
 	}
@@ -593,6 +592,7 @@ int client_serve_request(struct client* client)
 		client_disarm_killswitch( client );
 		return stop;
 	}
+
 	if ( !client_request_needs_reply( client, request ) ) {
 		client_disarm_killswitch( client );
 		return client->disconnect;

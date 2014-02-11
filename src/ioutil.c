@@ -139,7 +139,7 @@ int readloop(int filedes, void *buffer, size_t size)
 		ssize_t result = read(filedes, buffer+readden, size-readden);
 
 		if ( result == 0 /* EOF */ ) {
-			warn( "end-of-file detected while reading" );
+			warn( "end-of-file detected while reading after %i bytes", readden );
 			return -1;
 		}
 
