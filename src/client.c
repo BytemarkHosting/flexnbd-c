@@ -416,6 +416,7 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 {
 	off64_t offset;
 
+	// TODO: cork
 	debug("request read %ld+%d", request.from, request.len);
 	client_write_reply( client, &request, 0);
 
@@ -433,6 +434,8 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 			"sendfile failed from=%ld, len=%d",
 			offset,
 			request.len);
+
+	// TODO: uncork
 }
 
 
