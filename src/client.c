@@ -543,7 +543,7 @@ int client_serve_request(struct client* client)
 	struct nbd_request    request = {0};
 	int                   stop = 1;
 	int                   disconnected = 0;
-	fd_set                fds;
+	fd_set                rfds, efds;
 	int                   fd_count;
 
 	/* wait until there are some bytes on the fd before committing to reads
@@ -554,19 +554,29 @@ int client_serve_request(struct client* client)
 	 * non-blocking.
 	 */
 
-	FD_ZERO(&fds);
-	FD_SET(client->socket, &fds);
-	self_pipe_fd_set( client->stop_signal, &fds );
-	fd_count = sock_try_select(FD_SETSIZE, &fds, NULL, NULL, NULL);
+	FD_ZERO( &rfds );
+	FD_SET( client->socket, &rfds );
+	self_pipe_fd_set( client->stop_signal, &rfds );
+
+	FD_ZERO( &efds );
+	FD_SET( client->socket, &efds );
+
+	fd_count = sock_try_select( FD_SETSIZE, &rfds, NULL, &efds, NULL );
+
 	if ( fd_count == 0 ) {
 		/* This "can't ever happen" */
 		fatal( "No FDs selected, and no timeout!" );
 	}
 	else if ( fd_count < 0 ) { fatal( "Select failed" ); }
 
-	if ( self_pipe_fd_isset( client->stop_signal, &fds ) ){
+	if ( self_pipe_fd_isset( client->stop_signal, &rfds ) ){
 		debug("Client received stop signal.");
 		return 1; // Don't try to serve more requests
+	}
+
+	if ( FD_ISSET( client->socket, &efds ) ) {
+		debug( "Client connection closed" );
+		return 1;
 	}
 
 
