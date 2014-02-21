@@ -2,7 +2,7 @@ Source: flexnbd
 Section: unknown
 Priority: extra
 Maintainer: Alex Young <alex@bytemark.co.uk>
-Build-Depends: cdbs, debhelper (>= 7.0.50), ruby, rake, gcc, libev-dev
+Build-Depends: cdbs, debhelper (>= 7.0.50), ruby, rake, gcc, libev-dev, asciidoc
 Standards-Version: 3.8.1
 Homepage: http://bigv.io/
 
