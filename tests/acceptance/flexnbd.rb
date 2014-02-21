@@ -458,12 +458,18 @@ module FlexNBD
 
     def maybe_timeout(cmd, timeout=nil )
       stdout, stderr = "",""
+      stat = nil
       run = Proc.new do
-        Open3.popen3( cmd ) do |io_in, io_out, io_err|
+        # Ruby 1.9 changed the popen3 api. instead of 3 args, the block
+        # gets 4. Not only that, but it no longer sets $?, so we have to
+        # go elsewhere for the process' exit status.
+        Open3.popen3( cmd ) do |io_in, io_out, io_err, maybe_thr|
           io_in.close
           stdout.replace io_out.read
           stderr.replace io_err.read
+          stat = maybe_thr.value if maybe_thr
         end
+        stat ||= $?
       end
 
       if timeout
@@ -472,13 +478,13 @@ module FlexNBD
         run.call
       end
 
-      [stdout, stderr]
+      [stdout, stderr, stat]
     end
 
 
     def mirror(dest_ip, dest_port, bandwidth=nil, action=nil)
-      stdout, stderr = mirror_unchecked( dest_ip, dest_port, bandwidth, action )
-      raise IOError.new( "Migrate command failed\n" + stderr) unless $?.success?
+      stdout, stderr, status = mirror_unchecked( dest_ip, dest_port, bandwidth, action )
+      raise IOError.new( "Migrate command failed\n" + stderr) unless status.success?
 
       stdout
     end

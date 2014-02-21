@@ -2,10 +2,15 @@
 
 require 'test/unit'
 require 'environment'
+require 'flexnbd/constants'
 
 class TestHappyPath < Test::Unit::TestCase
   def setup
     @env = Environment.new
+  end
+
+  def bin(str)
+    FlexNBD.binary str
   end
 
   def teardown
@@ -22,13 +27,13 @@ class TestHappyPath < Test::Unit::TestCase
     [0, 12, 63].each do |num|
 
       assert_equal(
-        @env.nbd1.read(num*@env.blocksize, @env.blocksize),
-        @env.file1.read(num*@env.blocksize, @env.blocksize)
+        bin( @env.nbd1.read(num*@env.blocksize, @env.blocksize) ),
+        bin( @env.file1.read(num*@env.blocksize, @env.blocksize) )
       )
     end
 
     [124, 1200, 10028, 25488].each do |num|
-      assert_equal(@env.nbd1.read(num, 4), @env.file1.read(num, 4))
+      assert_equal(bin(@env.nbd1.read(num, 4)), bin(@env.file1.read(num, 4)))
     end
   end
 
