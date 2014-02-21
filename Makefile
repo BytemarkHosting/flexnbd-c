@@ -1,6 +1,9 @@
 #!/usr/bin/make -f
 
 VPATH=src:tests/unit
+DESTDIR?=/
+PREFIX?=/usr/local/bin
+INSTALLDIR=$(DESTDIR)/$(PREFIX)
 	
 ifdef DEBUG
 	CFLAGS_EXTRA=-g -DDEBUG
@@ -36,6 +39,8 @@ SRCS := $(COMMON_SRC) $(SERVER_SRC) $(PROXY_SRC)
 OBJS := $(COMMON_OBJ) $(SERVER_OBJ) $(PROXY_OBJ)
 
 
+all: build/flexnbd build/flexnbd-proxy doc
+
 build/%.o: %.c
 	mkdir -p $(dir $@)
 	$(COMPILE) $< -o $@
@@ -51,7 +56,6 @@ build/flexnbd-proxy: $(COMMON_OBJ) $(PROXY_OBJ) build/proxy-main.o
 
 server: build/flexnbd
 proxy: build/flexnbd-proxy
-all: build/flexnbd build/flexnbd-proxy
 
 
 CHECK_SRC := $(wildcard tests/unit/*.c)
@@ -87,6 +91,9 @@ proxy-man: build/flexnbd-proxy.1.gz
 
 doc: server-man proxy-man
 
+install:
+	mkdir -p $(INSTALLDIR)
+	cp build/flexnbd build/flexnbd-proxy $(INSTALLDIR)
 
 clean:
 	rm -rf build/*
