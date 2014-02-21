@@ -1,198 +1,440 @@
-flexnbd (0.0.1-33) unstable; urgency=low
-
-  * Added tag 0.0.1 for changeset 27409c2c1313 [r33]
-
- -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 17:11:10 +0100
-
-flexnbd (0.0.1-31) unstable; urgency=low
-
-  * Fixed bug where ACL was accidentally deleted when being set from control [r31]
-
- -- mbloch <mbloch>  Wed, 30 May 2012 13:03:02 +0100
-
-flexnbd (0.0.1-30) unstable; urgency=low
-
-  * Fix the usage message [r30]
-
- -- nick <nick@bytemark.co.uk>  Wed, 30 May 2012 11:28:32 +0100
-
-flexnbd (0.0.1-29) unstable; urgency=low
-
-  * Fixed race in tests. [r29]
-
- -- mbloch <mbloch>  Tue, 29 May 2012 17:01:54 +0100
-
-flexnbd (0.0.1-28) unstable; urgency=low
-
-  * Added getopt_long command-line handling. [r28]
-
- -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 15:19:40 +0100
-
-flexnbd (0.0.1-27) unstable; urgency=low
-
-  * Added .h files to the Rakefile [r27]
-
- -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 15:06:06 +0100
-
-flexnbd (0.0.1-26) unstable; urgency=low
-
-  * Rearranged the project to have src/ and build/ directories [r26]
-
- -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 09:51:20 +0100
-
-flexnbd (0.0.1-25) unstable; urgency=low
-
-  * Added .INCOMPLETE hack to aid with marking finished transfers. [r25]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 29 May 2012 11:24:24 +0100
-
-flexnbd (0.0.1-24) unstable; urgency=low
-
-  * Added mirror write barrier / final pass stuff & clean exit afterwards. [r24]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 29 May 2012 04:03:28 +0100
-
-flexnbd (0.0.1-23) unstable; urgency=low
-
-  * Lots of errors spotted by Alex fixed, added mutexes to accept & I/O, added [r23]
-
- -- mbloch <mbloch>  Tue, 29 May 2012 00:59:12 +0100
-
-flexnbd (0.0.1-22) unstable; urgency=low
-
-  * Added another write/read test, fixed bugs in splice() usage and IPv6 [r22]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Sun, 27 May 2012 14:40:16 +0100
-
-flexnbd (0.0.1-21) unstable; urgency=low
-
-  * First few external tests with test/unit, some minor tidying of internal data [r21]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 24 May 2012 01:39:35 +0100
-
-flexnbd (0.0.1-20) unstable; urgency=low
-
-  * Pulled some duplicated code out of control.c into [r20]
-
- -- mbloch <mbloch>  Wed, 23 May 2012 14:03:30 +0100
-
-flexnbd (0.0.1-19) unstable; urgency=low
-
-  * Split control-socket functions into separate file. [r19]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 23 May 2012 00:42:14 +0100
-
-flexnbd (0.0.1-18) unstable; urgency=low
-
-  * Fixed mirroring to work (error reporting suspect though). [r18]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 22 May 2012 00:22:06 +0100
-
-flexnbd (0.0.1-17) unstable; urgency=low
-
-  * Initial, untested mirror implementation and resolved some type confusion [r17]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 04:03:17 +0100
-
-flexnbd (0.0.1-16) unstable; urgency=low
-
-  * More valgrind-found bugs, extracted open_and_mmap from main code. [r16]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 04:00:45 +0100
-
-flexnbd (0.0.1-15) unstable; urgency=low
-
-  * Fixed some uninitialised variables courtesy of valgrind. [r15]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 03:59:43 +0100
-
-flexnbd (0.0.1-14) unstable; urgency=low
-
-  * Mostly finished bitset tests, fixed test build to include utilities, remove [r14]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 03:17:32 +0100
-
-flexnbd (0.0.1-13) unstable; urgency=low
-
-  * Tweaks to bitset.h, established a C test framework. [r13]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Sun, 20 May 2012 14:38:46 +0100
-
-flexnbd (0.0.1-12) unstable; urgency=low
-
-  * Fixed segfaulting access control, allowed change to acl via control socket. [r12]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Sat, 19 May 2012 12:48:03 +0100
-
-flexnbd (0.0.1-11) unstable; urgency=low
-
-  * Added dummy control socket answering / changed serve_accept_loop to use [r11]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Fri, 18 May 2012 23:39:16 +0100
-
-flexnbd (0.0.1-10) unstable; urgency=low
-
-  * Added control socket, doesn't do anything yet. [r10]
-
- -- mbloch <mbloch>  Fri, 18 May 2012 18:44:34 +0100
-
-flexnbd (0.0.1-9) unstable; urgency=low
-
-  * Added .hgignore file [r9]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Fri, 18 May 2012 13:25:54 +0100
-
-flexnbd (0.0.1-8) unstable; urgency=low
-
-  * Stopped NBD writes from committing all-zero blocks to disc (tentative, needs [r8]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Fri, 18 May 2012 13:24:35 +0100
-
-flexnbd (0.0.1-7) unstable; urgency=low
-
-  * Split code out into separate compilation units (first pass, anyway). [r7]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 17 May 2012 20:14:22 +0100
-
-flexnbd (0.0.1-6) unstable; urgency=low
-
-  * Non-functioning commit, half-way through adding sparse bitmap feature. [r6]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 17 May 2012 11:54:25 +0100
-
-flexnbd (0.0.1-5) unstable; urgency=low
-
-  * Added write mode. [r5]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 16 May 2012 11:58:41 +0100
-
-flexnbd (0.0.1-4) unstable; urgency=low
-
-  * Added working read via splice syscall. [r4]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 16 May 2012 03:20:09 +0100
-
-flexnbd (0.0.1-3) unstable; urgency=low
-
-  * Added Rakefile [r3]
-
- -- mbloch <mbloch>  Wed, 16 May 2012 01:27:14 +0100
-
-flexnbd (0.0.1-2) unstable; urgency=low
-
-  * Silly bug fixes, added ACL support, added parser for read/write requests. [r2]
-
- -- mbloch <mbloch>  Tue, 15 May 2012 18:40:58 +0100
-
-flexnbd (0.0.1-1) unstable; urgency=low
-
-  * Some debugging, got it to serve. [r1]
-
- -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 15 May 2012 03:16:19 +0100
-
-flexnbd (0.0.1-0) unstable; urgency=low
-
-  * It compiles :) [r0]
+flexnbd (0.1.1-422) stable; urgency=low
+
+  * Update the Makefile to work with dpkg-buildpackage
+  * Switch from a rake-based build to a make-based build.
+  * proxy: Fix a read corruption issue caused by us failing to reset needles on timeout
+  * client: Add a cork TODO pair
+  * client: Start checking for exceptions on the client socket
+  * Some debug and whitespace tweaks
+  * flexnbd client: Catch a few cases where the killswitch wasn't disarmed
+  * Increase a timeout on a test to handle slow unlink calls on other filesystems
+  * Fix stop signal logic broken by the killswitch
+  * Fix up the check_util test once more
+  * Fix a few dangling bits in client.h
+  * Automated merge with ssh://dev.bytemark.co.uk//repos/flexnbd-c
+  * flexnbd serve: Make the killswitch per-client-thread
+  * Rework a test
+  * Another fedora build fix
+  * Fix compilation on fedora
+  * Fix a test case
+  * Fix help_text errors for break and status modes
+  * tests: Fix an uninitialized memory access
+  * mirror: lengthen the request timeout to 60 seconds
+  * acl: Make some compilers happy
+  * mirror: Couple of tiny cleanups
+  * mirror: Turn off the 'begin' timer before continuing
+  * Increase loglevel of some allocation map messages
+  * mirror: Clean up bps calculation slightly
+  * mirror: Ensure the bitset is actually disabled on mirror error
+  * mirror: Don't start migrating until the allocation map is built
+  * mirror: Don't count bytes transferred for the purposes of keeping the stream empty as part of our bwlimit
+  * mirror: Don't sleep if our stream is filling up
+  * bitset: Swap pthread_cond_broadcast for pthread_cond_signal
+  * bitset: More-efficient implementation of bitset_stream_queued_bytes
+  * mirror: Reduce the mirror convergence window to 5 seonds, from 60
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 21 Feb 2014 19:39:27 +0000
+
+flexnbd (0.1.0-389) stable; urgency=low
+
+  * tests: Add a migration test with many clients connecting in two waves
+  * Fix a current compiler warning
+  * Fix a potential compiler warning on 32-bit
+  * bitset: Rename bitset_stream_on/off as bitset_enable/disable_stream
+  * serve: Fix calulation of server_mirror_bytes_remaining
+  * bitset: Rename bitset_mapping to bitset
+  * serve: Remove an unused (and incorrect, in any case) function
+  * serve: Fix the sense of allow/forbid_new_clients
+  * mirror: Remove dead code. We still rely on all_dirty in one place.
+  * status: Remove useless stats
+  * status: Expose migration_seconds_left
+  * serve/mirror: Move some code tracking migration speed into serve
+  * status: Display number of currently connected clients, and whether new clients are allowed
+  * serve: Allow number of clients currently being used to be counted
+  * serve: Add a comment clarifying that a behaviour is safe
+  * flexnbd: Remove unused ".INCOMPLETE" file code
+  * flexnbd: Remove the server I/O lock as it no longer has any consumers
+  * flexnbd: Remove the server I/O lock from around NBD requests
+  * Fix a warning in a test
+  * mirror: Fix mirroring, break status
+  * tests: Fix for the previous commit
+  * flexnbd: Make a test a bit stricter
+  * mirror: Remove server I/O lock and dirty map
+  * mirror: Fix a comment
+  * serve: Move bitset freeing to after closing the mirror and clients
+  * flexnbd: Some comments and a minor fix in client.c to do with the event stream
+  * bitset: add bitset_stream_size and bitset_stream_queued_bytes
+  * bitset: Add an event stream implementation
+  * tests: Update check_bitset to use new bitset_free() function
+  * bitset: Some whitespace changes
+  * bitset: Add a bitset_free() function
+  * flexnbd: Disconnect clients at the start of a mirror last pass
+  * mirror: Ensure the mirror client socket is closed after a fail, and before a retry
+  * mirror: Remove overly-verbose log line
+  * mirror: honour max_bytes_per_second - naive scheme
+  * listen: Turn off CLIENT_MAX_WAIT_SECS
+  * mirror: Start our timeout watcher from the first, not second, transfer
+  * flexnbd: add a mirror-speed command to change mirror->max_bytes_per_second
+  * flexnbd status: display mirror->max_bytes_per_second as mirror_speed_limit
+  * One more fix
+  * control/mirror: Use uint64_t and strtoull to get max_Bps into the mirror
+  * control: Output abandoned mirror state
+  * mirror: And another abandon fix
+  * mirror: fix abandon
+  * mirror: abandon signals are now honoured outside of the remote end being readable / writable
+  * Branch merge
+  * Backed out changeset e58ff57b5e2d
+  * Branch merge
+  * listen: Allow longer gaps between transfers
+  * Minor fixes here and there
+  * mirror: Use libev to provide an event loop inside the mirror thread
+  * bitset: Add a bitset_run_count_ex that lets you learn the value of the bits in the run
+  * bitset: Prove that bitset operations with len=0 don't underflow
+  * status: Add migration_speed ( bytes per second ) and migration_duration( seconds ) to the migration output
+  * bitset: squash one more bug
+  * Remove a stray debugging statement
+  * bitset: Fix large runs
+  * flexnbd-proxy: ensure upstream cooldown is applied when read init from upstream fails
+  * flexnbd: Acknowledge new return type of bitset_run_count
+  * flexnbd: clients should be MADV_RANDOM, rather than MADV_SEQUENTIAL
+  * non-debug builds get -O2 for impressive bitset speedups
+  * bitset: A more-efficient bit(set)_run_count
+  * bitset: Actually enable an optimization in bit_set/clear_range
+  * bitset: Use uint64_t everywhere to avoid possible integer overflows
+  * tests: Fix a couple of compile warnings
+  * test: Add some tests for bitset_run_count
+  * flexnbd mirror: If the final run would be longer than the file size, truncate to file size
+  * flexnbd status: Actually output pass statistics
+  * flexnbd status: Add current pass clean/dirty byte statistics
+  * flexnbd status: Avoid a possible NULL dereference reading migration status
+  * flexnbd status: Add the size of the backing file, in bytes
+  * flexnbd status: Add current migration pass to the status output if we're migrating
+  * Fix tests for new killswitch argument
+  * flexnbd: Make the killswitch runtime-selectable
+  * proxy: Reduce the reconnect cooldown from 15 seconds to 3.
+  * proxy: Add a 30-second timeout for requests in-flight to upstream
+  * proxy: Fix a comment
+  * proxy: Fix the prefetch code
+  * proxy: Respect the REQUEST_MASK
+  * ioutil: Add a bit more debug output to iobuf_read/write
+  * proxy: The minor optimisation bugs if needle is not advanced on iobuf_read()
+  * proxy: DRY up some code
+  * proxy: Set proxy->upstream_fd before calling proxy_finish_connect_to_upstream
+  * proxy: Initial move to event-loop proxy model.
+  * readwrite: Expose a couple of points of functionality
+  * tests: Tell us which offset fails
+  * proxy: log details of a request that fails upstream at the warn level
+  * serve: Add a killswitch that causes the server to uncleanly exit on hang
+  * proxy: Some logging cleanups
+  * docs: Fix the documentation for the loglevel timestamps
+  * logging: Add a timestamp to the log messages we emit
+  * mirror: munmap() our range on cleanup
+  * mirror: Don't undo the MADV_SEQUENTIAL hinting over the course of a migration
+  * mirror: Only say we're unlinking the file if we actually are
+  * flexnbd: Add more madvise() hints, both for mirroring out and normal operation.
+  * Formatting fixup
+  * Automated merge with ssh://dev/flexnbd-c
+  * flexnbd: Pass MS_INVALIDATE to our msync calls
+  * Add a trivial read buffer to flexnbd-proxy.
+  * flexnbd-proxy: Add UNIX socket support for the listen address
+  * readwrite.c: Set TCP_NODELAY on our NBD client sockets
+  * flexnbd: Don't bind() unless a bind address is specified
+  * sockutil: Make sockaddr_address_string conform to its comment
+  * proxy: Switch to blocking I/O with signal handlers to exit.
+  * flexnbd: Split the proxy mode out into its own binary.
+  * proxy: Deal with close() failures (and EINTR errnos) comprehensively
+  * Add an explanatory comment in sock_try_connect()
+  * Turn a couple of FIXME fatals in readwrite.c into warnings
+  * proxy: Fix the return value of a function to match the comment
+  * Dummy commit to get past a merge commit
+  * Automated merge with file:///home/lupine/Development/bigv-repos/flexnbd-c-sockutil
+  * flexnbd: Add a proxy mode
+  * serve: Make some error conditions non-fatal, test them.
+  * Fix some sockutil tests
+  * serve: Don't die horribly in the event of EINTR being returned by select()
+  * flexnbd: Fix sock_try_bind so we don't retry on EADDRINUSE
+  * flexnbd read/write: Switch to a non-blocking connect() to allow us to time these out
+  * Make acceptance tests verbose by default
+  * Automated merge with ssh://dev/flexnbd-c
+  * branch merge
+  * flexnbd: Add valgrind suppressions for a bug in glibc-2.11
+  * sockutil: Add some tests for sockaddr_address_string
+  * serve: Refactor some socket utility code into its own module.
+  * flexnbd: Remove some obsolete 'rebind' options
+  * flexnbd: Add some more information to nbdtypes.h
+  * Introduce socket_nbd_write_hello() and a macro to display errno results nicely
+  * Add a debug message for cases where sendfile() fails
+  * flexnbd: Avoid a SIGSEGV when the allocation map fails to build.
+  * Automated merge with file:///home/zander/00-projects/17-bigv/new-trial/src/incoming/flexnbd-c
+  * Add an all-debug task to the makefile
+  * flexnbd: Allocate the right amount of memory for a struct client
+  * Add a minimal Makefile that lets 'make' and 'make clean' do the Right Thing
+  * flexnbd: Normalise some variable declarations
+  * flexnbd: constantize the quiet log level
+  * madvise after mirroring to control the RSS
+  * Remove an errant debug output from test_happy_path.rb
+  * Don't skip parts of a file when calling fiemap
+  * Fix the error message for flexnbd write --help
+  * Allocate the bitset in the foreground thread.
+  * Don't open the control socket until after the server socket is bound
+  * Merge
+  * Fixed build_allocation_map in ioutil.c to correctly traverse fiemaps where
+  * Rename serve->has_control to serve->success.
+  * Merge
+  * Nullcheck *before* dereferencing.
+  * Block allocation map is now built in a separate thread, and does not delay
+  * Update Rakefile to support locally-installed libcheck, removed efence, pushed
+  * Backed out changeset c25e7d82e56e
+  * Merge
+  * flexnbd: Move building the allocation map to before server socket bind()
+  * Whitespace
+  * Quit with an error status on SIGTERM during migration
+  * Remove an unneeded sanity check from the tests
+  * Add the write-during-migration test to the acceptance test run
+  * Fix for deadlocks when writing while migrating
+  * Add a test case that tickles a deadlock bug when migrating active source discs
+  * Merge
+  * Fix some races in the acceptance tests
+  * Ensure fiemap ioctl calls are synchronous.
+  * Add a -dbg package to the debian build
+  * Add default empty LDFLAGS
+  * Don't free a client which hasn't finished yet.
+  * Don't close the same file descriptor more than once.
+  * Further merge fail fix
+  * Fix a merge fail
+  * Fix tests broken by entrust removal
+  * Add the --unlink option to mirror
+  * Simplify the migration handover protocol
+  * Update the README for new `listen` behaviour
+  * Remove listen mode
+  * Include strerror(errno) in stat debug output
+  * Add .INCOMPLETE file marker to flexnbd listen
+  * Force gzipping the man page
+  * Added the `flexnbd break` command to stop mirroring
+  * Make an EADDRINUSE on server bind fatal.
+  * Add the pid to the status output
+  * Test setting an ACL
+  * Block a second mirror attempt
+  * Better error handling for remotes
+
+ -- nick <nick@bytemark.co.uk>  Tue, 24 Sep 2013 10:11:40 +0100
+
+flexnbd (0.0.2-209) stable; urgency=low
+
+  * Add README.txt to the deb task code files
+  * Flush bad write data from the client socket.
+  * Switch from expecting a reconnection to *not* doing do
+  * Move the mirror commit state mbox to struct control
+  * Don't retry a mirror which failed on the first attempt
+  * Switch the mirror commit_signal to an mbox
+  * Delete the MS_FINALISE mirror state
+  * Close the mirror client socket on rejection
+  * Simplify acceptance test launching
+  * Tweak help output for the --bind option
+  * Add a rake task to build the man page
+  * Added a README.txt and a man page
+  * Raise the log level of a write-request-out-of-range
+  * Only copy constants from C to Ruby once
+  * Make the --verbose flag universal
+  * Clobber a dangling fprintf
+  * Error when reading sent data fails
+  * Open files with O_DIRECT dependent on a compile-time DIRECT_IO #define.
+  * Append the CFLAGS environment variable to the build flags.
+  * Make test sockets less dependent on enviroment
+  * Unlink the control socket on clean shutdown
+  * Tweak the fuzz script to work with the new test layout
+  * Tweak the parse_acl declaration
+  * Add a newline to log messages at macro expansion
+  * Switch to use nbd_r2h_reply in read_reply()
+  * Silence a vfprintf valgrind error
+  * Free the flexnbd switch mutex
+  * Add a 'just in case' error case to acl checking
+  * Remove unused variables
+  * Enable writing after the 2G boundary
+  * Rename struct mirror_status to struct mirror
+  * Add a --quiet command-line option
+  * Retry failed rebind attempts
+  * Fix the broken --rebind-port command-line option.
+  * Minor tidy
+  * Handle a failed disconnect correctly
+  * Test a source crashing after an entrust.
+  * Fix a test broken by stdout/stderr reshuffle
+  * Free all possibly held mutexes in error handlers
+  * Test that a blocked entrust causes a retry
+  * Test that a write reply with the wrong magic will force a retry
+  * Test that closing the socket immediately after sending write data causes an error
+  * Test that a disconnect after the write request but before the data is an error
+  * Test the source handles a dest crash after write correctly
+  * Refactor FakeSource from a module to a class
+  * Simplified FlexNBD::FakeDest
+  * Rename a test class
+  * Split acceptance tests into separate files
+  * Moved acceptance tests into tests/acceptance
+  * Moved unit tests into tests/unit
+  * Changes to error severity in readwrite.c made a test fail, this patch fixes it
+  * Test that an invalid write gets an error response
+  * Check that a mirror write returning an error will cause a reconnect and retry
+  * Tweak a timeout to prevent an intermittent test failure
+  * Test that timing out a write causes a disconnect and a reconnect
+  * Test for acl rejection
+  * Handle ECONNRESET during a read request
+  * Factor common code out of fake destinations
+  * Factor common code out of the test fake sources
+  * Add a test for a second client connecting during a mirror
+  * Missing file
+  * check_acl correctly sets log_level
+  * make sure that an invalid flexnbd signal fd can't break the serve accept loop
+  * Add mboxes
+  * connect failure scenarios
+  * Make non-fatal errors return properly
+  * Add listen mode
+  * Make max_nbd_clients configurable per struct server
+  * Add the REQUEST_ENTRUST nbd request type
+  * Squash valgrind errors by making sure client threads get joined on termination
+  * Make sure filename_incomplete gets freed
+  * Add a missed free()
+  * Make sure all the lines we read get freed (including the trailing blank)
+  * Avoid a use-after-free in serve.c
+  * Trim the length bitset_run_count looks at not to exceed the bits array
+  * Squash a valgrind error caused by debug output
+  * Merge
+  * Added early-exit on any valgrind error
+  * Tweak struct initialisation to squash a valgrind error
+  * Reject mirroring if the remote size doesn't match the local size
+  * Tidy mirror_runner somewhat
+  * Fix an argv array reference (root cause of a bug from the last commit)
+  * Fix two bugs in mirroring.
+  * Take _GNU_SOURCE out of source and put it in CFLAGS
+  * Removed proxying completely and fixed the pthread_join bug revealed in the process
+  * Fix broken error checking around pthread functions
+  * Simplify a FATAL_IF_NEGATIVE
+  * Make the error and fatal functions swallow semicolons properly
+  * Make the error and fatal macros swallow semicolons properly
+  * Add general-purpose ERROR/FATAL_IF and ERROR/FATAL_UNLESS macros
+  * Merge
+  * Automated merge with ssh://dev/flexnbd-c
+  * test: make check_serve bind() its outgoing socket to a known IP for these tests
+  * Set default log level to warn to shut the tests up
+  * Make sure all ifs are braced
+  * Make the compiler stricter and tidy up code to make the subsequent errors and warnings go away
+  * Merge
+  * Whitespace
+  * Fix handling ACLs where > 1 entry exists
+  * Explicitly check for which fd is acceptable in server_accept
+  * tests: Get rid of a warning
+  * tests: Get check_serve working after the merge of doom
+  * Merge, just renaming old error macros.
+  * Rewrote error & log functions to be more general, use longjmp to get out of
+  * Added hopeful default path to find rake_utils, turned undefined function
+  * Audit client connections on acl update
+  * Lock around acl updates
+  * Move updating the acl object into serve.c
+  * Fix O_NONBLOCK setting on self_pipes
+  * Pull ACLs into their own struct
+  * Tidy the NULLCHECK macro to swallow semicolons properly
+  * Fix an invalid define symbol
+  * Merge of doom
+  * Big bit of debug output in write_not_zeroes (disabled).
+  * Fixed bug in bitset_run_count which was causing data corruptionn writing
+  * Added some record-keeping / printing to fuzzer to assist with backtracking.
+  * Refactored write_not_zeroes to use struct bitset_mapping instead of
+  * Improved fuzz test to find an actual code bug (previous bug was in the test
+  * Fixed arguments to debug function.
+  * Missing break; in switch statement (verbose was setting default deny!)
+  * Use client stop signals for thread stopping
+  * Add stop signals to client threads
+  * Fix the sense of client_serve_request
+  * Remove the accept lock as being unneeded
+  * Merge
+  * Move checking for a closed client out of server_lock_io and into client_serve_request
+  * Change io lock and unlock to server error on failure
+  * Better error message
+  * Use self_pipe for close_signal
+  * tests: fix the Ruby flexnbd wrapper for mirror
+  * Automated merge with ssh://dev/flexnbd-c
+  * mirror: Add --bind to our mirror mode.
+  * flexnbd: Fix specifying -d as --default-deny on the command line
+  * Remove a duplicated line due to the last merge
+  * Automated merge with ssh://dev/flexnbd-c
+  * flexnbd: Re-add --sock to flexnbd mirror
+  * flexnbd: Add --bind to flexnbd read and flexnbd write
+  * Renamed struct client_params to struct client
+  * Split client-specific code into client.{c,h}
+  * Fix a \#define symbol
+  * Moved sockaddr_address_data to serve.c and renamed params.h to serve.h
+  * Rename control to control_fd and struct mode_serve_params to struct server
+  * Merge
+  * Backed out changeset 0cbb8e9cf515 because it breaks deb packaging.
+  * Merge
+  * Rename int server to int server_fd in mode_serve_params
+  * Added fuzzer which currently exposes ugly bug with unaligned writes.
+  * Fixed FlexNBD#serve parameters, added detection of non-starting server.
+  * Added msync() call after every write - not sure whether it's necessary yet.
+  * Isolated missing library code to pkg:deb task - couldn't locate library code
+  * Rename the 'debug' cli option 'verbose' and switch default-deny from 'D' to 'd'
+  * Make sure the -d short option is honoured
+  * Merge
+  * Add a self_pipe set of convenience functions
+  * Indentation fix
+  * Automated merge with ssh://dev/flexnbd-c
+  * acls: Add a default-deny option, which allows you to specify what an empty ACL means.
+  * Use nbdtypes to write the nbd hello message
+  * Null-terminated strings strike again
+  * Factor out the bulk of client_serve_request, and add convenience converters in src/nbdtypes.c
+  * Don't check for the INCOMPLETE file on read
+  * Ditch a couple of unneeded variables to silence gcc warnings
+  * build and default rake tasks, because I keep trying to type them
+  * Add .orig merge files to .hgignore
+  * Merge
+  * Add a no-op debug() define for non-debug builds and make valgrind optional in nbd_scenarios
+  * Merge
+  * Make the Rakefile take note of DEBUG=
+  * Set TCP_NODELAY on our socket. This decreases average NBD read request RTT from 0.3ms to 0.001ms
+  * Add a --debug flag for DEBUG builds
+  * Run the nbd_scenario tests under valgrind
+  * Merge
+  * Fixed short copies of struct sockaddr (it's shorter than sockaddr_in6!)
+  * Make sure we build arch-specific packages
+  * Basic debian packaging
+  * Simplify option definition with som handy macros
+  * Merge
+  * Added getopt_long command-line handling.
+  * Added .h files to the Rakefile
+  * Rearranged the project to have src/ and build/ directories
+  * Fixed bug where ACL was accidentally deleted when being set from control
+  * Fix the usage message
+  * Fixed race in tests.
+  * Added .INCOMPLETE hack to aid with marking finished transfers.
+  * Added mirror write barrier / final pass stuff & clean exit afterwards.
+  * Lots of errors spotted by Alex fixed, added mutexes to accept & I/O, added
+  * Added another write/read test, fixed bugs in splice() usage and IPv6
+  * First few external tests with test/unit, some minor tidying of internal data
+  * Pulled some duplicated code out of control.c into
+  * Split control-socket functions into separate file.
+  * Fixed mirroring to work (error reporting suspect though).
+  * Initial, untested mirror implementation and resolved some type confusion
+  * More valgrind-found bugs, extracted open_and_mmap from main code.
+  * Fixed some uninitialised variables courtesy of valgrind.
+  * Mostly finished bitset tests, fixed test build to include utilities, remove
+  * Tweaks to bitset.h, established a C test framework.
+  * Fixed segfaulting access control, allowed change to acl via control socket.
+  * Added dummy control socket answering / changed serve_accept_loop to use
+  * Added control socket, doesn't do anything yet.
+  * Added .hgignore file
+  * Stopped NBD writes from committing all-zero blocks to disc (tentative, needs
+  * Split code out into separate compilation units (first pass, anyway).
+  * Non-functioning commit, half-way through adding sparse bitmap feature.
+  * Added write mode.
+  * Added working read via splice syscall.
+  * Added Rakefile
+  * Silly bug fixes, added ACL support, added parser for read/write requests.
+  * Some debugging, got it to serve.
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 10:29:06 +0100
+
+flexnbd (0.0.1-0) stable; urgency=low
+
+  * It compiles :)
 
  -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 15 May 2012 02:42:03 +0100
 
