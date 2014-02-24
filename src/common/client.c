@@ -126,7 +126,9 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 			debug("(run adjusted to %d)", run);
 		}
 
-		if (0) /* useful but expensive */
+		/* 
+		// Useful but expensive
+		if (0) 
 		{
 			uint64_t i;
 			fprintf(stderr, "full map resolution=%d: ", map->resolution);
@@ -139,6 +141,7 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 			}
 			fprintf(stderr, "\n");
 		}
+		*/
 
 		#define DO_READ(dst, len) ERROR_IF_NEGATIVE( \
 			readloop( \

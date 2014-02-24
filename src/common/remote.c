@@ -63,7 +63,5 @@ void do_remote_command(char* command, char* socket_name, int argc, char** argv)
 	print_response( response );
 
 	exit(atoi(response));
-
-	close(remote);
 }
 

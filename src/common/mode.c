@@ -220,7 +220,6 @@ void read_serve_param( int c, char **ip_addr, char **ip_port, char **file, char 
 		case 'h':
 			fprintf(stdout, "%s\n", serve_help_text );
 			exit( 0 );
-			break;
 		case 'l':
 			*ip_addr = optarg;
 			break;
@@ -263,7 +262,6 @@ void read_listen_param( int c,
 		case 'h':
 			fprintf(stdout, "%s\n", listen_help_text );
 			exit(0);
-			break;
 		case 'l':
 			*ip_addr = optarg;
 			break;
@@ -297,7 +295,6 @@ void read_readwrite_param( int c, char **ip_addr, char **ip_port, char **bind_ad
 		case 'h':
 			fprintf(stdout, "%s\n", err_text );
 			exit( 0 );
-			break;
 		case 'l':
 			*ip_addr = optarg;
 			break;
@@ -331,7 +328,6 @@ void read_sock_param( int c, char **sock, char *help_text )
 		case 'h':
 			fprintf( stdout, "%s\n", help_text );
 			exit( 0 );
-			break;
 		case 's':
 			*sock = optarg;
 			break;
@@ -362,7 +358,6 @@ void read_mirror_speed_param(
 		case 'h':
 			fprintf( stdout, "%s\n", mirror_speed_help_text );
 			exit( 0 );
-			break;
 		case 's':
 			*sock = optarg;
 			break;
@@ -394,7 +389,6 @@ void read_mirror_param(
 		case 'h':
 			fprintf( stdout, "%s\n", mirror_help_text );
 			exit( 0 );
-			break;
 		case 's':
 			*sock = optarg;
 			break;
@@ -428,7 +422,6 @@ void read_break_param( int c, char **sock )
 		case 'h':
 			fprintf( stdout, "%s\n", break_help_text );
 			exit( 0 );
-			break;
 		case 's':
 			*sock = optarg;
 			break;

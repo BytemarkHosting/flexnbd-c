@@ -42,7 +42,6 @@ void read_proxy_param(
 		case 'h' :
 			fprintf( stdout, "%s\n", proxy_help_text );
 			exit( 0 );
-			break;
 		case 'l':
 			*downstream_addr = optarg;
 			break;
