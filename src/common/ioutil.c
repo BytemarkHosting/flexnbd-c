@@ -80,13 +80,8 @@ int open_and_mmap(const char* filename, int* out_fd, off64_t *out_size, void **o
 {
 	off64_t size;
 
-	/* O_DIRECT seems to be intermittently supported.  Leaving it as
-	 * a compile-time option for now. */
-#ifdef DIRECT_IO
-	*out_fd = open(filename, O_RDWR | O_DIRECT | O_SYNC );
-#else
+	/* O_DIRECT should not be used with mmap() */
 	*out_fd = open(filename, O_RDWR | O_SYNC );
-#endif
 
 	if (*out_fd < 1) {
 		warn("open(%s) failed: does it exist?", filename);
