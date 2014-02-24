@@ -1,4 +1,6 @@
 #include <signal.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "mode.h"
 #include "util.h"
@@ -101,6 +103,8 @@ int main( int argc, char *argv[] )
 	exit_action.sa_handler = my_exit;
 	exit_action.sa_mask = mask;
 	exit_action.sa_flags = 0;
+
+	srand(time(NULL));
 
 	while (1) {
 		c = getopt_long( argc, argv, proxy_short_options, proxy_options, NULL );

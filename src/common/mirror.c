@@ -694,7 +694,7 @@ void mirror_limit_cb( struct ev_loop *loop, ev_timer *w, int revents )
  * if it has, start migrating. If it's not finished, then enabling the bitset
  * stream does not go well for us.
  */
-void mirror_begin_cb( struct ev_loop *loop, ev_timer *w, int revents )
+static void mirror_begin_cb( struct ev_loop *loop, ev_timer *w, int revents )
 {
 	struct mirror_ctrl* ctrl = (struct mirror_ctrl*) w->data;
 	NULLCHECK( ctrl );
@@ -750,7 +750,8 @@ void mirror_run( struct server *serve )
 
 	ctrl.ev_loop = EV_DEFAULT;
 
-	/* gcc warns on -O2. clang is fine. Seems to be the fault of ev.h */
+	/* gcc warns with -Wstrict-aliasing on -O2. clang doesn't
+	 * implement this warning. Seems to be the fault of ev.h */
 	ev_init( &ctrl.begin_watcher, mirror_begin_cb );
 	ctrl.begin_watcher.repeat = 1.0; // We check bps every second. seems sane.
 	ctrl.begin_watcher.data = (void*) &ctrl;
