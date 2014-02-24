@@ -8,7 +8,7 @@ Homepage: http://bigv.io/
 
 Package: flexnbd
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libev3
+Depends: ${shlibs:Depends}, ${misc:Depends}, libev4 | libev3
 Description: FlexNBD server
   An NBD server offering push-mirroring and intelligent sparse file handling
 
