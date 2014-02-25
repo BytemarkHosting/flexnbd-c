@@ -186,6 +186,13 @@ void proxy_finish_connect_to_upstream( struct proxier *proxy, off64_t size ) {
 	}
 
 	proxy->upstream_size = size;
+
+	if ( AF_UNIX != proxy->connect_to.family ) {
+		if ( sock_set_tcp_nodelay( proxy->upstream_fd, 1 ) == -1 ) {
+			warn( SHOW_ERRNO( "Failed to set TCP_NODELAY" ) );
+		}
+	}
+
 	info( "Connected to upstream on fd %i", proxy->upstream_fd );
 
 	return;
