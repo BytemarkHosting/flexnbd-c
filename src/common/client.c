@@ -419,9 +419,9 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 {
 	off64_t offset;
 
-	// TODO: cork
 	debug("request read %ld+%d", request.from, request.len);
-	client_write_reply( client, &request, 0);
+	sock_set_tcp_cork( client->socket, 1 );
+	client_write_reply( client, &request, 0 );
 
 	offset = request.from;
 
@@ -438,7 +438,7 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 			offset,
 			request.len);
 
-	// TODO: uncork
+	sock_set_tcp_cork( client->socket, 0 );
 }
 
 
