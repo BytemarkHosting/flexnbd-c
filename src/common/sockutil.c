@@ -75,6 +75,11 @@ int sock_set_tcp_nodelay( int fd, int optval )
 	return setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval) );
 }
 
+int sock_set_tcp_cork( int fd, int optval )
+{
+	return setsockopt( fd, IPPROTO_TCP, TCP_CORK, &optval, sizeof(optval) );
+}
+
 int sock_set_nonblock( int fd, int optval )
 {
 	int flags = fcntl( fd, F_GETFL );

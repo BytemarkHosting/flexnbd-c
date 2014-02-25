@@ -20,8 +20,8 @@ int sock_set_reuseaddr(int fd, int optval);
 /* Set the tcp_nodelay option */
 int sock_set_tcp_nodelay(int fd, int optval);
 
-/* TODO: Set the tcp_cork option */
-// int sock_set_cork(int fd, int optval);
+/* Set the tcp_cork option */
+int sock_set_tcp_cork(int fd, int optval);
 
 int sock_set_nonblock(int fd, int optval);
 
