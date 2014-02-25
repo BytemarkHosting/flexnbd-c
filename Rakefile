@@ -55,12 +55,12 @@ maketask :clean
 file "debian/changelog" => ".hg/last-message.txt" do
   latesttag_cmd = "hg log -l1 --template '{latesttag}'"
   latesttag = `#{latesttag_cmd}`.strip
-  log_cmd = "hg log -r #{latesttag}:0 --style xml"
+  log_cmd = "hg log --style xml"
   projname = "flexnbd"
 
   File.open("debian/changelog", "w") do |changelog|
     IO.popen( log_cmd, "r" ) do |io|
-      listener = HGChangelog::Listener.new changelog, projname
+      listener = HGChangelog::Listener.new changelog, projname, latesttag
       REXML::Document.parse_stream io, listener
       io.close
     end
@@ -94,7 +94,10 @@ BEGIN {
       end
 
       def to_s
-        template = <<-TEMPLATE
+        if @lines.empty?
+          ""
+        else
+          template = <<-TEMPLATE
 <%= @projname %> (<%= @tag %>-<%= @rev %>) stable; urgency=low
 
 <% for line in @lines -%>
@@ -103,9 +106,10 @@ BEGIN {
 
  -- <%= @author_name %> <<%= @email %>>  <%= render_date %>
 
-        TEMPLATE
+          TEMPLATE
 
-        ERB.new(template, nil, "-").result(binding)
+          ERB.new(template, nil, "-").result(binding)
+        end
       end
 
       def render_date
@@ -116,9 +120,10 @@ BEGIN {
 
 
     class Listener
-      def initialize out, projname
+      def initialize out, projname, start_tag
         @out = out
         @projname = projname
+        @start_tag = start_tag
       end
 
       def method_missing(sym,*args,&blk)
@@ -128,6 +133,9 @@ BEGIN {
         case name
         when "logentry"
           @rev = attrs['revision']
+          if !@entry # first time; collect stuffs for everything since last tag
+            @entry = ChangelogEntry.new @projname, @start_tag, @rev
+          end
         when "author"
           @email = attrs['email']
         when "tag"
@@ -149,7 +157,9 @@ BEGIN {
           when "author"
             @author_name = @text
           when "tag"
-            @entry = ChangelogEntry.new @projname, @text, @rev
+            if @text != "tip" # again, we want to skip the first one
+              @entry = ChangelogEntry.new @projname, @text, @rev
+            end
           when "msg"
             @message = @text
           when "date"

@@ -1,3 +1,20 @@
+flexnbd (0.1.1-435) stable; urgency=low
+
+  * proxy: Turn on TCP_CORK
+  * proxy: Turn on TCP_NODELAY for the proxy->upstream leg
+  * client: cork/uncork around NBD_REQUEST_READ responses
+  * sockutil: Add a tcp_cork helper
+  * Remove a compile-time optional selection of O_DIRECT (was never used)
+  * Call srand() to make sure request handles are properly randomised
+  * Merge
+  * Add some build-depends which make doc needs
+  * Remove unreachable code to make -Wunreachable-code on clang useful.
+  * Depend on either libev4 or libev3, whichever is available
+  * Add asciidoc as a Build-Depends
+  * Update Rakefile to generate debian/changelog.
+
+ -- nick <nick@bytemark.co.uk>  Tue, 25 Feb 2014 16:00:48 +0000
+
 flexnbd (0.1.1-422) stable; urgency=low
 
   * Update the Makefile to work with dpkg-buildpackage
