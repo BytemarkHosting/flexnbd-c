@@ -525,11 +525,22 @@ int proxy_write_to_upstream( struct proxier* proxy, int state )
 	ssize_t count;
 
 //	assert( state == WRITE_TO_UPSTREAM );
+
+	/* FIXME: We may set cork=1 multiple times as a result of this idiom.
+	 * Not a serious problem, but we could do better
+	 */
+	if ( proxy->req.needle == 0 && AF_UNIX != proxy->connect_to.family ) {
+		if ( sock_set_tcp_cork( proxy->upstream_fd, 1 ) == -1 ) {
+			warn( SHOW_ERRNO( "Failed to set TCP_CORK" ) );
+		}
+	}
+
 	count = iobuf_write( proxy->upstream_fd, &proxy->req );
 
 	if ( count == -1 ) {
 		warn( SHOW_ERRNO( "Failed to send request to upstream" ) );
 		proxy->req.needle = 0;
+		// We're throwing the socket away so no need to uncork
 		return CONNECT_TO_UPSTREAM;
 	}
 
@@ -538,6 +549,14 @@ int proxy_write_to_upstream( struct proxier* proxy, int state )
 		 * still need req.size if reading the reply fails - we disconnect
 		 * and resend the reply in that case - so keep it around for now. */
 		proxy->req.needle = 0;
+
+		if ( AF_UNIX != proxy->connect_to.family ) {
+			if ( sock_set_tcp_cork( proxy->upstream_fd, 0 ) == -1 ) {
+				warn( SHOW_ERRNO( "Failed to unset TCP_CORK" ) );
+				// TODO: should we return to CONNECT_TO_UPSTREAM in this instance?
+			}
+		}
+
 		return READ_FROM_UPSTREAM;
 	}
 
