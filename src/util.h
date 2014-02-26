@@ -116,6 +116,7 @@ uint64_t monotonic_time_ms(void);
 #define fatal(msg, ...) do { \
 	myloglev(4, msg, ##__VA_ARGS__); \
 	error_handler(1); \
+	exit(1); /* never-reached, this is to make static code analizer happy */ \
 } while(0)
 
 

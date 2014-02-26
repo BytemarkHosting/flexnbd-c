@@ -105,8 +105,9 @@ void fill_request(struct nbd_request *request, int type, off64_t from, int len)
 {
 	request->magic  = htobe32(REQUEST_MAGIC);
 	request->type   = htobe32(type);
-	((int*) request->handle)[0] = rand();
-	((int*) request->handle)[1] = rand();
+	uint32_t * randa = (uint32_t*)request->handle;
+	randa[0] = rand();
+	randa[1] = rand();
 	request->from   = htobe64(from);
 	request->len    = htobe32(len);
 }
