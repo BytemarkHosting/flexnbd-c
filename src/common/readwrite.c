@@ -103,13 +103,11 @@ int socket_nbd_write_hello(int fd, off64_t out_size)
 
 void fill_request(struct nbd_request *request, int type, off64_t from, int len)
 {
-	int32_t handle_i[2];
-	handle_i[0] = rand();
-	handle_i[1] = rand();
-
 	request->magic  = htobe32(REQUEST_MAGIC);
 	request->type   = htobe32(type);
-	memcpy( request->handle, handle_i, sizeof(request->handle) );
+	uint32_t * randa = (uint32_t*)request->handle;
+	randa[0] = rand();
+	randa[1] = rand();
 	request->from   = htobe64(from);
 	request->len    = htobe32(len);
 }

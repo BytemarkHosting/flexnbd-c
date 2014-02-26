@@ -10,7 +10,7 @@
 START_TEST(test_bit_set)
 {
 	uint64_t num = 0;
-	char *bits = (char*) &num;
+	bitfield_p bits = (bitfield_p) &num;
 
 #define TEST_BIT_SET(bit, newvalue) \
 	bit_set(bits, (bit)); \
@@ -27,7 +27,7 @@ END_TEST
 START_TEST(test_bit_clear)
 {
 	uint64_t num = 0xffffffffffffffff;
-	char *bits = (char*) &num;
+	bitfield_p bits = (bitfield_p) &num;
 
 #define TEST_BIT_CLEAR(bit, newvalue) \
 	bit_clear(bits, (bit)); \
@@ -44,7 +44,7 @@ END_TEST
 START_TEST(test_bit_tests)
 {
 	uint64_t num = 0x5555555555555555;
-	char *bits = (char*) &num;
+	bitfield_p bits = (bitfield_p) &num;
 
 	fail_unless(bit_has_value(bits, 0, 1), "bit_has_value malfunction");
 	fail_unless(bit_has_value(bits, 1, 0), "bit_has_value malfunction");
@@ -58,7 +58,7 @@ END_TEST
 
 START_TEST(test_bit_ranges)
 {
-	char buffer[4160];
+	bitfield_word_t buffer[BIT_WORDS_FOR_SIZE(4160)];
 	uint64_t  *longs = (unsigned long*) buffer;
 	uint64_t i;
 
@@ -84,7 +84,7 @@ END_TEST
 
 START_TEST(test_bit_runs)
 {
-	char buffer[256];
+	bitfield_word_t buffer[BIT_WORDS_FOR_SIZE(256)];
 	int i, ptr=0, runs[] = {
 		56,97,22,12,83,1,45,80,85,51,64,40,63,67,75,64,94,81,79,62
 	};

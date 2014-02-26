@@ -636,7 +636,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	return;
 }
 
-void mirror_timeout_cb( struct ev_loop *loop, ev_timer *w __attribute__((unused)), int revents )
+static void mirror_timeout_cb( struct ev_loop *loop, ev_timer *w __attribute__((unused)), int revents )
 {
 	if ( !(revents & EV_TIMER ) ) {
 		warn( "Mirror timeout called but no timer event signalled" );
@@ -648,7 +648,7 @@ void mirror_timeout_cb( struct ev_loop *loop, ev_timer *w __attribute__((unused)
 	return;
 }
 
-void mirror_abandon_cb( struct ev_loop *loop, ev_io *w, int revents )
+static void mirror_abandon_cb( struct ev_loop *loop, ev_io *w, int revents )
 {
 	struct mirror_ctrl* ctrl = (struct mirror_ctrl*) w->data;
 	NULLCHECK( ctrl );
@@ -666,7 +666,7 @@ void mirror_abandon_cb( struct ev_loop *loop, ev_io *w, int revents )
 }
 
 
-void mirror_limit_cb( struct ev_loop *loop, ev_timer *w, int revents )
+static void mirror_limit_cb( struct ev_loop *loop, ev_timer *w, int revents )
 {
 	struct mirror_ctrl* ctrl = (struct mirror_ctrl*) w->data;
 	NULLCHECK( ctrl );

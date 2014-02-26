@@ -93,7 +93,7 @@ END_TEST
 
 int connect_client( char *addr, int actual_port, char *source_addr )
 {
-	int client_fd;
+	int client_fd = -1;
 
 	struct addrinfo hint;
 	struct addrinfo *ailist, *aip;
