@@ -56,14 +56,6 @@ int prefetch_is_full( struct prefetch *prefetch ){
 	}
 }
 
-int prefetch_contains( struct prefetch* prefetch, uint64_t from, uint32_t len ){
-	NULLCHECK( prefetch );
-	return from == prefetch->from && len == prefetch->len;
-}
-char *prefetch_offset( struct prefetch* prefetch, uint64_t from ){
-	return prefetch->buffer;
-}
-/*
 int prefetch_contains( struct prefetch *prefetch, uint64_t from, uint32_t len ){
 	NULLCHECK( prefetch );
 	return from >= prefetch->from &&
@@ -74,4 +66,3 @@ char *prefetch_offset( struct prefetch *prefetch, uint64_t from ){
 	NULLCHECK( prefetch );
 	return prefetch->buffer + (from - prefetch->from);
 }
-*/
