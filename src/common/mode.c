@@ -573,7 +573,10 @@ void params_readwrite(
 
 	parse_port( s_port, &out->connect_to.v4 );
 
-	out->from  = atol(s_from);
+	long signed_from = atol(s_from);
+	FATAL_IF_NEGATIVE( signed_from,
+			"Can't read from a negative offset %d.", signed_from);
+	out->from  = signed_from;
 
 	if (write_not_read) {
 		if (s_length_or_filename[0]-48 < 10) {
@@ -585,9 +588,10 @@ void params_readwrite(
 			  s_length_or_filename, O_RDONLY);
 			FATAL_IF_NEGATIVE(out->data_fd,
 			  "Couldn't open %s", s_length_or_filename);
-			out->len = lseek64(out->data_fd, 0, SEEK_END);
-			FATAL_IF_NEGATIVE(out->len,
+			off64_t signed_len = lseek64(out->data_fd, 0, SEEK_END);
+			FATAL_IF_NEGATIVE(signed_len,
 			  "Couldn't find length of %s", s_length_or_filename);
+			out->len = signed_len;
 			FATAL_IF_NEGATIVE(
 				lseek64(out->data_fd, 0, SEEK_SET),
 				"Couldn't rewind %s", s_length_or_filename

@@ -155,9 +155,8 @@ struct mode_readwrite_params {
 	union mysockaddr     connect_to;
 	union mysockaddr     connect_from;
 
-	/* FIXME: these should be uint64_t and uint32_t respectively */
-	off64_t              from;
-	off64_t              len;
+	uint64_t             from;
+	uint32_t             len;
 
 	int                  data_fd;
 	int                  client;

@@ -139,7 +139,7 @@ enum mirror_state mirror_get_state( struct mirror * mirror )
 void mirror_init( struct mirror * mirror, const char * filename )
 {
 	int map_fd;
-	off64_t size;
+	uint64_t size;
 
 	NULLCHECK( mirror );
 	NULLCHECK( filename );
@@ -270,7 +270,7 @@ void mirror_cleanup( struct server * serve,
 }
 
 
-int mirror_connect( struct mirror * mirror, off64_t local_size )
+int mirror_connect( struct mirror * mirror, uint64_t local_size )
 {
 	struct sockaddr * connect_from = NULL;
 	int connected =  0;
@@ -292,7 +292,7 @@ int mirror_connect( struct mirror * mirror, off64_t local_size )
 				"Select failed." );
 
 		if( FD_ISSET( mirror->client, &fds ) ){
-			off64_t remote_size;
+			uint64_t remote_size;
 			if ( socket_nbd_read_hello( mirror->client, &remote_size ) ) {
 				if( remote_size == local_size ){
 					connected = 1;

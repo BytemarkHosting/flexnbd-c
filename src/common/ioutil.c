@@ -76,8 +76,14 @@ int build_allocation_map(struct bitset * allocation_map, int fd)
 }
 
 
-int open_and_mmap(const char* filename, int* out_fd, off64_t *out_size, void **out_map)
+int open_and_mmap(const char* filename, int* out_fd, uint64_t *out_size, void **out_map)
 {
+	/* 
+	 * size and out_size are intentionally of different types.
+	 * lseek64() uses off64_t to signal errors in the sign bit.
+	 * Since we check for these errors before trying to assign to
+	 * *out_size, we know *out_size can never go negative.
+	 */
 	off64_t size;
 
 	/* O_DIRECT should not be used with mmap() */

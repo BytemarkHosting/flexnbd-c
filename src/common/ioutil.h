@@ -65,7 +65,7 @@ int read_lines_until_blankline(int fd, int max_line_length, char ***lines);
   * ''out_size'' and the address of the mmap in ''out_map''.  If anything goes
   * wrong, returns -1 setting errno, otherwise 0.
   */
-int open_and_mmap( const char* filename, int* out_fd, off64_t *out_size, void **out_map);
+int open_and_mmap( const char* filename, int* out_fd, uint64_t* out_size, void **out_map);
 
 
 /** Check to see whether the given file descriptor is closed.

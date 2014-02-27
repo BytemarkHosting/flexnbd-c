@@ -48,8 +48,7 @@ struct proxier {
 	int               upstream_fd;
 
 	/* This is the size we advertise to the downstream server */
-	/* FIXME: should be uint64_t */
-	off64_t           upstream_size;
+	uint64_t          upstream_size;
 
 	/* We transform the raw request header into here */
 	struct nbd_request req_hdr;

@@ -41,7 +41,7 @@ int socket_connect(struct sockaddr* to, struct sockaddr* from)
 	return fd;
 }
 
-int nbd_check_hello( struct nbd_init_raw* init_raw, off64_t* out_size )
+int nbd_check_hello( struct nbd_init_raw* init_raw, uint64_t* out_size )
 {
 	if ( strncmp( init_raw->passwd, INIT_PASSWD, 8 ) != 0 ) {
 		warn( "wrong passwd" );
@@ -62,7 +62,7 @@ fail:
 
 }
 
-int socket_nbd_read_hello( int fd, off64_t* out_size )
+int socket_nbd_read_hello( int fd, uint64_t* out_size )
 {
 	struct nbd_init_raw init_raw;
 
@@ -101,7 +101,7 @@ int socket_nbd_write_hello(int fd, off64_t out_size)
 	return 1;
 }
 
-void fill_request(struct nbd_request *request, int type, off64_t from, int len)
+void fill_request(struct nbd_request *request, int type, uint64_t from, uint32_t len)
 {
 	request->magic  = htobe32(REQUEST_MAGIC);
 	request->type   = htobe32(type);
@@ -150,7 +150,7 @@ void wait_for_data( int fd, int timeout_secs )
 }
 
 
-void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf, int timeout_secs)
+void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd, void* out_buf, int timeout_secs)
 {
 	struct nbd_request request;
 	struct nbd_reply   reply;
@@ -174,7 +174,7 @@ void socket_nbd_read(int fd, off64_t from, int len, int out_fd, void* out_buf, i
 	}
 }
 
-void socket_nbd_write(int fd, off64_t from, int len, int in_fd, void* in_buf, int timeout_secs)
+void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd, void* in_buf, int timeout_secs)
 {
 	struct nbd_request request;
 	struct nbd_reply   reply;
@@ -214,10 +214,12 @@ int socket_nbd_disconnect( int fd )
 }
 
 #define CHECK_RANGE(error_type) { \
-	off64_t size;\
+	uint64_t size;\
 	int success = socket_nbd_read_hello(params->client, &size); \
 	if ( success ) {\
-		if (params->from < 0 || (params->from + params->len) > size) {\
+		uint64_t endpoint = params->from + params->len; \
+		if (endpoint > size || \
+				endpoint < params->from ) { /* this happens on overflow */ \
 			fatal(error_type \
 			  " request %d+%d is out of range given size %d", \
 			  params->from, params->len, size\

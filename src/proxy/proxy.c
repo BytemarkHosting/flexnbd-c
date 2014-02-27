@@ -103,7 +103,7 @@ void proxy_destroy( struct proxier* proxy )
 }
 
 /* Shared between our two different connect_to_upstream paths */
-void proxy_finish_connect_to_upstream( struct proxier *proxy, off64_t size );
+void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size );
 
 /* Try to establish a connection to our upstream server. Return 1 on success,
  * 0 on failure. this is a blocking call that returns a non-blocking socket.
@@ -116,7 +116,7 @@ int proxy_connect_to_upstream( struct proxier* proxy )
 	}
 
 	int fd = socket_connect( &proxy->connect_to.generic, connect_from );
-	off64_t size = 0;
+	uint64_t size = 0;
 
 	if ( -1 == fd ) {
 		return 0;
@@ -188,7 +188,7 @@ error:
 	return;
 }
 
-void proxy_finish_connect_to_upstream( struct proxier *proxy, off64_t size ) {
+void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size ) {
 
 	if ( proxy->upstream_size == 0 ) {
 		info( "Size of upstream image is %"PRIu64" bytes", size );
@@ -358,7 +358,7 @@ int proxy_prefetch_for_request( struct proxier* proxy, int state )
 		req->len <= prefetch_size( proxy->prefetch ) && 
 		is_read &&
 		prefetch_start < prefetch_end && 
-		prefetch_end <= (uint64_t)proxy->upstream_size; /* FIXME: we shouldn't need a cast - upstream_size should be uint64_t */
+		prefetch_end <= proxy->upstream_size; 
 
 	/* We pull the request out of the proxy struct, rewrite the
 	 * request size, and write it back.
@@ -512,7 +512,7 @@ int proxy_read_init_from_upstream( struct proxier* proxy, int state )
 	}
 
 	if ( proxy->init.needle == proxy->init.size ) {
-		off64_t upstream_size;
+		uint64_t upstream_size;
 		if ( !nbd_check_hello( (struct nbd_init_raw*) proxy->init.buf, &upstream_size ) ) {
 			warn( "Upstream sent invalid init" );
 			goto disconnect;
