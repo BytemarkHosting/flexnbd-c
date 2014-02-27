@@ -21,6 +21,11 @@ class Environment
     @fake_pid = nil
   end
 
+  def prefetch_proxy!
+    @nbd1.prefetch_proxy = true
+    @nbd2.prefetch_proxy = true
+  end
+
   def proxy1(port=@port2)
     @nbd1.proxy(@ip, port)
   end

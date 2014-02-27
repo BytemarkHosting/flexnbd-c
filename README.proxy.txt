@@ -28,7 +28,8 @@ USAGE
 -----
 
   $ flexnbd-proxy --addr <ADDR> [ --port <PORT> ]
-    --conn-addr <ADDR> --conn-port <PORT> [--bind <ADDR>] [option]*
+    --conn-addr <ADDR> --conn-port <PORT> 
+    [--bind <ADDR>] [--cache[=<CACHE_BYTES>]] [option]*
 
 Proxy requests from an NBD client to an NBD server, resiliently. Only one
 client can be connected at a time, and ACLs cannot be applied to the client, as they 
@@ -72,6 +73,10 @@ Options
 
 *--conn-port, -P PORT*:
     The port of the NBD server to connect to. Required.
+
+*--cache, -c=CACHE_BYTES*:
+    If given, the size in bytes of read cache to use. CACHE_BYTES
+    defaults to 4096.
 
 *--help, -h* :
     Show command or global help.
@@ -153,6 +158,29 @@ When flexnbd is restarted in serve mode on the second server:
 The proxy notices and reconnects, fulfiling any request it has in its buffer.
 The data in myfile has been moved between physical servers without the nbd
 client process having to be disturbed at all.
+
+READ CACHE
+----------
+
+If the --cache option is given at the command line, either without an
+argument or with an argument greater than 0, flexnbd-proxy will use a
+read-ahead cache.  The cache as currently implemented doubles each read
+request size, up to a maximum of 2xCACHE_BYTES, and retains the latter
+half in a buffer.  If the next read request from the client exactly
+matches the region held in the buffer, flexnbd-proxy responds from the
+cache without making a request to the server.
+
+This pattern is designed to match sequential reads, such as those
+performed by a booting virtual machine.
+
+Note: If specifying a cache size, you *must* use this form:
+
+  nbd-client$ flexnbd-proxy --cache=XXXX
+
+That is, the '=' is required.  This is a limitation of getopt-long.
+
+If no cache size is given, a size of 4096 bytes is assumed. Caching can
+be explicitly disabled by setting a size of 0.
 
 BUGS
 ----

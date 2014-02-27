@@ -14,6 +14,7 @@ static struct option proxy_options[] = {
 	GETOPT_CONNECT_ADDR,
 	GETOPT_CONNECT_PORT,
 	GETOPT_BIND,
+	GETOPT_CACHE,
 	GETOPT_QUIET,
 	GETOPT_VERBOSE,
 	{0}
@@ -29,8 +30,11 @@ static char proxy_help_text[] =
 	"\t--" OPT_CONNECT_ADDR ",-C <ADDR>\tAddress of the proxied server.\n"
 	"\t--" OPT_CONNECT_PORT ",-P <PORT>\tPort of the proxied server.\n"
 	"\t--" OPT_BIND ",-b <ADDR>\tThe address we connect from, as a proxy.\n"
+	"\t--" OPT_CACHE ",-c[=<CACHE-BYTES>]\tUse a RAM read cache of the given size.\n"
 	QUIET_LINE
 	VERBOSE_LINE;
+
+static char proxy_default_cache_size[] = "4096";
 
 void read_proxy_param(
 			int c,
@@ -38,7 +42,8 @@ void read_proxy_param(
 			char **downstream_port,
 			char **upstream_addr,
 			char **upstream_port,
-			char **bind_addr )
+			char **bind_addr,
+			char **cache_bytes)
 {
 	switch( c ) {
 		case 'h' :
@@ -58,6 +63,9 @@ void read_proxy_param(
 			break;
 		case 'b':
 			*bind_addr = optarg;
+			break;
+		case 'c':
+			*cache_bytes = optarg ? optarg : proxy_default_cache_size;
 			break;
 		case 'q':
 			log_level = QUIET_LOG_LEVEL;
@@ -90,6 +98,7 @@ int main( int argc, char *argv[] )
 	char *upstream_addr   = NULL;
 	char *upstream_port   = NULL;
 	char *bind_addr       = NULL;
+	char *cache_bytes     = NULL;
 	int success;
 
 	sigset_t mask;
@@ -114,7 +123,8 @@ int main( int argc, char *argv[] )
 				&downstream_port,
 				&upstream_addr,
 				&upstream_port,
-				&bind_addr
+				&bind_addr,
+				&cache_bytes
 		);
 	}
 
@@ -131,7 +141,8 @@ int main( int argc, char *argv[] )
 		downstream_port,
 		upstream_addr,
 		upstream_port,
-		bind_addr
+		bind_addr,
+		cache_bytes
 	);
 
 	/* Set these *after* proxy has been assigned to */

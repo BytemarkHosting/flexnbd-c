@@ -198,6 +198,8 @@ module FlexNBD
       end
     end
 
+    attr_accessor :prefetch_proxy
+
     def initialize( bin, ip, port )
       @bin  = bin
       @do_debug = ENV['DEBUG']
@@ -208,6 +210,7 @@ module FlexNBD
       @ip = ip
       @port = port
       @kill = []
+      @prefetch_proxy = false
     end
 
 
@@ -247,6 +250,7 @@ module FlexNBD
         "--port #{port} "\
         "--conn-addr #{connect_ip} "\
         "--conn-port #{connect_port} "\
+        "#{prefetch_proxy ? "--cache " : ""}"\
         "#{@debug}"
     end
 

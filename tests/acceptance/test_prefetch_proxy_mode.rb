@@ -3,12 +3,13 @@ require 'environment'
 require 'proxy_tests'
 
 
-class TestProxyMode < Test::Unit::TestCase
+class TestPrefetchProxyMode < Test::Unit::TestCase
   include ProxyTests
 
   def setup
     super
     @env = Environment.new
+    @env.prefetch_proxy!
     @env.writefile1( "f" * 16 )
   end
 
@@ -17,4 +18,5 @@ class TestProxyMode < Test::Unit::TestCase
     super
   end
 end
+
 

@@ -48,6 +48,7 @@ struct proxier {
 	int               upstream_fd;
 
 	/* This is the size we advertise to the downstream server */
+	/* FIXME: should be uint64_t */
 	off64_t           upstream_size;
 
 	/* We transform the raw request header into here */
@@ -73,7 +74,8 @@ struct proxier {
 	uint64_t req_count;
 	int hello_sent;
 
-#ifdef PREFETCH
+	/** These are only used if we pass --cache on the command line */
+
 	/* While the in-flight request has been munged by prefetch, these two are
 	 * set to true, and the original length of the request, respectively */
 	int is_prefetch_req;
@@ -81,7 +83,8 @@ struct proxier {
 
 	/* And here, we actually store the prefetched data once it's returned */
 	struct prefetch *prefetch;
-#endif
+
+	/** */
 };
 
 struct proxier* proxy_create(
@@ -89,7 +92,8 @@ struct proxier* proxy_create(
 	char* s_downstream_port,
 	char* s_upstream_address,
 	char* s_upstream_port,
-	char* s_upstream_bind );
+	char* s_upstream_bind,
+	char* s_cache_bytes);
 int do_proxy( struct proxier* proxy );
 void proxy_cleanup( struct proxier* proxy );
 void proxy_destroy( struct proxier* proxy );

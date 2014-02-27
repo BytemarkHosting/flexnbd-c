@@ -7,8 +7,9 @@ void mode(char* mode, int argc, char **argv);
 
 #include <getopt.h>
 
-#define GETOPT_ARG(x,s)  {(x), 1, 0, (s)}
-#define GETOPT_FLAG(x,v) {(x), 0, 0, (v)}
+#define GETOPT_ARG(x,s)    {(x), required_argument, 0, (s)}
+#define GETOPT_FLAG(x,v)   {(x), no_argument, 0, (v)}
+#define GETOPT_OPTARG(x,s) {(x), optional_argument, 0, (s)}
 
 #define OPT_HELP "help"
 #define OPT_ADDR "addr"
@@ -19,6 +20,7 @@ void mode(char* mode, int argc, char **argv);
 #define OPT_FROM "from"
 #define OPT_SIZE "size"
 #define OPT_DENY "default-deny"
+#define OPT_CACHE "cache"
 #define OPT_UNLINK "unlink"
 #define OPT_CONNECT_ADDR "conn-addr"
 #define OPT_CONNECT_PORT "conn-port"
@@ -52,6 +54,7 @@ void mode(char* mode, int argc, char **argv);
 #define GETOPT_FROM GETOPT_ARG( OPT_FROM, 'F' )
 #define GETOPT_SIZE GETOPT_ARG( OPT_SIZE, 'S' )
 #define GETOPT_BIND GETOPT_ARG( OPT_BIND, 'b' )
+#define GETOPT_CACHE GETOPT_OPTARG( OPT_CACHE, 'c' )
 #define GETOPT_UNLINK GETOPT_ARG( OPT_UNLINK, 'u' )
 #define GETOPT_CONNECT_ADDR GETOPT_ARG( OPT_CONNECT_ADDR, 'C' )
 #define GETOPT_CONNECT_PORT GETOPT_ARG( OPT_CONNECT_PORT, 'P' )
