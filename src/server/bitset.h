@@ -27,9 +27,7 @@ typedef bitfield_word_t * bitfield_p;
  * this is added to accommodate code that wants to use bytes sizes
  */
 #define BIT_WORDS_FOR_SIZE(_bytes) \
-			(((_bytes) + (BITFIELD_WORD_SIZE -1)) & ~(BITFIELD_WORD_SIZE))
-#define BIT_WORDS_FOR_COUNT(_bits) \
-			(((_bits) + (BITS_PER_WORD -1)) / (BITFIELD_WORD_SIZE))
+			((_bytes + (BITFIELD_WORD_SIZE-1)) / BITFIELD_WORD_SIZE)
 
 /** Return the bit value ''idx'' in array ''b'' */
 static inline int bit_get(bitfield_p b, uint64_t idx) {
@@ -187,7 +185,7 @@ static inline struct bitset *bitset_alloc( uint64_t size, int resolution )
 	// calculate a size to allocate that is a multiple of the size of the
 	// bitfield word
 	size_t bitfield_size =
-			BIT_WORDS_FOR_SIZE((( size + resolution - 1 ) / resolution));
+			BIT_WORDS_FOR_SIZE((( size + resolution - 1 ) / resolution)) * sizeof( bitfield_word_t );
 	struct bitset *bitset = xmalloc(sizeof( struct bitset ) + bitfield_size);
 
 	bitset->size = size;
