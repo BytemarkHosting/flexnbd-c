@@ -138,7 +138,7 @@ module FlexNBD
     end
 
 
-    def accept( err_msg = "Timed out waiting for a connection", timeout = 2)
+    def accept( err_msg = "Timed out waiting for a connection", timeout = 5)
       client_sock = nil
 
       begin
