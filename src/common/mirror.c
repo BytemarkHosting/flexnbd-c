@@ -462,6 +462,12 @@ static void mirror_write_cb( struct ev_loop *loop, ev_io *w, int revents )
 
 	debug( "Mirror write callback invoked with events %d. fd: %i", revents, ctrl->mirror->client );
 
+	/* FIXME: We can end up corking multiple times in unusual circumstances; this
+	 * is annoying, but harmless */
+	if ( xfer->written == 0 ) {
+		sock_set_tcp_cork( ctrl->mirror->client, 1 );
+	}
+
 	if ( xfer->written < hdr_size ) {
 		data_loc = ( (char*) &xfer->hdr.req_raw ) + ctrl->xfer.written;
 		to_write = hdr_size - xfer->written;
@@ -489,6 +495,7 @@ static void mirror_write_cb( struct ev_loop *loop, ev_io *w, int revents )
 
 	// All bytes written, so now we need to read the NBD reply back.
 	if ( ctrl->xfer.written == ctrl->xfer.len + hdr_size ) {
+	  sock_set_tcp_cork( ctrl->mirror->client, 0 ) ;
 		ev_io_start( loop, &ctrl->read_watcher  );
 		ev_io_stop(  loop, &ctrl->write_watcher );
 	}
