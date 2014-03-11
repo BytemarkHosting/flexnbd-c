@@ -110,8 +110,11 @@ int open_and_mmap(const char* filename, int* out_fd, uint64_t *out_size, void **
 			warn("mmap64() failed");
 			return -1;
 		}
+		debug("opened %s size %ld on fd %d @ %p", filename, size, *out_fd, *out_map);
 	}
-	debug("opened %s size %ld on fd %d @ %p", filename, size, *out_fd, *out_map);
+	else {
+		debug("opened %s size %ld on fd %d", filename, size, *out_fd);
+	}
 
 	return 0;
 }
