@@ -300,7 +300,7 @@ void client_write_init( struct client * client, uint64_t size )
 	struct nbd_init init = {{0}};
 	struct nbd_init_raw init_raw = {{0}};
 
-	memcpy( init.passwd, INIT_PASSWD, sizeof( INIT_PASSWD ) );
+	memcpy( init.passwd, INIT_PASSWD, sizeof( init.passwd ) );
 	init.magic = INIT_MAGIC;
 	init.size = size;
 	memset( init.reserved, 0, 128 );
