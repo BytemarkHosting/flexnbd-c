@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #include "ioutil.h"
-#include "flexnbd.h"
 #include "parse.h"
 #include "nbdtypes.h"
 #include "self_pipe.h"
@@ -21,9 +20,6 @@
 #define UPSTREAM_TIMEOUT 30 * 1000
 
 struct proxier {
-	/* The flexnbd wrapper this proxier is attached to */
-	struct flexnbd*   flexnbd;
-
 	/** address/port to bind to */
 	union mysockaddr  listen_on;
 
