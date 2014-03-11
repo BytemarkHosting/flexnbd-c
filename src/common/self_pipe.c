@@ -51,7 +51,6 @@ struct self_pipe * self_pipe_create(void)
 {
 	struct self_pipe *sig = xmalloc( sizeof( struct self_pipe ) );
 	int fds[2];
-	int fcntl_err;
 	
 	if ( NULL == sig ) { return NULL; }
 
@@ -62,7 +61,7 @@ struct self_pipe * self_pipe_create(void)
 	}
 
 	if ( fcntl( fds[0], F_SETFL, O_NONBLOCK ) || fcntl( fds[1], F_SETFL, O_NONBLOCK ) ) {
-		fcntl_err = errno;
+		int fcntl_err = errno;
 		while( close( fds[0] ) == -1 && errno == EINTR );
 		while( close( fds[1] ) == -1 && errno == EINTR );
 		free( sig );

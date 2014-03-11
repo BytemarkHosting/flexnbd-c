@@ -31,8 +31,6 @@ int build_allocation_map(struct bitset * allocation_map, int fd)
 
 	for (offset = 0; offset < allocation_map->size; ) {
 
-		unsigned int i;
-
 		fiemap->fm_start = offset;
 
 		fiemap->fm_length = max_length;
@@ -49,7 +47,7 @@ int build_allocation_map(struct bitset * allocation_map, int fd)
 			return 0; /* it's up to the caller to free the map */
 		}
 		else {
-			for ( i = 0; i < fiemap->fm_mapped_extents; i++ ) {
+			for ( unsigned int i = 0; i < fiemap->fm_mapped_extents; i++ ) {
 				bitset_set_range( allocation_map,
 						  fiemap->fm_extents[i].fe_logical,
 						  fiemap->fm_extents[i].fe_length );

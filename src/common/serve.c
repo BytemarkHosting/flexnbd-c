@@ -233,7 +233,6 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 
 	int was_closed = 0;
 	void * status=NULL;
-	int join_errno;
 
 	if (entry->thread != 0) {
 		char s_client_address[128];
@@ -241,7 +240,7 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 		sockaddr_address_string( &entry->address.generic, &s_client_address[0], 128 );
 
 		debug( "%s(%p,...)", joinfunc == pthread_join ? "joining" : "tryjoining", entry->thread );
-		join_errno = joinfunc(entry->thread, &status);
+		int join_errno = joinfunc(entry->thread, &status);
 
 		/* join_errno can legitimately be ESRCH if the thread is
 		 * already dead, but the client still needs tidying up. */
@@ -598,7 +597,6 @@ int server_accept( struct server * params )
 {
 	NULLCHECK( params );
 	debug("accept loop starting");
-	int              client_fd;
 	union mysockaddr client_address;
 	fd_set           fds;
 	socklen_t        socklen=sizeof(client_address);
@@ -638,7 +636,7 @@ int server_accept( struct server * params )
 	}
 
 	if ( FD_ISSET( params->server_fd, &fds ) ){
-		client_fd = accept( params->server_fd, &client_address.generic, &socklen );
+		int client_fd = accept( params->server_fd, &client_address.generic, &socklen );
 
 		if ( params->allow_new_clients ) {
 			debug("Accepted nbd client socket fd %d", client_fd);
@@ -741,11 +739,11 @@ void server_join_clients( struct server * serve ) {
 
 	for (i=0; i < serve->max_nbd_clients; i++) {
 		pthread_t thread_id = serve->nbd_client[i].thread;
-		int err = 0;
 
 		if (thread_id != 0) {
 			debug( "joining thread %p", thread_id );
-			if ( 0 == (err = pthread_join( thread_id, &status ) ) ) {
+			int err = pthread_join( thread_id, &status );
+			if ( 0 == err ) {
 				serve->nbd_client[i].thread = 0;
 			} else {
 				warn( "Error %s (%i) joining thread %p", strerror( err ), err, thread_id );

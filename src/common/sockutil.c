@@ -39,7 +39,6 @@ const char* sockaddr_address_string( const struct sockaddr* sa, char* dest, size
 	struct sockaddr_un*  un  = ( struct sockaddr_un*  ) sa;
 
 	unsigned short real_port = ntohs( in->sin_port ); // common to in and in6
-	size_t size;
 	const char* ret = NULL;
 
 	memset( dest, 0, len );
@@ -57,7 +56,7 @@ const char* sockaddr_address_string( const struct sockaddr* sa, char* dest, size
 	}
 
 	if ( NULL != ret && real_port > 0 && sa->sa_family != AF_UNIX ) {
-		size = strlen( dest );
+		size_t size = strlen( dest );
 		snprintf( dest + size, len - size, " port %d", real_port );
 	}
 
