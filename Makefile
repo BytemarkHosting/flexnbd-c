@@ -43,7 +43,7 @@ WARNINGS=-Wall \
 				 -Wno-missing-field-initializers \
 				 -Wunreachable-code
 CCFLAGS=-D_GNU_SOURCE=1 $(WARNINGS) $(CFLAGS_EXTRA) $(CFLAGS)
-LLDFLAGS=-lrt -lev $(LDFLAGS_EXTRA) $(LDFLAGS)
+LLDFLAGS=-lm -lrt -lev $(LDFLAGS_EXTRA) $(LDFLAGS)
 
 
 CC?=gcc
