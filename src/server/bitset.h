@@ -186,7 +186,7 @@ static inline struct bitset *bitset_alloc( uint64_t size, int resolution )
 	// bitfield word
 	size_t bitfield_size =
 			BIT_WORDS_FOR_SIZE((( size + resolution - 1 ) / resolution)) * sizeof( bitfield_word_t );
-	struct bitset *bitset = xmalloc(sizeof( struct bitset ) + bitfield_size);
+	struct bitset *bitset = xmalloc(sizeof( struct bitset ) + ( bitfield_size / 8 ) );
 
 	bitset->size = size;
 	bitset->resolution = resolution;
