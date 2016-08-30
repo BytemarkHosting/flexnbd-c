@@ -1,0 +1,2743 @@
+flexnbd (0.1.2-1) stable; urgency=medium
+
+  * Non-maintainer upload.
+  * Updated packaging.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 30 Aug 2016 21:14:05 +0100
+
+flexnbd (0.1.1-455) stable; urgency=low
+
+  * flexnbd: We only require 1/8th of the memory we allocate for bitsets (bits vs. bytes confusion) [r455]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 13 May 2015 09:25:09 +0100
+
+flexnbd (0.1.1-454) stable; urgency=low
+
+  * Makefile: Add -lm to LLDFLAGS [r454]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 01 Apr 2015 12:39:07 +0100
+
+flexnbd (0.1.1-453) stable; urgency=low
+
+  * Moved the server-specific files into src/server [r453]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 11 Mar 2014 11:05:43 +0000
+
+flexnbd (0.1.1-452) stable; urgency=low
+
+  * Remove the proxy's dependency on flexnbd.h [r452]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 11 Mar 2014 10:37:00 +0000
+
+flexnbd (0.1.1-451) stable; urgency=low
+
+  * Tighten up some variable scopes. [r451]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 11 Mar 2014 10:24:29 +0000
+
+flexnbd (0.1.1-450) stable; urgency=low
+
+  * Avoid a potential null pointer dereference [r450]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 11 Mar 2014 09:57:19 +0000
+
+flexnbd (0.1.1-449) stable; urgency=low
+
+  * Fix a harmless buffer overflow [r449]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 11 Mar 2014 09:49:25 +0000
+
+flexnbd (0.1.1-448) stable; urgency=low
+
+  * Merge [r448]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 27 Feb 2014 16:18:17 +0000
+
+flexnbd (0.1.1-447) stable; urgency=low
+
+  * Replace off64_t with uint64_t where it makes sense to do so. [r447]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 27 Feb 2014 16:04:25 +0000
+
+flexnbd (0.1.1-446) stable; urgency=low
+
+  * Allow subset reads in prefetch_contains and prefetch_offset [r446]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 27 Feb 2014 14:54:18 +0000
+
+flexnbd (0.1.1-445) stable; urgency=low
+
+  * Automated merge with ssh://dev/flexnbd-c [r445]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 27 Feb 2014 14:33:01 +0000
+
+flexnbd (0.1.1-444) stable; urgency=low
+
+  * Cork/uncork in mirror - socket_connect already sets nodelay [r444]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 27 Feb 2014 14:32:54 +0000
+
+flexnbd (0.1.1-443) stable; urgency=low
+
+  * Avoid some false positives [r443]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 27 Feb 2014 14:32:26 +0000
+
+flexnbd (0.1.1-442) stable; urgency=low
+
+  * Proxy prefetch cache becomes a command-line argument. [r442]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 27 Feb 2014 14:21:36 +0000
+
+flexnbd (0.1.1-441) stable; urgency=low
+
+  * bitset: Allocate the right amount of memory [r441]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 27 Feb 2014 12:57:09 +0000
+
+flexnbd (0.1.1-440) stable; urgency=low
+
+  * Cherry-pick extra toolchain Makefile options [r440]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 26 Feb 2014 15:56:41 +0000
+
+flexnbd (0.1.1-439) stable; urgency=low
+
+  * Merge [r439]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 26 Feb 2014 15:37:44 +0000
+
+flexnbd (0.1.0-438) stable; urgency=low
+
+  * Apply Michel's tidy-ups [r438]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 26 Feb 2014 15:19:03 +0000
+
+flexnbd (0.1.1-437) stable; urgency=low
+
+  * Pull back the changelog generation to the simplest thing that can possibly work [r437]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 25 Feb 2014 17:24:25 +0000
+
+flexnbd (0.1.1-436) stable; urgency=low
+
+  * Tweak changelog generation not to skip commits since last tag [r436]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 25 Feb 2014 16:35:51 +0000
+
+flexnbd (0.1.1-435) stable; urgency=low
+
+  * proxy: Turn on TCP_CORK [r435]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 25 Feb 2014 16:00:48 +0000
+
+flexnbd (0.1.1-434) stable; urgency=low
+
+  * proxy: Turn on TCP_NODELAY for the proxy->upstream leg [r434]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 25 Feb 2014 15:59:05 +0000
+
+flexnbd (0.1.1-433) stable; urgency=low
+
+  * client: cork/uncork around NBD_REQUEST_READ responses [r433]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 25 Feb 2014 15:45:41 +0000
+
+flexnbd (0.1.1-432) stable; urgency=low
+
+  * sockutil: Add a tcp_cork helper [r432]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 25 Feb 2014 15:44:46 +0000
+
+flexnbd (0.1.1-431) stable; urgency=low
+
+  * Remove a compile-time optional selection of O_DIRECT (was never used) [r431]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 24 Feb 2014 13:47:29 +0000
+
+flexnbd (0.1.1-430) stable; urgency=low
+
+  * Call srand() to make sure request handles are properly randomised [r430]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 24 Feb 2014 12:20:50 +0000
+
+flexnbd (0.1.1-429) stable; urgency=low
+
+  * Merge [r429]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 24 Feb 2014 11:25:46 +0000
+
+flexnbd (0.1.1-428) stable; urgency=low
+
+  * Remove unreachable code to make -Wunreachable-code on clang useful. [r428]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 24 Feb 2014 11:23:09 +0000
+
+flexnbd (0.1.1-427) stable; urgency=low
+
+  * Depend on either libev4 or libev3, whichever is available [r427]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 24 Feb 2014 11:22:26 +0000
+
+flexnbd (0.1.1-426) stable; urgency=low
+
+  * Add some build-depends which make doc needs [r426]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 21 Feb 2014 21:40:55 +0000
+
+flexnbd (0.1.1-425) stable; urgency=low
+
+  * Add asciidoc as a Build-Depends [r425]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 21 Feb 2014 20:46:44 +0000
+
+flexnbd (0.1.1-424) stable; urgency=low
+
+  * Update Rakefile to generate debian/changelog. [r424]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 21 Feb 2014 19:58:02 +0000
+
+flexnbd (0.1.1-423) stable; urgency=low
+
+  * Added tag 0.1.1 for changeset 303f6859295d [r423]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 21 Feb 2014 19:54:25 +0000
+
+flexnbd (0.1.1-422) stable; urgency=low
+
+  * Update the Makefile to work with dpkg-buildpackage [r422]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 21 Feb 2014 19:39:27 +0000
+
+flexnbd (0.1.0-421) stable; urgency=low
+
+  * Switch from a rake-based build to a make-based build. [r421]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 21 Feb 2014 19:10:55 +0000
+
+flexnbd (0.1.0-420) stable; urgency=low
+
+  * proxy: Fix a read corruption issue caused by us failing to reset needles on timeout [r420]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 11 Feb 2014 20:43:44 +0000
+
+flexnbd (0.1.0-419) stable; urgency=low
+
+  * client: Add a cork TODO pair [r419]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 11 Feb 2014 15:22:54 +0000
+
+flexnbd (0.1.0-418) stable; urgency=low
+
+  * client: Start checking for exceptions on the client socket [r418]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 11 Feb 2014 14:32:12 +0000
+
+flexnbd (0.1.0-417) stable; urgency=low
+
+  * Some debug and whitespace tweaks [r417]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 11 Feb 2014 14:31:58 +0000
+
+flexnbd (0.1.0-416) stable; urgency=low
+
+  * flexnbd client: Catch a few cases where the killswitch wasn't disarmed [r416]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 28 Jan 2014 11:45:27 +0000
+
+flexnbd (0.1.0-415) stable; urgency=low
+
+  * Increase a timeout on a test to handle slow unlink calls on other filesystems [r415]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 12:21:49 +0000
+
+flexnbd (0.1.0-414) stable; urgency=low
+
+  * Fix stop signal logic broken by the killswitch [r414]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 12:16:09 +0000
+
+flexnbd (0.1.0-413) stable; urgency=low
+
+  * Fix up the check_util test once more [r413]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 12:10:34 +0000
+
+flexnbd (0.1.0-412) stable; urgency=low
+
+  * Fix a few dangling bits in client.h [r412]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 12:01:42 +0000
+
+flexnbd (0.1.0-411) stable; urgency=low
+
+  * Automated merge with ssh://dev.bytemark.co.uk//repos/flexnbd-c [r411]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 11:49:26 +0000
+
+flexnbd (0.1.0-410) stable; urgency=low
+
+  * flexnbd serve: Make the killswitch per-client-thread [r410]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 11:49:21 +0000
+
+flexnbd (0.1.0-409) stable; urgency=low
+
+  * Rework a test [r409]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 11:45:35 +0000
+
+flexnbd (0.1.0-408) stable; urgency=low
+
+  * Another fedora build fix [r408]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 11:42:00 +0000
+
+flexnbd (0.1.0-407) stable; urgency=low
+
+  * Fix compilation on fedora [r407]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 10:39:29 +0000
+
+flexnbd (0.1.0-406) stable; urgency=low
+
+  * Fix a test case [r406]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 22 Jan 2014 11:40:19 +0000
+
+flexnbd (0.1.0-405) stable; urgency=low
+
+  * Fix help_text errors for break and status modes [r405]
+
+ -- Tristan Heaven <tristanheaven@gmail.com>  Thu, 07 Nov 2013 16:45:04 +0000
+
+flexnbd (0.1.0-404) stable; urgency=low
+
+  * tests: Fix an uninitialized memory access [r404]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 30 Oct 2013 22:46:49 +0000
+
+flexnbd (0.1.0-403) stable; urgency=low
+
+  * mirror: lengthen the request timeout to 60 seconds [r403]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 30 Oct 2013 22:45:12 +0000
+
+flexnbd (0.1.0-402) stable; urgency=low
+
+  * acl: Make some compilers happy [r402]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 30 Oct 2013 22:44:15 +0000
+
+flexnbd (0.1.0-401) stable; urgency=low
+
+  * mirror: Couple of tiny cleanups [r401]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 30 Oct 2013 22:04:41 +0000
+
+flexnbd (0.1.0-400) stable; urgency=low
+
+  * mirror: Turn off the 'begin' timer before continuing [r400]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 30 Oct 2013 20:25:50 +0000
+
+flexnbd (0.1.0-399) stable; urgency=low
+
+  * Increase loglevel of some allocation map messages [r399]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 30 Oct 2013 16:40:32 +0000
+
+flexnbd (0.1.0-398) stable; urgency=low
+
+  * mirror: Clean up bps calculation slightly [r398]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 24 Oct 2013 15:11:55 +0100
+
+flexnbd (0.1.0-397) stable; urgency=low
+
+  * mirror: Ensure the bitset is actually disabled on mirror error [r397]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 23 Oct 2013 16:18:00 +0100
+
+flexnbd (0.1.0-396) stable; urgency=low
+
+  * mirror: Don't start migrating until the allocation map is built [r396]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 23 Oct 2013 15:58:47 +0100
+
+flexnbd (0.1.0-395) stable; urgency=low
+
+  * mirror: Don't count bytes transferred for the purposes of keeping the stream empty as part of our bwlimit [r395]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 23 Oct 2013 15:26:28 +0100
+
+flexnbd (0.1.0-394) stable; urgency=low
+
+  * mirror: Don't sleep if our stream is filling up [r394]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 23 Oct 2013 14:38:27 +0100
+
+flexnbd (0.1.0-393) stable; urgency=low
+
+  * bitset: Swap pthread_cond_broadcast for pthread_cond_signal [r393]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 24 Sep 2013 15:28:58 +0100
+
+flexnbd (0.1.0-392) stable; urgency=low
+
+  * bitset: More-efficient implementation of bitset_stream_queued_bytes [r392]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 24 Sep 2013 15:27:17 +0100
+
+flexnbd (0.1.0-391) stable; urgency=low
+
+  * mirror: Reduce the mirror convergence window to 5 seonds, from 60 [r391]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 24 Sep 2013 14:42:21 +0100
+
+flexnbd (0.1.0-390) stable; urgency=low
+
+  * Added tag 0.1.0 for changeset acad9e9df53c [r390]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 24 Sep 2013 12:27:29 +0100
+
+flexnbd (0.1.0-389) stable; urgency=low
+
+  * tests: Add a migration test with many clients connecting in two waves [r389]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 24 Sep 2013 10:11:40 +0100
+
+flexnbd (0.0.2-388) stable; urgency=low
+
+  * Fix a current compiler warning [r388]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 17:15:56 +0100
+
+flexnbd (0.0.2-387) stable; urgency=low
+
+  * Fix a potential compiler warning on 32-bit [r387]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 17:15:47 +0100
+
+flexnbd (0.0.2-386) stable; urgency=low
+
+  * bitset: Rename bitset_stream_on/off as bitset_enable/disable_stream [r386]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 17:10:14 +0100
+
+flexnbd (0.0.2-385) stable; urgency=low
+
+  * serve: Fix calulation of server_mirror_bytes_remaining [r385]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 17:09:55 +0100
+
+flexnbd (0.0.2-384) stable; urgency=low
+
+  * bitset: Rename bitset_mapping to bitset [r384]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 16:58:40 +0100
+
+flexnbd (0.0.2-383) stable; urgency=low
+
+  * serve: Remove an unused (and incorrect, in any case) function [r383]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 16:47:32 +0100
+
+flexnbd (0.0.2-382) stable; urgency=low
+
+  * serve: Fix the sense of allow/forbid_new_clients [r382]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 16:46:43 +0100
+
+flexnbd (0.0.2-381) stable; urgency=low
+
+  * mirror: Remove dead code. We still rely on all_dirty in one place. [r381]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 14:20:05 +0100
+
+flexnbd (0.0.2-380) stable; urgency=low
+
+  * status: Remove useless stats [r380]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 14:19:49 +0100
+
+flexnbd (0.0.2-379) stable; urgency=low
+
+  * status: Expose migration_seconds_left [r379]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 14:09:25 +0100
+
+flexnbd (0.0.2-378) stable; urgency=low
+
+  * serve/mirror: Move some code tracking migration speed into serve [r378]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 13:49:01 +0100
+
+flexnbd (0.0.2-377) stable; urgency=low
+
+  * status: Display number of currently connected clients, and whether new clients are allowed [r377]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 13:38:19 +0100
+
+flexnbd (0.0.2-376) stable; urgency=low
+
+  * serve: Allow number of clients currently being used to be counted [r376]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 13:37:13 +0100
+
+flexnbd (0.0.2-375) stable; urgency=low
+
+  * serve: Add a comment clarifying that a behaviour is safe [r375]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 10:53:55 +0100
+
+flexnbd (0.0.2-374) stable; urgency=low
+
+  * flexnbd: Remove unused ".INCOMPLETE" file code [r374]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 10:38:18 +0100
+
+flexnbd (0.0.2-373) stable; urgency=low
+
+  * flexnbd: Remove the server I/O lock as it no longer has any consumers [r373]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 10:29:06 +0100
+
+flexnbd (0.0.2-372) stable; urgency=low
+
+  * flexnbd: Remove the server I/O lock from around NBD requests [r372]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 10:22:48 +0100
+
+flexnbd (0.0.2-371) stable; urgency=low
+
+  * Fix a warning in a test [r371]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 23 Sep 2013 10:17:50 +0100
+
+flexnbd (0.0.2-370) stable; urgency=low
+
+  * mirror: Fix mirroring, break status [r370]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 20 Sep 2013 17:08:14 +0100
+
+flexnbd (0.0.2-369) stable; urgency=low
+
+  * tests: Fix for the previous commit [r369]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 20 Sep 2013 16:53:30 +0100
+
+flexnbd (0.0.2-368) stable; urgency=low
+
+  * flexnbd: Make a test a bit stricter [r368]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 20 Sep 2013 16:00:56 +0100
+
+flexnbd (0.0.2-367) stable; urgency=low
+
+  * mirror: Remove server I/O lock and dirty map [r367]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 19 Sep 2013 15:18:30 +0100
+
+flexnbd (0.0.2-366) stable; urgency=low
+
+  * mirror: Fix a comment [r366]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 18 Sep 2013 16:28:05 +0100
+
+flexnbd (0.0.2-365) stable; urgency=low
+
+  * serve: Move bitset freeing to after closing the mirror and clients [r365]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 17 Sep 2013 17:30:33 +0100
+
+flexnbd (0.0.2-364) stable; urgency=low
+
+  * flexnbd: Some comments and a minor fix in client.c to do with the event stream [r364]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 13 Sep 2013 15:17:15 +0100
+
+flexnbd (0.0.2-363) stable; urgency=low
+
+  * bitset: add bitset_stream_size and bitset_stream_queued_bytes [r363]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 12 Sep 2013 16:54:42 +0100
+
+flexnbd (0.0.2-362) stable; urgency=low
+
+  * bitset: Add an event stream implementation [r362]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 12 Sep 2013 12:30:50 +0100
+
+flexnbd (0.0.2-361) stable; urgency=low
+
+  * tests: Update check_bitset to use new bitset_free() function [r361]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 11 Sep 2013 16:09:27 +0100
+
+flexnbd (0.0.2-360) stable; urgency=low
+
+  * bitset: Some whitespace changes [r360]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 11 Sep 2013 15:48:19 +0100
+
+flexnbd (0.0.2-359) stable; urgency=low
+
+  * bitset: Add a bitset_free() function [r359]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 11 Sep 2013 14:41:59 +0100
+
+flexnbd (0.0.2-358) stable; urgency=low
+
+  * flexnbd: Disconnect clients at the start of a mirror last pass [r358]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 10 Sep 2013 16:03:26 +0100
+
+flexnbd (0.0.2-357) stable; urgency=low
+
+  * mirror: Ensure the mirror client socket is closed after a fail, and before a retry [r357]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 27 Aug 2013 15:54:59 +0100
+
+flexnbd (0.0.2-356) stable; urgency=low
+
+  * mirror: Remove overly-verbose log line [r356]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 21 Aug 2013 14:41:19 +0100
+
+flexnbd (0.0.2-355) stable; urgency=low
+
+  * mirror: honour max_bytes_per_second - naive scheme [r355]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 14 Aug 2013 16:24:50 +0100
+
+flexnbd (0.0.2-354) stable; urgency=low
+
+  * listen: Turn off CLIENT_MAX_WAIT_SECS [r354]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 14 Aug 2013 16:09:55 +0100
+
+flexnbd (0.0.2-353) stable; urgency=low
+
+  * mirror: Start our timeout watcher from the first, not second, transfer [r353]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 14 Aug 2013 15:29:24 +0100
+
+flexnbd (0.0.2-352) stable; urgency=low
+
+  * flexnbd: add a mirror-speed command to change mirror->max_bytes_per_second [r352]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 14 Aug 2013 13:33:02 +0100
+
+flexnbd (0.0.2-351) stable; urgency=low
+
+  * flexnbd status: display mirror->max_bytes_per_second as mirror_speed_limit [r351]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 14 Aug 2013 13:30:25 +0100
+
+flexnbd (0.0.2-350) stable; urgency=low
+
+  * One more fix [r350]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 13 Aug 2013 16:22:44 +0100
+
+flexnbd (0.0.2-349) stable; urgency=low
+
+  * control/mirror: Use uint64_t and strtoull to get max_Bps into the mirror [r349]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 13 Aug 2013 12:30:18 +0100
+
+flexnbd (0.0.2-348) stable; urgency=low
+
+  * control: Output abandoned mirror state [r348]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 13 Aug 2013 12:29:53 +0100
+
+flexnbd (0.0.2-347) stable; urgency=low
+
+  * mirror: And another abandon fix [r347]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 12 Aug 2013 16:14:53 +0100
+
+flexnbd (0.0.2-346) stable; urgency=low
+
+  * mirror: fix abandon [r346]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 12 Aug 2013 15:54:49 +0100
+
+flexnbd (0.0.2-345) stable; urgency=low
+
+  * mirror: abandon signals are now honoured outside of the remote end being readable / writable [r345]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 12 Aug 2013 15:30:21 +0100
+
+flexnbd (0.0.2-344) stable; urgency=low
+
+  * Branch merge [r344]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 09 Aug 2013 17:07:06 +0100
+
+flexnbd (0.0.2-343) stable; urgency=low
+
+  * Backed out changeset e58ff57b5e2d [r343]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 09 Aug 2013 17:06:56 +0100
+
+flexnbd (0.0.2-342) stable; urgency=low
+
+  * Branch merge [r342]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 09 Aug 2013 17:03:25 +0100
+
+flexnbd (0.0.2-341) stable; urgency=low
+
+  * listen: Allow longer gaps between transfers [r341]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 09 Aug 2013 17:02:58 +0100
+
+flexnbd (0.0.2-340) stable; urgency=low
+
+  * Minor fixes here and there [r340]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 09 Aug 2013 17:02:33 +0100
+
+flexnbd (0.0.2-339) stable; urgency=low
+
+  * mirror: Use libev to provide an event loop inside the mirror thread [r339]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 09 Aug 2013 17:02:10 +0100
+
+flexnbd (0.0.2-338) stable; urgency=low
+
+  * bitset: Add a bitset_run_count_ex that lets you learn the value of the bits in the run [r338]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 09 Aug 2013 16:49:38 +0100
+
+flexnbd (0.0.2-337) stable; urgency=low
+
+  * bitset: Prove that bitset operations with len=0 don't underflow [r337]
+
+ -- lupine <lupine>  Fri, 26 Jul 2013 17:09:21 +0100
+
+flexnbd (0.0.2-336) stable; urgency=low
+
+  * status: Add migration_speed ( bytes per second ) and migration_duration( seconds ) to the migration output [r336]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 26 Jul 2013 11:50:01 +0100
+
+flexnbd (0.0.2-335) stable; urgency=low
+
+  * bitset: squash one more bug [r335]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 25 Jul 2013 10:58:50 +0100
+
+flexnbd (0.0.2-334) stable; urgency=low
+
+  * Remove a stray debugging statement [r334]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 25 Jul 2013 10:14:14 +0100
+
+flexnbd (0.0.2-333) stable; urgency=low
+
+  * bitset: Fix large runs [r333]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 17:42:08 +0100
+
+flexnbd (0.0.2-332) stable; urgency=low
+
+  * flexnbd-proxy: ensure upstream cooldown is applied when read init from upstream fails [r332]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 16:01:38 +0100
+
+flexnbd (0.0.2-331) stable; urgency=low
+
+  * flexnbd: Acknowledge new return type of bitset_run_count [r331]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 15:08:29 +0100
+
+flexnbd (0.0.2-330) stable; urgency=low
+
+  * flexnbd: clients should be MADV_RANDOM, rather than MADV_SEQUENTIAL [r330]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 14:18:23 +0100
+
+flexnbd (0.0.2-329) stable; urgency=low
+
+  * non-debug builds get -O2 for impressive bitset speedups [r329]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 12:34:36 +0100
+
+flexnbd (0.0.2-328) stable; urgency=low
+
+  * bitset: A more-efficient bit(set)_run_count [r328]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 12:03:24 +0100
+
+flexnbd (0.0.2-327) stable; urgency=low
+
+  * bitset: Actually enable an optimization in bit_set/clear_range [r327]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 11:19:52 +0100
+
+flexnbd (0.0.2-326) stable; urgency=low
+
+  * bitset: Use uint64_t everywhere to avoid possible integer overflows [r326]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 24 Jul 2013 10:34:22 +0100
+
+flexnbd (0.0.2-325) stable; urgency=low
+
+  * tests: Fix a couple of compile warnings [r325]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 23 Jul 2013 17:22:23 +0100
+
+flexnbd (0.0.2-324) stable; urgency=low
+
+  * test: Add some tests for bitset_run_count [r324]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 23 Jul 2013 17:13:40 +0100
+
+flexnbd (0.0.2-323) stable; urgency=low
+
+  * flexnbd mirror: If the final run would be longer than the file size, truncate to file size [r323]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 23 Jul 2013 11:00:51 +0100
+
+flexnbd (0.0.2-322) stable; urgency=low
+
+  * flexnbd status: Actually output pass statistics [r322]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 08 Jul 2013 14:27:04 +0100
+
+flexnbd (0.0.2-321) stable; urgency=low
+
+  * flexnbd status: Add current pass clean/dirty byte statistics [r321]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 08 Jul 2013 13:51:15 +0100
+
+flexnbd (0.0.2-320) stable; urgency=low
+
+  * flexnbd status: Avoid a possible NULL dereference reading migration status [r320]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 08 Jul 2013 13:32:14 +0100
+
+flexnbd (0.0.2-319) stable; urgency=low
+
+  * flexnbd status: Add the size of the backing file, in bytes [r319]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 08 Jul 2013 10:11:18 +0100
+
+flexnbd (0.0.2-318) stable; urgency=low
+
+  * flexnbd status: Add current migration pass to the status output if we're migrating [r318]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 08 Jul 2013 09:58:31 +0100
+
+flexnbd (0.0.2-317) stable; urgency=low
+
+  * Fix tests for new killswitch argument [r317]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 03 Jul 2013 10:04:08 +0100
+
+flexnbd (0.0.2-316) stable; urgency=low
+
+  * flexnbd: Make the killswitch runtime-selectable [r316]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 03 Jul 2013 09:56:35 +0100
+
+flexnbd (0.0.2-315) stable; urgency=low
+
+  * proxy: Reduce the reconnect cooldown from 15 seconds to 3. [r315]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 20 Jun 2013 10:26:34 +0100
+
+flexnbd (0.0.2-314) stable; urgency=low
+
+  * proxy: Add a 30-second timeout for requests in-flight to upstream [r314]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 19 Jun 2013 16:36:19 +0100
+
+flexnbd (0.0.2-313) stable; urgency=low
+
+  * proxy: Fix a comment [r313]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 19 Jun 2013 11:27:09 +0100
+
+flexnbd (0.0.2-312) stable; urgency=low
+
+  * proxy: Fix the prefetch code [r312]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 19 Jun 2013 11:18:52 +0100
+
+flexnbd (0.0.2-311) stable; urgency=low
+
+  * proxy: Respect the REQUEST_MASK [r311]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 19 Jun 2013 11:18:22 +0100
+
+flexnbd (0.0.2-310) stable; urgency=low
+
+  * ioutil: Add a bit more debug output to iobuf_read/write [r310]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 19 Jun 2013 11:17:46 +0100
+
+flexnbd (0.0.2-309) stable; urgency=low
+
+  * proxy: The minor optimisation bugs if needle is not advanced on iobuf_read() [r309]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 19 Jun 2013 11:16:35 +0100
+
+flexnbd (0.0.2-308) stable; urgency=low
+
+  * proxy: DRY up some code [r308]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 18 Jun 2013 16:58:39 +0100
+
+flexnbd (0.0.2-307) stable; urgency=low
+
+  * proxy: Set proxy->upstream_fd before calling proxy_finish_connect_to_upstream [r307]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 18 Jun 2013 15:58:38 +0100
+
+flexnbd (0.0.2-306) stable; urgency=low
+
+  * proxy: Initial move to event-loop proxy model. [r306]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 18 Jun 2013 15:37:39 +0100
+
+flexnbd (0.0.2-305) stable; urgency=low
+
+  * readwrite: Expose a couple of points of functionality [r305]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 18 Jun 2013 15:36:15 +0100
+
+flexnbd (0.0.2-304) stable; urgency=low
+
+  * tests: Tell us which offset fails [r304]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 18 Jun 2013 15:35:24 +0100
+
+flexnbd (0.0.2-303) stable; urgency=low
+
+  * proxy: log details of a request that fails upstream at the warn level [r303]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 07 Jun 2013 12:12:12 +0100
+
+flexnbd (0.0.2-302) stable; urgency=low
+
+  * serve: Add a killswitch that causes the server to uncleanly exit on hang [r302]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 06 Jun 2013 14:16:20 +0100
+
+flexnbd (0.0.2-301) stable; urgency=low
+
+  * proxy: Some logging cleanups [r301]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 06 Jun 2013 12:24:28 +0100
+
+flexnbd (0.0.2-300) stable; urgency=low
+
+  * docs: Fix the documentation for the loglevel timestamps [r300]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 06 Jun 2013 12:23:14 +0100
+
+flexnbd (0.0.2-299) stable; urgency=low
+
+  * logging: Add a timestamp to the log messages we emit [r299]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 06 Jun 2013 11:57:05 +0100
+
+flexnbd (0.0.2-298) stable; urgency=low
+
+  * mirror: munmap() our range on cleanup [r298]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 30 May 2013 11:09:24 +0100
+
+flexnbd (0.0.2-297) stable; urgency=low
+
+  * mirror: Don't undo the MADV_SEQUENTIAL hinting over the course of a migration [r297]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 30 May 2013 11:06:15 +0100
+
+flexnbd (0.0.2-296) stable; urgency=low
+
+  * mirror: Only say we're unlinking the file if we actually are [r296]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 30 May 2013 11:05:26 +0100
+
+flexnbd (0.0.2-295) stable; urgency=low
+
+  * flexnbd: Add more madvise() hints, both for mirroring out and normal operation. [r295]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 28 May 2013 14:16:49 +0100
+
+flexnbd (0.0.2-294) stable; urgency=low
+
+  * Formatting fixup [r294]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 01 May 2013 11:02:46 +0100
+
+flexnbd (0.0.2-293) stable; urgency=low
+
+  * Automated merge with ssh://dev/flexnbd-c [r293]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 30 Apr 2013 15:50:09 +0100
+
+flexnbd (0.0.2-292) stable; urgency=low
+
+  * flexnbd: Pass MS_INVALIDATE to our msync calls [r292]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 30 Apr 2013 11:04:17 +0100
+
+flexnbd (0.0.2-291) stable; urgency=low
+
+  * Add a trivial read buffer to flexnbd-proxy. [r291]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 29 Apr 2013 14:50:42 +0100
+
+flexnbd (0.0.2-290) stable; urgency=low
+
+  * flexnbd-proxy: Add UNIX socket support for the listen address [r290]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 15 Apr 2013 16:52:54 +0100
+
+flexnbd (0.0.2-289) stable; urgency=low
+
+  * readwrite.c: Set TCP_NODELAY on our NBD client sockets [r289]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 15 Apr 2013 15:13:44 +0100
+
+flexnbd (0.0.2-288) stable; urgency=low
+
+  * flexnbd: Don't bind() unless a bind address is specified [r288]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 09 Apr 2013 11:47:32 +0100
+
+flexnbd (0.0.2-287) stable; urgency=low
+
+  * sockutil: Make sockaddr_address_string conform to its comment [r287]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 19 Mar 2013 14:47:50 +0000
+
+flexnbd (0.0.2-286) stable; urgency=low
+
+  * proxy: Switch to blocking I/O with signal handlers to exit. [r286]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 19 Mar 2013 14:39:04 +0000
+
+flexnbd (0.0.2-285) stable; urgency=low
+
+  * flexnbd: Split the proxy mode out into its own binary. [r285]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 19 Mar 2013 13:13:37 +0000
+
+flexnbd (0.0.2-284) stable; urgency=low
+
+  * proxy: Deal with close() failures (and EINTR errnos) comprehensively [r284]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Mar 2013 12:07:16 +0000
+
+flexnbd (0.0.2-283) stable; urgency=low
+
+  * Add an explanatory comment in sock_try_connect() [r283]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 28 Feb 2013 12:14:07 +0000
+
+flexnbd (0.0.2-282) stable; urgency=low
+
+  * Turn a couple of FIXME fatals in readwrite.c into warnings [r282]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 28 Feb 2013 12:07:21 +0000
+
+flexnbd (0.0.2-281) stable; urgency=low
+
+  * proxy: Fix the return value of a function to match the comment [r281]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 25 Feb 2013 15:53:19 +0000
+
+flexnbd (0.0.2-280) stable; urgency=low
+
+  * Dummy commit to get past a merge commit [r280]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 21 Feb 2013 13:57:33 +0000
+
+flexnbd (0.0.2-279) stable; urgency=low
+
+  * Automated merge with file:///home/lupine/Development/bigv-repos/flexnbd-c-sockutil [r279]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Feb 2013 16:53:18 +0000
+
+flexnbd (0.0.2-278) stable; urgency=low
+
+  * flexnbd: Add a proxy mode [r278]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Feb 2013 16:52:16 +0000
+
+flexnbd (0.0.2-277) stable; urgency=low
+
+  * serve: Make some error conditions non-fatal, test them. [r277]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Feb 2013 16:51:28 +0000
+
+flexnbd (0.0.2-276) stable; urgency=low
+
+  * Fix some sockutil tests [r276]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Feb 2013 16:48:23 +0000
+
+flexnbd (0.0.2-275) stable; urgency=low
+
+  * serve: Don't die horribly in the event of EINTR being returned by select() [r275]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 14 Feb 2013 16:38:45 +0000
+
+flexnbd (0.0.2-274) stable; urgency=low
+
+  * flexnbd: Fix sock_try_bind so we don't retry on EADDRINUSE [r274]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 14 Feb 2013 16:37:14 +0000
+
+flexnbd (0.0.2-273) stable; urgency=low
+
+  * flexnbd read/write: Switch to a non-blocking connect() to allow us to time these out [r273]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 14 Feb 2013 16:24:10 +0000
+
+flexnbd (0.0.2-272) stable; urgency=low
+
+  * Make acceptance tests verbose by default [r272]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 14 Feb 2013 11:17:44 +0000
+
+flexnbd (0.0.2-271) stable; urgency=low
+
+  * Automated merge with ssh://dev/flexnbd-c [r271]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Feb 2013 13:36:15 +0000
+
+flexnbd (0.0.2-270) stable; urgency=low
+
+  * branch merge [r270]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Feb 2013 13:35:42 +0000
+
+flexnbd (0.0.2-269) stable; urgency=low
+
+  * flexnbd: Add valgrind suppressions for a bug in glibc-2.11 [r269]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 15 Feb 2013 13:35:21 +0000
+
+flexnbd (0.0.2-268) stable; urgency=low
+
+  * sockutil: Add some tests for sockaddr_address_string [r268]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 13 Feb 2013 15:07:30 +0000
+
+flexnbd (0.0.2-267) stable; urgency=low
+
+  * serve: Refactor some socket utility code into its own module. [r267]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 13 Feb 2013 13:43:52 +0000
+
+flexnbd (0.0.2-266) stable; urgency=low
+
+  * flexnbd: Remove some obsolete 'rebind' options [r266]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 13 Feb 2013 13:11:20 +0000
+
+flexnbd (0.0.2-265) stable; urgency=low
+
+  * flexnbd: Add some more information to nbdtypes.h [r265]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 08 Feb 2013 17:05:22 +0000
+
+flexnbd (0.0.2-264) stable; urgency=low
+
+  * Introduce socket_nbd_write_hello() and a macro to display errno results nicely [r264]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 08 Feb 2013 15:53:27 +0000
+
+flexnbd (0.0.2-263) stable; urgency=low
+
+  * Add a debug message for cases where sendfile() fails [r263]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Feb 2013 14:41:49 +0000
+
+flexnbd (0.0.2-262) stable; urgency=low
+
+  * flexnbd: Avoid a SIGSEGV when the allocation map fails to build. [r262]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 08 Feb 2013 16:17:16 +0000
+
+flexnbd (0.0.2-261) stable; urgency=low
+
+  * Automated merge with file:///home/zander/00-projects/17-bigv/new-trial/src/incoming/flexnbd-c [r261]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Feb 2013 12:17:40 +0000
+
+flexnbd (0.0.2-260) stable; urgency=low
+
+  * madvise after mirroring to control the RSS [r260]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 28 Dec 2012 11:38:54 +0000
+
+flexnbd (0.0.2-259) stable; urgency=low
+
+  * Add an all-debug task to the makefile [r259]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 05 Feb 2013 13:46:55 +0000
+
+flexnbd (0.0.2-258) stable; urgency=low
+
+  * flexnbd: Allocate the right amount of memory for a struct client [r258]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 05 Feb 2013 13:27:48 +0000
+
+flexnbd (0.0.2-257) stable; urgency=low
+
+  * Add a minimal Makefile that lets 'make' and 'make clean' do the Right Thing [r257]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 05 Feb 2013 09:44:59 +0000
+
+flexnbd (0.0.2-256) stable; urgency=low
+
+  * flexnbd: Normalise some variable declarations [r256]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 01 Feb 2013 15:20:43 +0000
+
+flexnbd (0.0.2-255) stable; urgency=low
+
+  * flexnbd: constantize the quiet log level [r255]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 01 Feb 2013 15:06:47 +0000
+
+flexnbd (0.0.2-254) stable; urgency=low
+
+  * Remove an errant debug output from test_happy_path.rb [r254]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 21 Nov 2012 09:26:12 +0000
+
+flexnbd (0.0.2-253) stable; urgency=low
+
+  * Don't skip parts of a file when calling fiemap [r253]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 20 Nov 2012 17:24:19 +0000
+
+flexnbd (0.0.2-252) stable; urgency=low
+
+  * Fix the error message for flexnbd write --help [r252]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 20 Nov 2012 15:09:48 +0000
+
+flexnbd (0.0.2-251) stable; urgency=low
+
+  * Allocate the bitset in the foreground thread. [r251]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 09 Oct 2012 17:54:00 +0100
+
+flexnbd (0.0.2-250) stable; urgency=low
+
+  * Don't open the control socket until after the server socket is bound [r250]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 09 Oct 2012 17:35:20 +0100
+
+flexnbd (0.0.2-249) stable; urgency=low
+
+  * Merge [r249]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 09 Oct 2012 17:28:41 +0100
+
+flexnbd (0.0.2-248) stable; urgency=low
+
+  * Fixed build_allocation_map in ioutil.c to correctly traverse fiemaps where [r248]
+
+ -- mbloch <mbloch>  Mon, 08 Oct 2012 18:11:21 +0100
+
+flexnbd (0.0.2-247) stable; urgency=low
+
+  * Rename serve->has_control to serve->success. [r247]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 09 Oct 2012 17:20:39 +0100
+
+flexnbd (0.0.2-246) stable; urgency=low
+
+  * Merge [r246]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 08 Oct 2012 16:02:37 +0100
+
+flexnbd (0.0.2-245) stable; urgency=low
+
+  * Backed out changeset c25e7d82e56e [r245]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 08 Oct 2012 16:01:25 +0100
+
+flexnbd (0.0.2-244) stable; urgency=low
+
+  * Nullcheck *before* dereferencing. [r244]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 08 Oct 2012 14:54:10 +0100
+
+flexnbd (0.0.2-243) stable; urgency=low
+
+  * Block allocation map is now built in a separate thread, and does not delay [r243]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sun, 07 Oct 2012 21:55:01 +0100
+
+flexnbd (0.0.2-242) stable; urgency=low
+
+  * Update Rakefile to support locally-installed libcheck, removed efence, pushed [r242]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sun, 07 Oct 2012 02:09:34 +0100
+
+flexnbd (0.0.2-241) stable; urgency=low
+
+  * Merge [r241]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 04 Oct 2012 14:51:54 +0100
+
+flexnbd (0.0.2-240) stable; urgency=low
+
+  * Quit with an error status on SIGTERM during migration [r240]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 04 Oct 2012 14:41:55 +0100
+
+flexnbd (0.0.2-239) stable; urgency=low
+
+  * flexnbd: Move building the allocation map to before server socket bind() [r239]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 25 Sep 2012 11:47:44 +0100
+
+flexnbd (0.0.2-238) stable; urgency=low
+
+  * Whitespace [r238]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 20 Sep 2012 13:37:48 +0100
+
+flexnbd (0.0.2-237) stable; urgency=low
+
+  * Remove an unneeded sanity check from the tests [r237]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 13 Sep 2012 15:13:20 +0100
+
+flexnbd (0.0.2-236) stable; urgency=low
+
+  * Add the write-during-migration test to the acceptance test run [r236]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 13 Sep 2012 14:41:50 +0100
+
+flexnbd (0.0.2-235) stable; urgency=low
+
+  * Fix for deadlocks when writing while migrating [r235]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 13 Sep 2012 12:21:43 +0100
+
+flexnbd (0.0.2-234) stable; urgency=low
+
+  * Add a test case that tickles a deadlock bug when migrating active source discs [r234]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 12 Sep 2012 17:13:33 +0100
+
+flexnbd (0.0.2-233) stable; urgency=low
+
+  * Merge [r233]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 12 Sep 2012 15:43:15 +0100
+
+flexnbd (0.0.2-232) stable; urgency=low
+
+  * Add a -dbg package to the debian build [r232]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 12 Sep 2012 15:42:58 +0100
+
+flexnbd (0.0.2-231) stable; urgency=low
+
+  * Fix some races in the acceptance tests [r231]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 11 Sep 2012 16:21:35 +0100
+
+flexnbd (0.0.2-230) stable; urgency=low
+
+  * Ensure fiemap ioctl calls are synchronous. [r230]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 11 Sep 2012 15:37:13 +0100
+
+flexnbd (0.0.2-229) stable; urgency=low
+
+  * Add default empty LDFLAGS [r229]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 24 Aug 2012 09:32:33 +0100
+
+flexnbd (0.0.2-228) stable; urgency=low
+
+  * Don't free a client which hasn't finished yet. [r228]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 23 Aug 2012 17:51:19 +0100
+
+flexnbd (0.0.2-227) stable; urgency=low
+
+  * Don't close the same file descriptor more than once. [r227]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 23 Aug 2012 16:01:37 +0100
+
+flexnbd (0.0.2-226) stable; urgency=low
+
+  * Further merge fail fix [r226]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 24 Jul 2012 14:19:53 +0100
+
+flexnbd (0.0.2-225) stable; urgency=low
+
+  * Fix a merge fail [r225]
+
+ -- nick <nick@bytemark.co.uk>  Tue, 24 Jul 2012 09:21:40 +0100
+
+flexnbd (0.0.2-224) stable; urgency=low
+
+  * Fix tests broken by entrust removal [r224]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 23 Jul 2012 15:45:39 +0100
+
+flexnbd (0.0.2-223) stable; urgency=low
+
+  * Add the --unlink option to mirror [r223]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 23 Jul 2012 13:39:27 +0100
+
+flexnbd (0.0.2-222) stable; urgency=low
+
+  * Simplify the migration handover protocol [r222]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 23 Jul 2012 10:22:25 +0100
+
+flexnbd (0.0.2-221) stable; urgency=low
+
+  * Update the README for new `listen` behaviour [r221]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 23 Jul 2012 10:10:47 +0100
+
+flexnbd (0.0.2-220) stable; urgency=low
+
+  * Remove listen mode [r220]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 23 Jul 2012 09:48:50 +0100
+
+flexnbd (0.0.2-219) stable; urgency=low
+
+  * Include strerror(errno) in stat debug output [r219]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 20 Jul 2012 09:51:53 +0100
+
+flexnbd (0.0.2-218) stable; urgency=low
+
+  * Add .INCOMPLETE file marker to flexnbd listen [r218]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 19 Jul 2012 17:34:20 +0100
+
+flexnbd (0.0.2-217) stable; urgency=low
+
+  * Force gzipping the man page [r217]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 19 Jul 2012 17:22:25 +0100
+
+flexnbd (0.0.2-216) stable; urgency=low
+
+  * Added the `flexnbd break` command to stop mirroring [r216]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 17 Jul 2012 16:30:49 +0100
+
+flexnbd (0.0.2-215) stable; urgency=low
+
+  * Make an EADDRINUSE on server bind fatal. [r215]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 12:34:39 +0100
+
+flexnbd (0.0.2-214) stable; urgency=low
+
+  * Add the pid to the status output [r214]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 11:50:59 +0100
+
+flexnbd (0.0.2-213) stable; urgency=low
+
+  * Test setting an ACL [r213]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 11:38:01 +0100
+
+flexnbd (0.0.2-212) stable; urgency=low
+
+  * Block a second mirror attempt [r212]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 11:21:56 +0100
+
+flexnbd (0.0.2-211) stable; urgency=low
+
+  * Better error handling for remotes [r211]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 11:04:45 +0100
+
+flexnbd (0.0.2-210) stable; urgency=low
+
+  * Added tag 0.0.2 for changeset 99b403167181 [r210]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 10:49:03 +0100
+
+flexnbd (0.0.2-209) stable; urgency=low
+
+  * Add README.txt to the deb task code files [r209]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 16 Jul 2012 10:29:06 +0100
+
+flexnbd (0.0.1-208) stable; urgency=low
+
+  * Flush bad write data from the client socket. [r208]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 23:19:12 +0100
+
+flexnbd (0.0.1-207) stable; urgency=low
+
+  * Switch from expecting a reconnection to *not* doing do [r207]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 22:07:00 +0100
+
+flexnbd (0.0.1-206) stable; urgency=low
+
+  * Move the mirror commit state mbox to struct control [r206]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 21:57:36 +0100
+
+flexnbd (0.0.1-205) stable; urgency=low
+
+  * Don't retry a mirror which failed on the first attempt [r205]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 20:07:17 +0100
+
+flexnbd (0.0.1-204) stable; urgency=low
+
+  * Switch the mirror commit_signal to an mbox [r204]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 19:46:35 +0100
+
+flexnbd (0.0.1-203) stable; urgency=low
+
+  * Delete the MS_FINALISE mirror state [r203]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 18:40:50 +0100
+
+flexnbd (0.0.1-202) stable; urgency=low
+
+  * Close the mirror client socket on rejection [r202]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 18:30:20 +0100
+
+flexnbd (0.0.1-201) stable; urgency=low
+
+  * Simplify acceptance test launching [r201]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sun, 15 Jul 2012 17:14:22 +0100
+
+flexnbd (0.0.1-200) stable; urgency=low
+
+  * Tweak help output for the --bind option [r200]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 21:43:27 +0100
+
+flexnbd (0.0.1-199) stable; urgency=low
+
+  * Add a rake task to build the man page [r199]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 18:47:25 +0100
+
+flexnbd (0.0.1-198) stable; urgency=low
+
+  * Added a README.txt and a man page [r198]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 18:36:02 +0100
+
+flexnbd (0.0.1-197) stable; urgency=low
+
+  * Raise the log level of a write-request-out-of-range [r197]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 17:27:13 +0100
+
+flexnbd (0.0.1-196) stable; urgency=low
+
+  * Only copy constants from C to Ruby once [r196]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 17:25:26 +0100
+
+flexnbd (0.0.1-195) stable; urgency=low
+
+  * Make the --verbose flag universal [r195]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 12:27:16 +0100
+
+flexnbd (0.0.1-194) stable; urgency=low
+
+  * Clobber a dangling fprintf [r194]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 12:11:25 +0100
+
+flexnbd (0.0.1-193) stable; urgency=low
+
+  * Error when reading sent data fails [r193]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 12:10:12 +0100
+
+flexnbd (0.0.1-192) stable; urgency=low
+
+  * Open files with O_DIRECT dependent on a compile-time DIRECT_IO #define. [r192]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 10:07:58 +0100
+
+flexnbd (0.0.1-191) stable; urgency=low
+
+  * Append the CFLAGS environment variable to the build flags. [r191]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 10:05:35 +0100
+
+flexnbd (0.0.1-190) stable; urgency=low
+
+  * Make test sockets less dependent on enviroment [r190]
+
+ -- Alex Young <alex@bytemark.co.uk>  Sat, 14 Jul 2012 10:04:55 +0100
+
+flexnbd (0.0.1-189) stable; urgency=low
+
+  * Unlink the control socket on clean shutdown [r189]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 14:09:52 +0100
+
+flexnbd (0.0.1-188) stable; urgency=low
+
+  * Tweak the fuzz script to work with the new test layout [r188]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 13:13:04 +0100
+
+flexnbd (0.0.1-187) stable; urgency=low
+
+  * Tweak the parse_acl declaration [r187]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 12:37:21 +0100
+
+flexnbd (0.0.1-186) stable; urgency=low
+
+  * Add a newline to log messages at macro expansion [r186]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 12:18:19 +0100
+
+flexnbd (0.0.1-185) stable; urgency=low
+
+  * Switch to use nbd_r2h_reply in read_reply() [r185]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 12:13:55 +0100
+
+flexnbd (0.0.1-184) stable; urgency=low
+
+  * Silence a vfprintf valgrind error [r184]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 11:57:46 +0100
+
+flexnbd (0.0.1-183) stable; urgency=low
+
+  * Free the flexnbd switch mutex [r183]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 11:31:22 +0100
+
+flexnbd (0.0.1-182) stable; urgency=low
+
+  * Add a 'just in case' error case to acl checking [r182]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 10:16:44 +0100
+
+flexnbd (0.0.1-181) stable; urgency=low
+
+  * Remove unused variables [r181]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 13 Jul 2012 09:34:18 +0100
+
+flexnbd (0.0.1-180) stable; urgency=low
+
+  * Enable writing after the 2G boundary [r180]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 12 Jul 2012 18:01:10 +0100
+
+flexnbd (0.0.1-179) stable; urgency=low
+
+  * Rename struct mirror_status to struct mirror [r179]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 12 Jul 2012 14:54:48 +0100
+
+flexnbd (0.0.1-178) stable; urgency=low
+
+  * Add a --quiet command-line option [r178]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 12 Jul 2012 14:45:55 +0100
+
+flexnbd (0.0.1-177) stable; urgency=low
+
+  * Retry failed rebind attempts [r177]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 12 Jul 2012 14:14:46 +0100
+
+flexnbd (0.0.1-176) stable; urgency=low
+
+  * Fix the broken --rebind-port command-line option. [r176]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 12 Jul 2012 10:45:19 +0100
+
+flexnbd (0.0.1-175) stable; urgency=low
+
+  * Minor tidy [r175]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 12 Jul 2012 10:22:31 +0100
+
+flexnbd (0.0.1-174) stable; urgency=low
+
+  * Handle a failed disconnect correctly [r174]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 12 Jul 2012 09:39:39 +0100
+
+flexnbd (0.0.1-173) stable; urgency=low
+
+  * Test a source crashing after an entrust. [r173]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 11 Jul 2012 15:19:50 +0100
+
+flexnbd (0.0.1-172) stable; urgency=low
+
+  * Fix a test broken by stdout/stderr reshuffle [r172]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 11 Jul 2012 10:12:10 +0100
+
+flexnbd (0.0.1-171) stable; urgency=low
+
+  * Free all possibly held mutexes in error handlers [r171]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 11 Jul 2012 09:43:16 +0100
+
+flexnbd (0.0.1-170) stable; urgency=low
+
+  * Test that a blocked entrust causes a retry [r170]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 18:00:31 +0100
+
+flexnbd (0.0.1-169) stable; urgency=low
+
+  * Test that a write reply with the wrong magic will force a retry [r169]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 17:01:39 +0100
+
+flexnbd (0.0.1-168) stable; urgency=low
+
+  * Test that closing the socket immediately after sending write data causes an error [r168]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 15:33:00 +0100
+
+flexnbd (0.0.1-167) stable; urgency=low
+
+  * Test that a disconnect after the write request but before the data is an error [r167]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 15:25:39 +0100
+
+flexnbd (0.0.1-166) stable; urgency=low
+
+  * Test the source handles a dest crash after write correctly [r166]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 14:52:27 +0100
+
+flexnbd (0.0.1-165) stable; urgency=low
+
+  * Refactor FakeSource from a module to a class [r165]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 14:39:05 +0100
+
+flexnbd (0.0.1-164) stable; urgency=low
+
+  * Simplified FlexNBD::FakeDest [r164]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 14:23:20 +0100
+
+flexnbd (0.0.1-163) stable; urgency=low
+
+  * Rename a test class [r163]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 13:35:47 +0100
+
+flexnbd (0.0.1-162) stable; urgency=low
+
+  * Split acceptance tests into separate files [r162]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 13:33:52 +0100
+
+flexnbd (0.0.1-161) stable; urgency=low
+
+  * Moved acceptance tests into tests/acceptance [r161]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 10:59:31 +0100
+
+flexnbd (0.0.1-160) stable; urgency=low
+
+  * Moved unit tests into tests/unit [r160]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 03 Jul 2012 10:53:08 +0100
+
+flexnbd (0.0.1-159) stable; urgency=low
+
+  * Changes to error severity in readwrite.c made a test fail, this patch fixes it [r159]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 02 Jul 2012 18:10:02 +0100
+
+flexnbd (0.0.1-158) stable; urgency=low
+
+  * Test that an invalid write gets an error response [r158]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 02 Jul 2012 15:37:52 +0100
+
+flexnbd (0.0.1-157) stable; urgency=low
+
+  * Check that a mirror write returning an error will cause a reconnect and retry [r157]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 02 Jul 2012 15:04:45 +0100
+
+flexnbd (0.0.1-156) stable; urgency=low
+
+  * Tweak a timeout to prevent an intermittent test failure [r156]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 02 Jul 2012 13:00:30 +0100
+
+flexnbd (0.0.1-155) stable; urgency=low
+
+  * Test that timing out a write causes a disconnect and a reconnect [r155]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 28 Jun 2012 14:45:53 +0100
+
+flexnbd (0.0.1-154) stable; urgency=low
+
+  * Test for acl rejection [r154]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 28 Jun 2012 13:29:22 +0100
+
+flexnbd (0.0.1-153) stable; urgency=low
+
+  * Handle ECONNRESET during a read request [r153]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 28 Jun 2012 11:46:02 +0100
+
+flexnbd (0.0.1-152) stable; urgency=low
+
+  * Factor common code out of fake destinations [r152]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 28 Jun 2012 11:34:36 +0100
+
+flexnbd (0.0.1-151) stable; urgency=low
+
+  * Factor common code out of the test fake sources [r151]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 27 Jun 2012 17:28:24 +0100
+
+flexnbd (0.0.1-150) stable; urgency=low
+
+  * Add a test for a second client connecting during a mirror [r150]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 27 Jun 2012 16:32:01 +0100
+
+flexnbd (0.0.1-149) stable; urgency=low
+
+  * Missing file [r149]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 27 Jun 2012 16:19:13 +0100
+
+flexnbd (0.0.1-148) stable; urgency=low
+
+  * check_acl correctly sets log_level [r148]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 27 Jun 2012 16:18:38 +0100
+
+flexnbd (0.0.1-147) stable; urgency=low
+
+  * make sure that an invalid flexnbd signal fd can't break the serve accept loop [r147]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 27 Jun 2012 16:17:51 +0100
+
+flexnbd (0.0.1-146) stable; urgency=low
+
+  * Add mboxes [r146]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 27 Jun 2012 15:45:33 +0100
+
+flexnbd (0.0.1-145) stable; urgency=low
+
+  * connect failure scenarios [r145]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 22 Jun 2012 10:05:41 +0100
+
+flexnbd (0.0.1-144) stable; urgency=low
+
+  * Make non-fatal errors return properly [r144]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 18:01:56 +0100
+
+flexnbd (0.0.1-143) stable; urgency=low
+
+  * Add listen mode [r143]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 18:01:50 +0100
+
+flexnbd (0.0.1-142) stable; urgency=low
+
+  * Make max_nbd_clients configurable per struct server [r142]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 17:22:34 +0100
+
+flexnbd (0.0.1-141) stable; urgency=low
+
+  * Add the REQUEST_ENTRUST nbd request type [r141]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 17:12:06 +0100
+
+flexnbd (0.0.1-140) stable; urgency=low
+
+  * Squash valgrind errors by making sure client threads get joined on termination [r140]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 17:11:12 +0100
+
+flexnbd (0.0.1-139) stable; urgency=low
+
+  * Make sure filename_incomplete gets freed [r139]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 15:58:32 +0100
+
+flexnbd (0.0.1-138) stable; urgency=low
+
+  * Add a missed free() [r138]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 15:55:48 +0100
+
+flexnbd (0.0.1-137) stable; urgency=low
+
+  * Make sure all the lines we read get freed (including the trailing blank) [r137]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 15:31:28 +0100
+
+flexnbd (0.0.1-136) stable; urgency=low
+
+  * Avoid a use-after-free in serve.c [r136]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 14:15:58 +0100
+
+flexnbd (0.0.1-135) stable; urgency=low
+
+  * Trim the length bitset_run_count looks at not to exceed the bits array [r135]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 12:05:01 +0100
+
+flexnbd (0.0.1-134) stable; urgency=low
+
+  * Squash a valgrind error caused by debug output [r134]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 11:55:21 +0100
+
+flexnbd (0.0.1-133) stable; urgency=low
+
+  * Merge [r133]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 11:37:18 +0100
+
+flexnbd (0.0.1-132) stable; urgency=low
+
+  * Added early-exit on any valgrind error [r132]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 11:37:00 +0100
+
+flexnbd (0.0.1-131) stable; urgency=low
+
+  * Tweak struct initialisation to squash a valgrind error [r131]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 21 Jun 2012 10:29:06 +0100
+
+flexnbd (0.0.1-130) stable; urgency=low
+
+  * Reject mirroring if the remote size doesn't match the local size [r130]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 13 Jun 2012 15:51:37 +0100
+
+flexnbd (0.0.1-129) stable; urgency=low
+
+  * Tidy mirror_runner somewhat [r129]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 13 Jun 2012 15:45:59 +0100
+
+flexnbd (0.0.1-128) stable; urgency=low
+
+  * Fix an argv array reference (root cause of a bug from the last commit) [r128]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 13 Jun 2012 13:52:15 +0100
+
+flexnbd (0.0.1-127) stable; urgency=low
+
+  * Fix two bugs in mirroring. [r127]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 13 Jun 2012 13:44:21 +0100
+
+flexnbd (0.0.1-126) stable; urgency=low
+
+  * Take _GNU_SOURCE out of source and put it in CFLAGS [r126]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 13 Jun 2012 09:59:08 +0100
+
+flexnbd (0.0.1-125) stable; urgency=low
+
+  * Removed proxying completely and fixed the pthread_join bug revealed in the process [r125]
+
+ -- Alex Young <alex@bytemark.co.uk>  Tue, 12 Jun 2012 15:08:07 +0100
+
+flexnbd (0.0.1-124) stable; urgency=low
+
+  * Fix broken error checking around pthread functions [r124]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 16:08:19 +0100
+
+flexnbd (0.0.1-123) stable; urgency=low
+
+  * Simplify a FATAL_IF_NEGATIVE [r123]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 15:31:59 +0100
+
+flexnbd (0.0.1-122) stable; urgency=low
+
+  * Make the error and fatal functions swallow semicolons properly [r122]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 15:26:42 +0100
+
+flexnbd (0.0.1-121) stable; urgency=low
+
+  * Make the error and fatal macros swallow semicolons properly [r121]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 15:23:06 +0100
+
+flexnbd (0.0.1-120) stable; urgency=low
+
+  * Add general-purpose ERROR/FATAL_IF and ERROR/FATAL_UNLESS macros [r120]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 15:20:05 +0100
+
+flexnbd (0.0.1-119) stable; urgency=low
+
+  * Merge [r119]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 14:59:52 +0100
+
+flexnbd (0.0.1-118) stable; urgency=low
+
+  * Set default log level to warn to shut the tests up [r118]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 14:59:26 +0100
+
+flexnbd (0.0.1-117) stable; urgency=low
+
+  * Automated merge with ssh://dev/flexnbd-c [r117]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 11 Jun 2012 14:40:53 +0100
+
+flexnbd (0.0.1-116) stable; urgency=low
+
+  * test: make check_serve bind() its outgoing socket to a known IP for these tests [r116]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 11 Jun 2012 14:40:41 +0100
+
+flexnbd (0.0.1-115) stable; urgency=low
+
+  * Make sure all ifs are braced [r115]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 14:34:17 +0100
+
+flexnbd (0.0.1-114) stable; urgency=low
+
+  * Make the compiler stricter and tidy up code to make the subsequent errors and warnings go away [r114]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 13:57:03 +0100
+
+flexnbd (0.0.1-113) stable; urgency=low
+
+  * Merge [r113]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 13:49:56 +0100
+
+flexnbd (0.0.1-112) stable; urgency=low
+
+  * Explicitly check for which fd is acceptable in server_accept [r112]
+
+ -- Alex Young <alex@bytemark.co.uk>  Mon, 11 Jun 2012 13:49:35 +0100
+
+flexnbd (0.0.1-111) stable; urgency=low
+
+  * Whitespace [r111]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 11 Jun 2012 13:05:22 +0100
+
+flexnbd (0.0.1-110) stable; urgency=low
+
+  * Fix handling ACLs where > 1 entry exists [r110]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 11 Jun 2012 12:56:45 +0100
+
+flexnbd (0.0.1-109) stable; urgency=low
+
+  * tests: Get rid of a warning [r109]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 11 Jun 2012 10:08:24 +0100
+
+flexnbd (0.0.1-108) stable; urgency=low
+
+  * tests: Get check_serve working after the merge of doom [r108]
+
+ -- nick <nick@bytemark.co.uk>  Mon, 11 Jun 2012 10:04:31 +0100
+
+flexnbd (0.0.1-107) stable; urgency=low
+
+  * Merge, just renaming old error macros. [r107]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sat, 09 Jun 2012 02:37:23 +0100
+
+flexnbd (0.0.1-106) stable; urgency=low
+
+  * Rewrote error & log functions to be more general, use longjmp to get out of [r106]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sat, 09 Jun 2012 02:25:12 +0100
+
+flexnbd (0.0.1-105) stable; urgency=low
+
+  * Added hopeful default path to find rake_utils, turned undefined function [r105]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sat, 09 Jun 2012 02:17:34 +0100
+
+flexnbd (0.0.1-104) stable; urgency=low
+
+  * Audit client connections on acl update [r104]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 08 Jun 2012 18:03:41 +0100
+
+flexnbd (0.0.1-103) stable; urgency=low
+
+  * Lock around acl updates [r103]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 08 Jun 2012 11:02:40 +0100
+
+flexnbd (0.0.1-102) stable; urgency=low
+
+  * Move updating the acl object into serve.c [r102]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 08 Jun 2012 10:32:33 +0100
+
+flexnbd (0.0.1-101) stable; urgency=low
+
+  * Fix O_NONBLOCK setting on self_pipes [r101]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 08 Jun 2012 10:11:06 +0100
+
+flexnbd (0.0.1-100) stable; urgency=low
+
+  * Pull ACLs into their own struct [r100]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 07 Jun 2012 17:47:43 +0100
+
+flexnbd (0.0.1-99) stable; urgency=low
+
+  * Tidy the NULLCHECK macro to swallow semicolons properly [r99]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 07 Jun 2012 16:00:38 +0100
+
+flexnbd (0.0.1-98) stable; urgency=low
+
+  * Fix an invalid define symbol [r98]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 07 Jun 2012 15:59:13 +0100
+
+flexnbd (0.0.1-97) stable; urgency=low
+
+  * Merge of doom [r97]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 07 Jun 2012 14:40:55 +0100
+
+flexnbd (0.0.1-96) stable; urgency=low
+
+  * Use client stop signals for thread stopping [r96]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 07 Jun 2012 14:25:30 +0100
+
+flexnbd (0.0.1-95) stable; urgency=low
+
+  * Add stop signals to client threads [r95]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 07 Jun 2012 11:44:19 +0100
+
+flexnbd (0.0.1-94) stable; urgency=low
+
+  * Big bit of debug output in write_not_zeroes (disabled). [r94]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 07 Jun 2012 12:28:21 +0100
+
+flexnbd (0.0.1-93) stable; urgency=low
+
+  * Fixed bug in bitset_run_count which was causing data corruptionn writing [r93]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 07 Jun 2012 12:27:46 +0100
+
+flexnbd (0.0.1-92) stable; urgency=low
+
+  * Added some record-keeping / printing to fuzzer to assist with backtracking. [r92]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 07 Jun 2012 12:25:56 +0100
+
+flexnbd (0.0.1-91) stable; urgency=low
+
+  * Refactored write_not_zeroes to use struct bitset_mapping instead of [r91]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 07 Jun 2012 11:17:02 +0100
+
+flexnbd (0.0.1-90) stable; urgency=low
+
+  * Improved fuzz test to find an actual code bug (previous bug was in the test [r90]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 07 Jun 2012 02:06:08 +0100
+
+flexnbd (0.0.1-89) stable; urgency=low
+
+  * Fixed arguments to debug function. [r89]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 07 Jun 2012 01:15:29 +0100
+
+flexnbd (0.0.1-88) stable; urgency=low
+
+  * Missing break; in switch statement (verbose was setting default deny!) [r88]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 07 Jun 2012 00:01:11 +0100
+
+flexnbd (0.0.1-87) stable; urgency=low
+
+  * Fix the sense of client_serve_request [r87]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 14:25:35 +0100
+
+flexnbd (0.0.1-86) stable; urgency=low
+
+  * Remove the accept lock as being unneeded [r86]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 14:07:55 +0100
+
+flexnbd (0.0.1-85) stable; urgency=low
+
+  * Merge [r85]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 13:44:49 +0100
+
+flexnbd (0.0.1-84) stable; urgency=low
+
+  * Move checking for a closed client out of server_lock_io and into client_serve_request [r84]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 13:44:38 +0100
+
+flexnbd (0.0.1-83) stable; urgency=low
+
+  * Change io lock and unlock to server error on failure [r83]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 13:29:13 +0100
+
+flexnbd (0.0.1-82) stable; urgency=low
+
+  * Better error message [r82]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 13:19:24 +0100
+
+flexnbd (0.0.1-81) stable; urgency=low
+
+  * Use self_pipe for close_signal [r81]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 12:41:03 +0100
+
+flexnbd (0.0.1-80) stable; urgency=low
+
+  * tests: fix the Ruby flexnbd wrapper for mirror [r80]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 13:33:24 +0100
+
+flexnbd (0.0.1-79) stable; urgency=low
+
+  * Automated merge with ssh://dev/flexnbd-c [r79]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 12:35:18 +0100
+
+flexnbd (0.0.1-78) stable; urgency=low
+
+  * mirror: Add --bind to our mirror mode. [r78]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 12:35:01 +0100
+
+flexnbd (0.0.1-77) stable; urgency=low
+
+  * flexnbd: Fix specifying -d as --default-deny on the command line [r77]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 12:07:40 +0100
+
+flexnbd (0.0.1-76) stable; urgency=low
+
+  * Remove a duplicated line due to the last merge [r76]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 10:05:12 +0100
+
+flexnbd (0.0.1-75) stable; urgency=low
+
+  * Automated merge with ssh://dev/flexnbd-c [r75]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 10:03:46 +0100
+
+flexnbd (0.0.1-74) stable; urgency=low
+
+  * flexnbd: Re-add --sock to flexnbd mirror [r74]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 09:55:47 +0100
+
+flexnbd (0.0.1-73) stable; urgency=low
+
+  * flexnbd: Add --bind to flexnbd read and flexnbd write [r73]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 06 Jun 2012 09:55:08 +0100
+
+flexnbd (0.0.1-72) stable; urgency=low
+
+  * Renamed struct client_params to struct client [r72]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 11:33:17 +0100
+
+flexnbd (0.0.1-71) stable; urgency=low
+
+  * Split client-specific code into client.{c,h} [r71]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 11:27:52 +0100
+
+flexnbd (0.0.1-70) stable; urgency=low
+
+  * Fix a \#define symbol [r70]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 10:55:50 +0100
+
+flexnbd (0.0.1-69) stable; urgency=low
+
+  * Moved sockaddr_address_data to serve.c and renamed params.h to serve.h [r69]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 10:45:07 +0100
+
+flexnbd (0.0.1-68) stable; urgency=low
+
+  * Rename control to control_fd and struct mode_serve_params to struct server [r68]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 10:35:50 +0100
+
+flexnbd (0.0.1-67) stable; urgency=low
+
+  * Merge [r67]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 10:24:33 +0100
+
+flexnbd (0.0.1-66) stable; urgency=low
+
+  * Backed out changeset 0cbb8e9cf515 because it breaks deb packaging. [r66]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 10:24:04 +0100
+
+flexnbd (0.0.1-65) stable; urgency=low
+
+  * Merge [r65]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 10:19:59 +0100
+
+flexnbd (0.0.1-64) stable; urgency=low
+
+  * Rename int server to int server_fd in mode_serve_params [r64]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 06 Jun 2012 10:19:45 +0100
+
+flexnbd (0.0.1-63) stable; urgency=low
+
+  * Added fuzzer which currently exposes ugly bug with unaligned writes. [r63]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 06 Jun 2012 01:28:54 +0100
+
+flexnbd (0.0.1-62) stable; urgency=low
+
+  * Fixed FlexNBD#serve parameters, added detection of non-starting server. [r62]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 06 Jun 2012 01:28:30 +0100
+
+flexnbd (0.0.1-61) stable; urgency=low
+
+  * Added msync() call after every write - not sure whether it's necessary yet. [r61]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 06 Jun 2012 01:27:37 +0100
+
+flexnbd (0.0.1-60) stable; urgency=low
+
+  * Isolated missing library code to pkg:deb task - couldn't locate library code [r60]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 05 Jun 2012 23:46:28 +0100
+
+flexnbd (0.0.1-59) stable; urgency=low
+
+  * Rename the 'debug' cli option 'verbose' and switch default-deny from 'D' to 'd' [r59]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 01 Jun 2012 16:58:32 +0100
+
+flexnbd (0.0.1-58) stable; urgency=low
+
+  * Make sure the -d short option is honoured [r58]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 01 Jun 2012 16:47:34 +0100
+
+flexnbd (0.0.1-57) stable; urgency=low
+
+  * Merge [r57]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 01 Jun 2012 16:25:41 +0100
+
+flexnbd (0.0.1-56) stable; urgency=low
+
+  * Add a self_pipe set of convenience functions [r56]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 01 Jun 2012 16:25:27 +0100
+
+flexnbd (0.0.1-55) stable; urgency=low
+
+  * Indentation fix [r55]
+
+ -- Alex Young <alex@bytemark.co.uk>  Fri, 01 Jun 2012 16:24:50 +0100
+
+flexnbd (0.0.1-54) stable; urgency=low
+
+  * Automated merge with ssh://dev/flexnbd-c [r54]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 01 Jun 2012 14:51:43 +0100
+
+flexnbd (0.0.1-53) stable; urgency=low
+
+  * acls: Add a default-deny option, which allows you to specify what an empty ACL means. [r53]
+
+ -- nick <nick@bytemark.co.uk>  Fri, 01 Jun 2012 14:48:34 +0100
+
+flexnbd (0.0.1-52) stable; urgency=low
+
+  * Use nbdtypes to write the nbd hello message [r52]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 20:33:42 +0100
+
+flexnbd (0.0.1-51) stable; urgency=low
+
+  * Null-terminated strings strike again [r51]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 18:04:57 +0100
+
+flexnbd (0.0.1-50) stable; urgency=low
+
+  * Factor out the bulk of client_serve_request, and add convenience converters in src/nbdtypes.c [r50]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 17:44:11 +0100
+
+flexnbd (0.0.1-49) stable; urgency=low
+
+  * Don't check for the INCOMPLETE file on read [r49]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 14:11:57 +0100
+
+flexnbd (0.0.1-48) stable; urgency=low
+
+  * Ditch a couple of unneeded variables to silence gcc warnings [r48]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 14:09:35 +0100
+
+flexnbd (0.0.1-47) stable; urgency=low
+
+  * build and default rake tasks, because I keep trying to type them [r47]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 14:01:49 +0100
+
+flexnbd (0.0.1-46) stable; urgency=low
+
+  * Add .orig merge files to .hgignore [r46]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 13:55:35 +0100
+
+flexnbd (0.0.1-45) stable; urgency=low
+
+  * Merge [r45]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 13:53:21 +0100
+
+flexnbd (0.0.1-44) stable; urgency=low
+
+  * Add a no-op debug() define for non-debug builds and make valgrind optional in nbd_scenarios [r44]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 13:53:04 +0100
+
+flexnbd (0.0.1-43) stable; urgency=low
+
+  * Merge [r43]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 13:32:56 +0100
+
+flexnbd (0.0.1-42) stable; urgency=low
+
+  * Add a --debug flag for DEBUG builds [r42]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 13:31:22 +0100
+
+flexnbd (0.0.1-41) stable; urgency=low
+
+  * Run the nbd_scenario tests under valgrind [r41]
+
+ -- Alex Young <alex@bytemark.co.uk>  Thu, 31 May 2012 13:23:12 +0100
+
+flexnbd (0.0.1-40) stable; urgency=low
+
+  * Make the Rakefile take note of DEBUG= [r40]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 31 May 2012 12:12:32 +0100
+
+flexnbd (0.0.1-39) stable; urgency=low
+
+  * Set TCP_NODELAY on our socket. This decreases average NBD read request RTT from 0.3ms to 0.001ms [r39]
+
+ -- nick <nick@bytemark.co.uk>  Thu, 31 May 2012 11:33:31 +0100
+
+flexnbd (0.0.1-38) stable; urgency=low
+
+  * Merge [r38]
+
+ -- mbloch <mbloch>  Wed, 30 May 2012 20:14:14 +0100
+
+flexnbd (0.0.1-37) stable; urgency=low
+
+  * Fixed short copies of struct sockaddr (it's shorter than sockaddr_in6!) [r37]
+
+ -- mbloch <mbloch>  Wed, 30 May 2012 20:13:56 +0100
+
+flexnbd (0.0.1-36) stable; urgency=low
+
+  * Make sure we build arch-specific packages [r36]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 18:11:32 +0100
+
+flexnbd (0.0.1-35) stable; urgency=low
+
+  * Basic debian packaging [r35]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 17:35:07 +0100
+
+flexnbd (0.0.1-34) stable; urgency=low
+
+  * Simplify option definition with som handy macros [r34]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 17:33:38 +0100
+
+flexnbd (0.0.1-33) stable; urgency=low
+
+  * Added tag 0.0.1 for changeset 27409c2c1313 [r33]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 17:11:10 +0100
+
+flexnbd (0.0.1-32) stable; urgency=low
+
+  * Merge [r32]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 15:39:55 +0100
+
+flexnbd (0.0.1-31) stable; urgency=low
+
+  * Added getopt_long command-line handling. [r31]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 15:19:40 +0100
+
+flexnbd (0.0.1-30) stable; urgency=low
+
+  * Added .h files to the Rakefile [r30]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 15:06:06 +0100
+
+flexnbd (0.0.1-29) stable; urgency=low
+
+  * Rearranged the project to have src/ and build/ directories [r29]
+
+ -- Alex Young <alex@bytemark.co.uk>  Wed, 30 May 2012 09:51:20 +0100
+
+flexnbd (0.0.1-28) stable; urgency=low
+
+  * Fixed bug where ACL was accidentally deleted when being set from control [r28]
+
+ -- mbloch <mbloch>  Wed, 30 May 2012 13:03:02 +0100
+
+flexnbd (0.0.1-27) stable; urgency=low
+
+  * Fix the usage message [r27]
+
+ -- nick <nick@bytemark.co.uk>  Wed, 30 May 2012 11:28:32 +0100
+
+flexnbd (0.0.1-26) stable; urgency=low
+
+  * Fixed race in tests. [r26]
+
+ -- mbloch <mbloch>  Tue, 29 May 2012 17:01:54 +0100
+
+flexnbd (0.0.1-25) stable; urgency=low
+
+  * Added .INCOMPLETE hack to aid with marking finished transfers. [r25]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 29 May 2012 11:24:24 +0100
+
+flexnbd (0.0.1-24) stable; urgency=low
+
+  * Added mirror write barrier / final pass stuff & clean exit afterwards. [r24]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 29 May 2012 04:03:28 +0100
+
+flexnbd (0.0.1-23) stable; urgency=low
+
+  * Lots of errors spotted by Alex fixed, added mutexes to accept & I/O, added [r23]
+
+ -- mbloch <mbloch>  Tue, 29 May 2012 00:59:12 +0100
+
+flexnbd (0.0.1-22) stable; urgency=low
+
+  * Added another write/read test, fixed bugs in splice() usage and IPv6 [r22]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sun, 27 May 2012 14:40:16 +0100
+
+flexnbd (0.0.1-21) stable; urgency=low
+
+  * First few external tests with test/unit, some minor tidying of internal data [r21]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 24 May 2012 01:39:35 +0100
+
+flexnbd (0.0.1-20) stable; urgency=low
+
+  * Pulled some duplicated code out of control.c into [r20]
+
+ -- mbloch <mbloch>  Wed, 23 May 2012 14:03:30 +0100
+
+flexnbd (0.0.1-19) stable; urgency=low
+
+  * Split control-socket functions into separate file. [r19]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 23 May 2012 00:42:14 +0100
+
+flexnbd (0.0.1-18) stable; urgency=low
+
+  * Fixed mirroring to work (error reporting suspect though). [r18]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 22 May 2012 00:22:06 +0100
+
+flexnbd (0.0.1-17) stable; urgency=low
+
+  * Initial, untested mirror implementation and resolved some type confusion [r17]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 04:03:17 +0100
+
+flexnbd (0.0.1-16) stable; urgency=low
+
+  * More valgrind-found bugs, extracted open_and_mmap from main code. [r16]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 04:00:45 +0100
+
+flexnbd (0.0.1-15) stable; urgency=low
+
+  * Fixed some uninitialised variables courtesy of valgrind. [r15]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 03:59:43 +0100
+
+flexnbd (0.0.1-14) stable; urgency=low
+
+  * Mostly finished bitset tests, fixed test build to include utilities, remove [r14]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Mon, 21 May 2012 03:17:32 +0100
+
+flexnbd (0.0.1-13) stable; urgency=low
+
+  * Tweaks to bitset.h, established a C test framework. [r13]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sun, 20 May 2012 14:38:46 +0100
+
+flexnbd (0.0.1-12) stable; urgency=low
+
+  * Fixed segfaulting access control, allowed change to acl via control socket. [r12]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Sat, 19 May 2012 12:48:03 +0100
+
+flexnbd (0.0.1-11) stable; urgency=low
+
+  * Added dummy control socket answering / changed serve_accept_loop to use [r11]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Fri, 18 May 2012 23:39:16 +0100
+
+flexnbd (0.0.1-10) stable; urgency=low
+
+  * Added control socket, doesn't do anything yet. [r10]
+
+ -- mbloch <mbloch>  Fri, 18 May 2012 18:44:34 +0100
+
+flexnbd (0.0.1-9) stable; urgency=low
+
+  * Added .hgignore file [r9]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Fri, 18 May 2012 13:25:54 +0100
+
+flexnbd (0.0.1-8) stable; urgency=low
+
+  * Stopped NBD writes from committing all-zero blocks to disc (tentative, needs [r8]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Fri, 18 May 2012 13:24:35 +0100
+
+flexnbd (0.0.1-7) stable; urgency=low
+
+  * Split code out into separate compilation units (first pass, anyway). [r7]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 17 May 2012 20:14:22 +0100
+
+flexnbd (0.0.1-6) stable; urgency=low
+
+  * Non-functioning commit, half-way through adding sparse bitmap feature. [r6]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Thu, 17 May 2012 11:54:25 +0100
+
+flexnbd (0.0.1-5) stable; urgency=low
+
+  * Added write mode. [r5]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 16 May 2012 11:58:41 +0100
+
+flexnbd (0.0.1-4) stable; urgency=low
+
+  * Added working read via splice syscall. [r4]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Wed, 16 May 2012 03:20:09 +0100
+
+flexnbd (0.0.1-3) stable; urgency=low
+
+  * Added Rakefile [r3]
+
+ -- mbloch <mbloch>  Wed, 16 May 2012 01:27:14 +0100
+
+flexnbd (0.0.1-2) stable; urgency=low
+
+  * Silly bug fixes, added ACL support, added parser for read/write requests. [r2]
+
+ -- mbloch <mbloch>  Tue, 15 May 2012 18:40:58 +0100
+
+flexnbd (0.0.1-1) stable; urgency=low
+
+  * Some debugging, got it to serve. [r1]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 15 May 2012 03:16:19 +0100
+
+flexnbd (0.0.1-0) stable; urgency=low
+
+  * It compiles :) [r0]
+
+ -- Matthew Bloch <matthew@bytemark.co.uk>  Tue, 15 May 2012 02:42:03 +0100
+
