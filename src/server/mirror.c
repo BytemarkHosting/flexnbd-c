@@ -922,7 +922,7 @@ void* mirror_runner(void* serve_params_uncast)
 	 * for us ). But if we've failed and are going to retry on the next run, we
 	 * must close this socket here to have any chance of it succeeding.
 	 */
-	if ( !mirror->client < 0 ) {
+	if ( !(mirror->client < 0) ) {
 		sock_try_close( mirror->client );
 		mirror->client = -1;
 	}
