@@ -252,14 +252,14 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 	return 1;
 }
 
-int fd_write_reply( int fd, char *handle, int error )
+int fd_write_reply( int fd, uint64_t handle, int error )
 {
 	struct nbd_reply     reply;
 	struct nbd_reply_raw reply_raw;
 
 	reply.magic = REPLY_MAGIC;
 	reply.error = error;
-	memcpy( reply.handle, handle, 8 );
+	reply.handle.w = handle;
 
 	nbd_h2r_reply( &reply, &reply_raw );
 	debug( "Replying with handle=0x%08X, error=%"PRIu32, handle, error );
@@ -291,7 +291,7 @@ int fd_write_reply( int fd, char *handle, int error )
  */
 int client_write_reply( struct client * client, struct nbd_request *request, int error )
 {
-	return fd_write_reply( client->socket, request->handle, error);
+	return fd_write_reply( client->socket, request->handle.w, error);
 }
 
 

@@ -105,9 +105,7 @@ void fill_request(struct nbd_request *request, int type, uint64_t from, uint32_t
 {
 	request->magic  = htobe32(REQUEST_MAGIC);
 	request->type   = htobe32(type);
-	uint32_t * randa = (uint32_t*)request->handle;
-	randa[0] = rand();
-	randa[1] = rand();
+	request->handle.w = (((uint64_t)rand()) << 32) | ((uint64_t)rand());
 	request->from   = htobe64(from);
 	request->len    = htobe32(len);
 }
@@ -127,7 +125,7 @@ void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 	if (reply->error != 0) {
 		error("Server replied with error %d", reply->error);
 	}
-	if (strncmp(request->handle, reply->handle, 8) != 0) {
+	if (request->handle.w != reply->handle.w) {
 		error("Did not reply with correct handle");
 	}
 }

@@ -709,7 +709,7 @@ void proxy_session( struct proxier* proxy )
 			state_started = monotonic_time_ms();
 
 			debug(
-				"State transitition from %s to %s",
+				"State transition from %s to %s",
 				proxy_session_state_names[old_state],
 				proxy_session_state_names[state]
 			);
