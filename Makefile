@@ -55,9 +55,6 @@ LINK=$(CC) $(LLDFLAGS) -Isrc $(LIBS)
 
 LIB=build/
 
-EXISTING_OBJS := $(wildcard build/*.o)
--include $(EXISTING_OBJS:.o=.d)
-
 COMMON_SRC  := $(wildcard src/common/*.c)
 SERVER_SRC := $(wildcard src/server/*.c)
 PROXY_SRC   := $(wildcard src/proxy/*.c)
@@ -112,7 +109,6 @@ build/flexnbd-proxy.1: README.proxy.txt
 %.1.gz: %.1
 	gzip -c -f $< > $@
 
-
 server-man: build/flexnbd.1.gz
 proxy-man: build/flexnbd-proxy.1.gz
 
@@ -127,3 +123,6 @@ clean:
 
 
 .PHONY: clean objs check_objs all server proxy check_bins check server-man proxy-man doc
+
+# Include extra dependencies at the end, NOT before 'all'
+-include $(wildcard build/*.d)
