@@ -7,7 +7,7 @@
 
 #include "bitset.h"
 #include "self_pipe.h"
-enum mirror_state;
+
 #include "serve.h"
 #include "mbox.h"
 
@@ -57,14 +57,14 @@ enum mirror_state;
 #define MS_REQUEST_LIMIT_SECS 60
 #define MS_REQUEST_LIMIT_SECS_F 60.0
 
-enum mirror_finish_action {
-	ACTION_EXIT,
+typedef enum {
+	ACTION_EXIT = 0,
 	ACTION_UNLINK,
 	ACTION_NOTHING
-};
+} mirror_finish_action_t;
 
-enum mirror_state {
-	MS_UNKNOWN,
+typedef enum {
+	MS_UNKNOWN = 0,
 	MS_INIT,
 	MS_GO,
 	MS_ABANDONED,
@@ -73,9 +73,9 @@ enum mirror_state {
 	MS_FAIL_REJECTED,
 	MS_FAIL_NO_HELLO,
 	MS_FAIL_SIZE_MISMATCH
-};
+} mirror_state_t;
 
-struct mirror {
+typedef struct mirror_t {
 	pthread_t            thread;
 
 	/* Signal to this then join the thread if you want to abandon mirroring */
@@ -90,19 +90,19 @@ struct mirror {
 	 * over the network) are considered */
 	uint64_t              max_bytes_per_second;
 
-	enum mirror_finish_action action_at_finish;
+	mirror_finish_action_t action_at_finish;
 
 	char                 *mapped;
 
 	/* We need to send every byte at least once; we do so by  */
 	uint64_t offset;
 
-	enum mirror_state    commit_state;
+	mirror_state_t    commit_state;
 
 	/* commit_signal is sent immediately after attempting to connect
 	 * and checking the remote size, whether successful or not.
 	 */
-	struct mbox *        commit_signal;
+	struct mbox_t *        commit_signal;
 
 	/* The time (from monotonic_time_ms()) the migration was started. Can be
 	 * used to calculate bps, etc. */
@@ -110,14 +110,14 @@ struct mirror {
 
 	/* Running count of all bytes we've transferred */
 	uint64_t all_dirty;
-};
+} mirror_t, *mirror_p;
 
 
-struct mirror_super {
-	struct mirror * mirror;
+typedef struct mirror_super_t {
+	mirror_p mirror;
 	pthread_t thread;
-	struct mbox * state_mbox;
-};
+	struct mbox_t * state_mbox;
+} mirror_super_t, *mirror_super_p;
 
 
 
@@ -127,13 +127,13 @@ struct mirror_super {
 struct server;
 struct flexnbd;
 
-struct mirror_super * mirror_super_create(
+mirror_super_p mirror_super_create(
 		const char * filename,
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
 		uint64_t max_Bps,
-		enum mirror_finish_action action_at_finish,
-		struct mbox * state_mbox
+		mirror_finish_action_t action_at_finish,
+		struct mbox_t * state_mbox
 		);
 void * mirror_super_runner( void * serve_uncast );
 

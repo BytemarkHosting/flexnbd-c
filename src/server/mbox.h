@@ -11,45 +11,43 @@
 
 
 #include <pthread.h>
+#include <stdint.h>
+#include "fifo_declare.h"
+
+typedef union {
+	uint64_t i;
+	void * p;
+} mbox_item_t;
+
+DECLARE_FIFO(mbox_item_t, mbox_fifo, 8);
+
+typedef struct mbox_t {
+	mbox_fifo_t	fifo;
+	// socketpair() ends
+	int		signalw, signalr;
+} mbox_t, *mbox_p;
 
 
-struct mbox {
-	void * contents;
-
-	/** Marker to tell us if there's content in the box.
-	 * Keeping this separate allows us to use NULL for the contents.
-	 */
-	int full;
-
-	/** This gets signaled by mbox_post, and waited on by
-	 * mbox_receive */
-	pthread_cond_t filled_cond;
-	/** This is signaled by mbox_receive, and waited on by mbox_post */
-	pthread_cond_t emptied_cond;
-	pthread_mutex_t mutex;
-};
-
-
-/* Create an mbox. */
-struct mbox * mbox_create(void);
+/* Create an mbox_t. */
+mbox_p  mbox_create(void);
 
 /* Put something in the mbox, blocking if it's already full.
  * That something can be NULL if you want.
  */
-void mbox_post( struct mbox *, void *);
+void mbox_post( mbox_p , mbox_item_t item);
 
 /* See what's in the mbox.  This isn't thread-safe. */
-void * mbox_contents( struct mbox *);
+mbox_item_t mbox_contents( mbox_p );
 
 /* See if anything has been put into the mbox.  This isn't thread-safe.
  * */
-int mbox_is_full( struct mbox *);
+int mbox_is_full( mbox_p );
 
 /* Get the contents from the mbox, blocking if there's nothing there. */
-void * mbox_receive( struct mbox *);
+mbox_item_t mbox_receive( mbox_p );
 
 /* Free the mbox and destroy the associated pthread bits. */
-void mbox_destroy( struct mbox *);
+void mbox_destroy( mbox_p );
 
 
 #endif
