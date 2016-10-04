@@ -24,6 +24,11 @@
 #include <linux/types.h>
 #include <inttypes.h>
 
+typedef union nbd_handle_t {
+	uint8_t b[8];
+	uint64_t w;
+} nbd_handle_t;
+
 /* The _raw types are the types as they appear on the wire.  Non-_raw
  * types are in host-format.
  * Conversion functions are _r2h_ for converting raw to host, and _h2r_
@@ -39,7 +44,7 @@ struct nbd_init_raw {
 struct nbd_request_raw {
 	__be32 magic;
 	__be32 type;    /* == READ || == WRITE  */
-	char handle[8];
+	nbd_handle_t handle;
 	__be64 from;
 	__be32 len;
 } __attribute__((packed));
@@ -47,7 +52,7 @@ struct nbd_request_raw {
 struct nbd_reply_raw {
 	__be32 magic;
 	__be32 error;           /* 0 = ok, else error   */
-	char handle[8];         /* handle you got from request  */
+	nbd_handle_t handle;         /* handle you got from request  */
 };
 
 
@@ -62,7 +67,7 @@ struct nbd_init {
 struct nbd_request {
 	uint32_t magic;
 	uint32_t type;    /* == READ || == WRITE || == DISCONNECT */
-	char handle[8];
+	nbd_handle_t handle;
 	uint64_t from;
 	uint32_t len;
 } __attribute__((packed));
@@ -70,7 +75,7 @@ struct nbd_request {
 struct nbd_reply {
 	uint32_t magic;
 	uint32_t error;           /* 0 = ok, else error   */
-	char handle[8];         /* handle you got from request  */
+	nbd_handle_t handle;      /* handle you got from request  */
 };
 
 void nbd_r2h_init( struct nbd_init_raw * from, struct nbd_init * to );
