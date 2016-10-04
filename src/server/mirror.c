@@ -412,7 +412,7 @@ int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 	struct nbd_request req = {
 		.magic = REQUEST_MAGIC,
 		.type = REQUEST_WRITE,
-		.handle = ".MIRROR.",
+		.handle.b = ".MIRROR.",
 		.from = current,
 		.len = run
 	};
@@ -568,7 +568,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 		return;
 	}
 
-	if ( memcmp( ".MIRROR.", &rsp.handle[0], 8 ) != 0 ) {
+	if ( memcmp( ".MIRROR.", rsp.handle.b, 8 ) != 0 ) {
 		warn( "Bad handle returned from listener" );
 		ev_break( loop, EVBREAK_ONE );
 		return;
@@ -922,7 +922,7 @@ void* mirror_runner(void* serve_params_uncast)
 	 * for us ). But if we've failed and are going to retry on the next run, we
 	 * must close this socket here to have any chance of it succeeding.
 	 */
-	if ( !mirror->client < 0 ) {
+	if ( !(mirror->client < 0) ) {
 		sock_try_close( mirror->client );
 		mirror->client = -1;
 	}

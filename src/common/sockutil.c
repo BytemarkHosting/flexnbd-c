@@ -100,7 +100,7 @@ int sock_try_bind( int fd, const struct sockaddr* sa )
 {
 	int bind_result;
 	char s_address[256];
-	int retry = 1;
+	int retry = 10;
 
 	sockaddr_address_string( sa, &s_address[0], 256 );
 
@@ -126,8 +126,11 @@ int sock_try_bind( int fd, const struct sockaddr* sa )
 				 * will cope with it.
 				 */
 				case EADDRNOTAVAIL:
-					debug( "retrying" );
-					sleep( 1 );
+					retry--;
+					if (retry) {
+						debug( "retrying" );
+						sleep( 1 );
+					}
 					continue;
 				case EADDRINUSE:
 					warn( "%s in use, giving up.", s_address );
