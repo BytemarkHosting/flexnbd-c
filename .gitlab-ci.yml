@@ -5,4 +5,5 @@ before_script:
 
 unit_test:
   script:
+  - rake clean
   - rake test:run
