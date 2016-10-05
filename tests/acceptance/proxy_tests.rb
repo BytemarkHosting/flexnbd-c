@@ -4,7 +4,7 @@ require 'flexnbd/fake_dest'
 
 module ProxyTests
   def b
-    String.new("\xFF", encoding: "BINARY")
+    "\xFF".b
   end
 
   def with_proxied_client( override_size = nil )
