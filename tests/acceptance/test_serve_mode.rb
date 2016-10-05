@@ -6,7 +6,7 @@ class TestServeMode < Test::Unit::TestCase
 
   def setup
     super
-    @b = String.new("\xFF", ecoding: "BINARY")
+    @b = String.new("\xFF", encoding: "BINARY")
     @env = Environment.new
     @env.writefile1( "0" )
     @env.serve1
