@@ -67,7 +67,7 @@ SRCS := $(COMMON_SRC) $(SERVER_SRC) $(PROXY_SRC)
 OBJS := $(COMMON_OBJ) $(SERVER_OBJ) $(PROXY_OBJ)
 
 
-all: build/flexnbd build/flexnbd-proxy #doc
+all: build/flexnbd build/flexnbd-proxy doc
 
 build/%.o: %.c
 	mkdir -p $(dir $@)
