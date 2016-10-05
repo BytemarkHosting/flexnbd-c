@@ -50,14 +50,10 @@ CC?=gcc
 
 LIBS=-lpthread
 INC=-I/usr/include/libev -Isrc/common -Isrc/server -Isrc/proxy
-COMPILE=$(CC) $(INC) -c $(CCFLAGS)
-SAVEDEP=$(CC) $(INC) -MM $(CCFLAGS)
+COMPILE=$(CC) -MMD $(INC) -c $(CCFLAGS)
 LINK=$(CC) $(LLDFLAGS) -Isrc $(LIBS)
 
 LIB=build/
-
-EXISTING_OBJS := $(wildcard build/*.o)
--include $(EXISTING_OBJS:.o=.d)
 
 COMMON_SRC  := $(wildcard src/common/*.c)
 SERVER_SRC := $(wildcard src/server/*.c)
@@ -76,7 +72,6 @@ all: build/flexnbd build/flexnbd-proxy doc
 build/%.o: %.c
 	mkdir -p $(dir $@)
 	$(COMPILE) $< -o $@
-	$(SAVEDEP) $< > build/$*.d
 
 objs: $(OBJS)
 
@@ -91,16 +86,13 @@ proxy: build/flexnbd-proxy
 
 
 CHECK_SRC := $(wildcard tests/unit/*.c)
-CHECK_OBJ := $(CHECK_SRC:tests/unit/%.c=build/tests/%.o)
+CHECK_OBJ := $(CHECK_SRC:tests/unit/%.c=build/%.o)
 # Why can't we reuse the build/%.o rule above? Not sure.
-build/tests/%.o: tests/unit/%.c
-	mkdir -p $(dir $@)
-	$(COMPILE) $< -o $@
-	$(SAVEDEP) $< > build/tests/$*.d
 
-CHECK_BINS := $(CHECK_OBJ:build/tests/%.o=build/tests/%)
-build/tests/%: build/tests/%.o $(OBJS)
-	$(LINK) $^ -o $@ -lcheck
+CHECK_BINS := $(CHECK_SRC:tests/unit/%.c=build/%)
+
+build/check_%: build/check_%.o
+	$(LINK) $^ -o $@ $(COMMON_OBJ) -lcheck
 
 check_objs: $(CHECK_OBJ)
 
@@ -117,7 +109,6 @@ build/flexnbd-proxy.1: README.proxy.txt
 %.1.gz: %.1
 	gzip -c -f $< > $@
 
-
 server-man: build/flexnbd.1.gz
 proxy-man: build/flexnbd-proxy.1.gz
 
@@ -132,3 +123,6 @@ clean:
 
 
 .PHONY: clean objs check_objs all server proxy check_bins check server-man proxy-man doc
+
+# Include extra dependencies at the end, NOT before 'all'
+-include $(wildcard build/*.d)
