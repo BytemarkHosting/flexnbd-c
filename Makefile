@@ -67,7 +67,9 @@ SRCS := $(COMMON_SRC) $(SERVER_SRC) $(PROXY_SRC)
 OBJS := $(COMMON_OBJ) $(SERVER_OBJ) $(PROXY_OBJ)
 
 
-all: build/flexnbd build/flexnbd-proxy doc
+all: build doc
+
+build: server proxy
 
 build/%.o: %.c
 	mkdir -p $(dir $@)
@@ -82,8 +84,8 @@ build/flexnbd-proxy: $(COMMON_OBJ) $(PROXY_OBJ) build/proxy-main.o
 	$(LINK) $^ -o $@
 
 server: build/flexnbd
-proxy: build/flexnbd-proxy
 
+proxy: build/flexnbd-proxy
 
 CHECK_SRC := $(wildcard tests/unit/*.c)
 CHECK_OBJ := $(CHECK_SRC:tests/unit/%.c=build/%.o)
@@ -97,22 +99,27 @@ build/check_%: build/check_%.o
 check_objs: $(CHECK_OBJ)
 
 check_bins: $(CHECK_BINS)
+
 check: $(CHECK_BINS)
 	for bin in $^; do $$bin; done
 
+acceptance:
+	cd tests/acceptance && RUBYOPT='-I.' ruby nbd_scenarios -v
+
+test: check acceptance
+
 build/flexnbd.1: README.txt
 	a2x --destination-dir build --format manpage $<
+
 build/flexnbd-proxy.1: README.proxy.txt
 	a2x --destination-dir build --format manpage $<
+
 # If we don't pipe to file, gzip clobbers the original, causing make
 # to rebuild each time
 %.1.gz: %.1
 	gzip -c -f $< > $@
 
-server-man: build/flexnbd.1.gz
-proxy-man: build/flexnbd-proxy.1.gz
-
-doc: server-man proxy-man
+doc: build/flexnbd.1.gz build/flexnbd-proxy.1.gz
 
 install:
 	mkdir -p $(INSTALLDIR)
@@ -122,7 +129,7 @@ clean:
 	rm -rf build/*
 
 
-.PHONY: clean objs check_objs all server proxy check_bins check server-man proxy-man doc
+.PHONY: clean objs check_objs all server proxy check_bins check doc build test acceptance
 
 # Include extra dependencies at the end, NOT before 'all'
 -include $(wildcard build/*.d)
