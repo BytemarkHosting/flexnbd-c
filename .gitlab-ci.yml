@@ -1,10 +1,11 @@
 image: "ruby:2.1"
 
 before_script:
-  - apt-get update; apt-get install -y check libev-dev net-tools asciidoc
+  - apt-get update; apt-get install -y check libev-dev net-tools
 
 unit_test:
   script:
   - rake clean
-  - rake build
+  - rake flexnbd
+  - rake flexnbd_proxy
   - rake test:run
