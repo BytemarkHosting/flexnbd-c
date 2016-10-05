@@ -173,7 +173,7 @@ START_TEST(test_reply_handle)
 	memcpy( reply_raw.handle.b, "MYHANDLE", 8 );
 	
 	nbd_r2h_reply( &reply_raw, &reply );
-        reply_raw.handle.w = 0;
+	reply_raw.handle.w = 0;
 	nbd_h2r_reply( &reply, &reply_raw );
   
 	fail_unless( memcmp( reply.handle.b, "MYHANDLE", 8 ) == 0, "The handle was not copied." );
