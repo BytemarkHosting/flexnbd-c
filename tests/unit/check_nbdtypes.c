@@ -88,14 +88,14 @@ START_TEST(test_request_handle)
 	struct nbd_request_raw request_raw;
 	struct nbd_request     request;
 
-	memcpy( request_raw.handle, "MYHANDLE", 8 );
+	memcpy( request_raw.handle.b, "MYHANDLE", 8 );
 	
 	nbd_r2h_request( &request_raw, &request );
-	memset( request_raw.handle, 0, 8 );
+	request_raw.handle.w = 0;
 	nbd_h2r_request( &request, &request_raw );
   
-	fail_unless( memcmp( request.handle, "MYHANDLE", 8 ) == 0, "The handle was not copied." );
-	fail_unless( memcmp( request_raw.handle, "MYHANDLE", 8 ) == 0, "The handle was not copied back." );
+	fail_unless( memcmp( request.handle.b, "MYHANDLE", 8 ) == 0, "The handle was not copied." );
+	fail_unless( memcmp( request_raw.handle.b, "MYHANDLE", 8 ) == 0, "The handle was not copied back." );
 }
 END_TEST
 
@@ -170,14 +170,14 @@ START_TEST(test_reply_handle)
 	struct nbd_reply_raw reply_raw;
 	struct nbd_reply     reply;
 
-	memcpy( reply_raw.handle, "MYHANDLE", 8 );
+	memcpy( reply_raw.handle.b, "MYHANDLE", 8 );
 	
 	nbd_r2h_reply( &reply_raw, &reply );
-	memset( reply_raw.handle, 0, 8 );
+	reply_raw.handle.w = 0;
 	nbd_h2r_reply( &reply, &reply_raw );
   
-	fail_unless( memcmp( reply.handle, "MYHANDLE", 8 ) == 0, "The handle was not copied." );
-	fail_unless( memcmp( reply_raw.handle, "MYHANDLE", 8 ) == 0, "The handle was not copied back." );
+	fail_unless( memcmp( reply.handle.b, "MYHANDLE", 8 ) == 0, "The handle was not copied." );
+	fail_unless( memcmp( reply_raw.handle.b, "MYHANDLE", 8 ) == 0, "The handle was not copied back." );
 }
 END_TEST
 
@@ -188,9 +188,8 @@ START_TEST( test_convert_from )
 	 * nbd_request_raw */
 	struct nbd_request_raw request_raw;
 	struct nbd_request     request;
-	char readbuf[] = {0x80, 0, 0, 0, 0, 0, 0, 0};
 
-	memcpy( &request_raw.from, readbuf, 8 );
+	request_raw.from = 0x8000000000000000;
 
 	nbd_r2h_request( &request_raw, &request );
 
