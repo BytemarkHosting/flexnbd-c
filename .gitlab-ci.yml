@@ -7,5 +7,4 @@ unit_test:
   script:
   - rake clean
   - rake flexnbd
-  - rake flexnbd_proxy
   - rake test:run
