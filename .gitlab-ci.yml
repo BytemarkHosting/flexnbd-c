@@ -1,0 +1,8 @@
+image: "ruby:2.1"
+
+before_script:
+  - apt-get update; apt-get install -y check
+
+unit_test:
+  script:
+  - rake test:run
