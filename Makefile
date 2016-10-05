@@ -101,7 +101,7 @@ check_objs: $(CHECK_OBJ)
 check_bins: $(CHECK_BINS)
 
 check: $(CHECK_BINS)
-	for bin in $^; do $$bin; done
+	r=true ; for bin in $^; do $$bin || r=false; done ; $$r
 
 acceptance:
 	cd tests/acceptance && RUBYOPT='-I.' ruby nbd_scenarios -v
