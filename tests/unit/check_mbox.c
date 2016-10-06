@@ -66,9 +66,9 @@ START_TEST( test_receive_blocks_until_post )
 END_TEST
 
 
-Suite* acl_suite(void)
+Suite* mbox_suite(void)
 {
-	Suite *s = suite_create("acl");
+	Suite *s = suite_create("mbox");
 	TCase *tc_create = tcase_create("create");
 	TCase *tc_post = tcase_create("post");
 
@@ -93,7 +93,7 @@ int main(void)
 	log_level = 2;
 #endif
 	int number_failed;
-	Suite *s = acl_suite();
+	Suite *s = mbox_suite();
 	SRunner *sr = srunner_create(s);
 	srunner_run_all(sr, CK_NORMAL);
 	log_level = 0;
