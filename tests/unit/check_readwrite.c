@@ -150,7 +150,7 @@ END_TEST
 
 Suite* readwrite_suite(void)
 {
-	Suite *s = suite_create("acl");
+	Suite *s = suite_create("readwrite");
 	TCase *tc_transfer = tcase_create("entrust");
 	TCase *tc_disconnect = tcase_create("disconnect");
 
