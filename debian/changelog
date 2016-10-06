@@ -1,3 +1,31 @@
+flexnbd (0.1.4-1) stable; urgency=medium
+
+  [ Michel Pollet ]
+  * Simplified Makefile
+  * Makefile: don't include *.d's before 'all'
+
+  [ Patrick J Cherry ]
+  * Added net-tools to the build-deps for testing
+  * Fixed "double-definition of constants" warning
+  * Use a BINARY encoded string when doing read/write comparisons.
+  * Moved all tasks from Rake to Make
+  * Added dpkg-dev to build-deps
+  * Updated manpages, replace a2x with txt2man
+  * Fixed up internal test names (copy/pasta?)
+  * Fixed check_readwrite test to pass correct handle to fd_write_reply
+  * Fix up nbdtypes test to correctly use htobe64
+  * Update Makefile to specify dependencies properly for tests
+
+  [ James F. Carter ]
+  * update tests to reflect changes in handle storage
+  * run tests in gitlab-ci
+  * force binary encoding in a ruby2.1-compatible way
+  * add missing deps on server object files when building check binaries
+  * remove unnecessary step in gitlab-ci
+  * failures in make check now result in an error
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Thu, 06 Oct 2016 15:49:33 +0100
+
 flexnbd (0.1.3-1) stable; urgency=medium
 
   [ Michel Pollet ]
