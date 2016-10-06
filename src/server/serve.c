@@ -255,7 +255,7 @@ int tryjoin_client_thread( struct client_tbl_entry *entry, int (*joinfunc)(pthre
 			debug("nbd thread %016x exited (%s) with status %ld",
 					entry->thread,
 					s_client_address,
-					(uint64_t)status);
+					(uintptr_t)status);
 			client_destroy( entry->client );
 			entry->client = NULL;
 			entry->thread = 0;
