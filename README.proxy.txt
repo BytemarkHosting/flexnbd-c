@@ -1,19 +1,14 @@
-FLEXNBD-PROXY(1)
-================
-:doctype: manpage
-
 NAME
-----
 
-flexnbd-proxy - A simple NBD proxy
+ flexnbd-proxy - A simple NBD proxy
 
 SYNOPSIS
---------
 
-*flexnbd-proxy* ['OPTIONS']
+  flexnbd-proxy --addr ADDR [--port PORT] --conn-addr ADDR
+    --conn-port PORT [--bind ADDR] [--cache[=CACHE_BYTES]] 
+    [--help] [--verbose] [--quiet]
 
 DESCRIPTION
------------
 
 flexnbd-proxy is a simple NBD proxy server that implements resilient
 connection logic for the client. It connects to an upstream NBD server
@@ -25,11 +20,6 @@ of view of the client) reconnects and retransmits the request, before
 returning the response to the client.
 
 USAGE
------
-
-  $ flexnbd-proxy --addr <ADDR> [ --port <PORT> ]
-    --conn-addr <ADDR> --conn-port <PORT> 
-    [--bind <ADDR>] [--cache[=<CACHE_BYTES>]] [option]*
 
 Proxy requests from an NBD client to an NBD server, resiliently. Only one
 client can be connected at a time, and ACLs cannot be applied to the client, as they 
@@ -58,75 +48,73 @@ Only one request may be in-flight at a time under the current architecture; that
 doesn't seem to slow things down much relative to alternative options, but may
 be changed in the future if it becomes an issue.
 
-Options
-~~~~~~~
+OPTIONS
 
-*--addr, -l ADDR*:
+  --addr, -l ADDR  
     The address to listen on. If this begins with a '/', it is assumed to be
     a UNIX domain socket to create. Otherwise, it should be an IPv4 or IPv6
     address.
-*--port, -p PORT*:
+
+  --port, -p PORT  
     The port to listen on, if --addr is not a UNIX socket. 
 
-*--conn-addr, -C ADDR*:
+  --conn-addr, -C ADDR  
     The address of the NBD server to connect to. Required.
 
-*--conn-port, -P PORT*:
+  --conn-port, -P PORT  
     The port of the NBD server to connect to. Required.
 
-*--cache, -c=CACHE_BYTES*:
+  --cache, -c=CACHE_BYTES  
     If given, the size in bytes of read cache to use. CACHE_BYTES
     defaults to 4096.
 
-*--help, -h* :
+  --help, -h  
     Show command or global help.
 
-*--verbose, -v* :
+  --verbose, -v  
     Output all available log information to STDERR.
 
-*--quiet, -q* :
+  --quiet, -q  
     Output as little log information as possible to STDERR.
 
-
 LOGGING
--------
-Log output is sent to STDERR.  If --quiet is set, no output will be seen
-unless the program termintes abnormally.  If neither --quiet nor
+
+Log output is sent to STDERR. If --quiet is set, no output will be
+seen unless the program termintes abnormally. If neither --quiet nor
 --verbose are set, no output will be seen unless something goes wrong
-with a specific request.  If --verbose is given, every available log
-message will be seen (which, for a debug build, is many).  It is not an
-error to set both --verbose and --quiet.  The last one wins.
+with a specific request. If --verbose is given, every available log
+message will be seen (which, for a debug build, is many). It is not an
+error to set both --verbose and --quiet. The last one wins.
 
 The log line format is:
 
-  <TIMESTAMP>:<LEVEL>:<PID> <THREAD> <SOURCEFILE>:<SOURCELINE>: <MSG>
+    <TIMESTAMP>:<LEVEL>:<PID> <THREAD> <SOURCEFILE>:<SOURCELINE>: <MSG>
 
-*TIMESTAMP*:
+<TIMESTAMP>  
   Time the log entry was made. This is expressed in terms of monotonic ms
 
-*LEVEL*:
+<LEVEL>  
   This will be one of 'D', 'I', 'W', 'E', 'F' in increasing order of
-severity.  If flexnbd is started with the --quiet flag, only 'F' will be
-seen.  If it is started with the --verbose flag, any from 'I' upwards
-will be seen.  Only if you have a debug build and start it with
---verbose will you see 'D' entries.
+  severity. If flexnbd is started with the --quiet flag, only 'F' will
+  be seen. If it is started with the --verbose flag, any from 'I'
+  upwards will be seen. Only if you have a debug build and start it
+  with --verbose will you see 'D' entries.
 
-*PID*:
+<PID>  
   This is the process ID.
 
-*THREAD*:
-  flexnbd-proxy is currently single-threaded, so this should be the same
-for all lines. That may not be the case in the future.
+<THREAD>  
+  flexnbd-proxy is currently single-threaded, so this should be the
+  same for all lines. That may not be the case in the future.
 
-*SOURCEFILE:SOURCELINE*:
+<SOURCEFILE:SOURCELINE>  
   Identifies where in the source code this log line can be found.
 
-*MSG*:
-  A short message describing what's happening, how it's being done, or
-if you're very lucky *why* it's going on.
+<MSG>  
+	A short message describing what's happening, how it's being done, or
+	if you're very lucky why it's going on.
 
-Proxying
-~~~~~~~~
+EXAMPLES
 
 The main point of the proxy mode is to allow clients that would otherwise break
 when the NBD server goes away (during a migration, for instance) to see a
@@ -160,53 +148,59 @@ The data in myfile has been moved between physical servers without the nbd
 client process having to be disturbed at all.
 
 READ CACHE
-----------
 
 If the --cache option is given at the command line, either without an
 argument or with an argument greater than 0, flexnbd-proxy will use a
-read-ahead cache.  The cache as currently implemented doubles each read
+read-ahead cache. The cache as currently implemented doubles each read
 request size, up to a maximum of 2xCACHE_BYTES, and retains the latter
-half in a buffer.  If the next read request from the client exactly
+half in a buffer. If the next read request from the client exactly
 matches the region held in the buffer, flexnbd-proxy responds from the
 cache without making a request to the server.
 
 This pattern is designed to match sequential reads, such as those
 performed by a booting virtual machine.
 
-Note: If specifying a cache size, you *must* use this form:
+Note: If specifying a cache size, you must use this form:
 
   nbd-client$ flexnbd-proxy --cache=XXXX
 
-That is, the '=' is required.  This is a limitation of getopt-long.
+That is, the '=' is required. This is a limitation of getopt-long.
 
 If no cache size is given, a size of 4096 bytes is assumed. Caching can
 be explicitly disabled by setting a size of 0.
 
 BUGS
-----
 
-Should be reported to nick@bytemark.co.uk.
+Should be reported via GitHub.
+
+* https://github.com/BytemarkHosting/flexnbd-c/issues
 
 Current issues include:
 
-* Only old-style NBD negotiation is supported
-* Only one request may be in-flight at a time
-* All I/O is blocking, and signals terminate the process immediately
-* UNIX socket support is limited to the listen address
-* FLUSH and TRIM commands, and the FUA flag, are not supported
-* DISCONNECT requests do not get passed through to the NBD server
-* No active timeout-retry of requests - we trust the kernel's idea of failure
+* only old-style NBD negotiation is supported;
+* only one request may be in-flight at a time;
+* all I/O is blocking, and signals terminate the process immediately;
+* UNIX socket support is limited to the listen address;
+* FLUSH and TRIM commands, and the FUA flag, are not supported;
+* DISCONNECT requests do not get passed through to the NBD server;
+* no active timeout-retry of requests - we trust the kernel's idea of
+  failure.
 
 AUTHOR
-------
-Written by Alex Young <alex@bytemark.co.uk>.
+
+Originally written by Alex Young <alex@blackkettle.org>.
 Original concept and core code by Matthew Bloch <matthew@bytemark.co.uk>.
-Proxy mode written by Nick Thomas <nick@bytemark.co.uk>
+Proxy mode written by Nick Thomas <me@ur.gs>.
 
-COPYING
--------
+The full commit history is available on GitHub.
 
-Copyright (c) 2012 Bytemark Hosting Ltd. Free use of this software is
-granted under the terms of the GNU General Public License version 3 or
-later.
+SEE ALSO
+
+flexnbd(1), nbd-client(8), xnbd-server(8), xnbd-client(8)
+
+COPYRIGHT
+
+Copyright (c) 2012-2016 Bytemark Hosting Ltd. Free use of this
+software is granted under the terms of the GNU General Public License
+version 3 or later.
 
