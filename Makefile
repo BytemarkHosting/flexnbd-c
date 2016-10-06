@@ -100,10 +100,10 @@ check_objs: $(CHECK_OBJ)
 
 check_bins: $(CHECK_BINS)
 
-check: $(CHECK_BINS)
-	r=true ; for bin in $^; do $$bin || r=false; done ; $$r
+check: $(OBJS) $(CHECK_BINS)
+	r=true ; for bin in $(CHECK_BINS); do $$bin || r=false; done ; $$r
 
-acceptance:
+acceptance: build
 	cd tests/acceptance && RUBYOPT='-I.' ruby nbd_scenarios -v
 
 test: check acceptance
