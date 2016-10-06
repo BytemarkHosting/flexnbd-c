@@ -189,12 +189,14 @@ START_TEST( test_convert_from )
 	struct nbd_request_raw request_raw;
 	struct nbd_request     request;
 
-	request_raw.from = 0x8000000000000000;
+	uint64_t target = 0x8000000000000000;
 
+	/* this is stored big-endian */
+	request_raw.from = htobe64(target);
+
+	/* We expect this to convert big-endian to the host format */
 	nbd_r2h_request( &request_raw, &request );
 
-	uint64_t target = 1;
-	target <<= 63;
 	fail_unless( target == request.from, "from was wrong" );
 }	
 END_TEST
