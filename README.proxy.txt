@@ -111,8 +111,8 @@ The log line format is:
   Identifies where in the source code this log line can be found.
 
 <MSG>  
-	A short message describing what's happening, how it's being done, or
-	if you're very lucky why it's going on.
+  A short message describing what's happening, how it's being done, or
+  if you're very lucky why it's going on.
 
 EXAMPLES
 

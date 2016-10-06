@@ -85,7 +85,7 @@ Listen for an inbound migration, and quit with a status of 0 on
 completion.
 
   $ flexnbd listen --addr ADDR --port PORT --file FILE
-			[--sock SOCK] [--default-deny] [global_option]* 
+      [--sock SOCK] [--default-deny] [global_option]* 
       [acl_entry]*
 
 flexnbd will wait for a successful migration, and then quit. The file
@@ -298,7 +298,7 @@ The log line format is:
 
 <LEVEL>  
   This will be one of 'D', 'I', 'W', 'E', 'F' in increasing order of
-	severity. If flexnbd is started with the --quiet flag, only 'F'
+  severity. If flexnbd is started with the --quiet flag, only 'F'
   will be seen. If it is started with the --verbose flag, any from 'I'
   upwards will be seen. Only if you have a debug build and start it
   with --verbose will you see 'D' entries.
