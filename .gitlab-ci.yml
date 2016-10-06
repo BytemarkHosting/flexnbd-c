@@ -1,0 +1,10 @@
+image: "ruby:2.1"
+
+before_script:
+  - apt-get update; apt-get install -y check libev-dev net-tools dpkg-dev
+
+unit_test:
+  script:
+  - make clean
+  - make build 
+  - make test

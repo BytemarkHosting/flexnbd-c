@@ -3,6 +3,10 @@ require 'flexnbd/fake_source'
 require 'flexnbd/fake_dest'
 
 module ProxyTests
+  def b
+    "\xFF".b
+  end
+
   def with_proxied_client( override_size = nil )
     @env.serve1 unless @server_up
     @env.proxy2 unless @proxy_up
@@ -51,7 +55,7 @@ module ProxyTests
     with_proxied_client do |client|
       (0..3).each do |n|
         offset = n * 4096
-        client.write(offset, "\xFF" * 4096)
+        client.write(offset, b * 4096)
         rsp = client.read_response
 
         assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
@@ -60,7 +64,7 @@ module ProxyTests
 
         data = @env.file1.read(offset, 4096)
 
-        assert_equal( ( "\xFF" * 4096 ), data, "Data not written correctly (offset is #{n})" )
+        assert_equal( ( b * 4096 ), data, "Data not written correctly (offset is #{n})" )
       end
     end
   end
@@ -107,7 +111,7 @@ module ProxyTests
 
       # The reply should be proxied back to the client.
       sc2.write_reply( req2[:handle] )
-      sc2.write_data( "\xFF" * 4096 )
+      sc2.write_data( b * 4096 )
 
       # Check it to make sure it's correct
       rsp = timeout(15) { client.read_response }
@@ -116,7 +120,7 @@ module ProxyTests
       assert_equal req1[:handle], rsp[:handle]
 
       data = client.read_raw( 4096 )
-      assert_equal( ("\xFF" * 4096), data, "Wrong data returned" )
+      assert_equal( (b * 4096), data, "Wrong data returned" )
 
       sc2.close
       server.close
@@ -131,7 +135,7 @@ module ProxyTests
       server, sc1 = maker.value
 
       # Send the read request to the proxy
-      client.write( 0, ( "\xFF" * 4096 ) )
+      client.write( 0, ( b * 4096 ) )
 
       # ensure we're given the read request
       req1 = sc1.read_request
@@ -140,7 +144,7 @@ module ProxyTests
       assert_equal 0, req1[:from]
       assert_equal 4096, req1[:len]
       data1 = sc1.read_data( 4096 )
-      assert_equal( ( "\xFF" * 4096 ), data1, "Data not proxied successfully" )
+      assert_equal( ( b * 4096 ), data1, "Data not proxied successfully" )
 
       # Kill the server again, now we're sure the read request has been sent once
       sc1.close

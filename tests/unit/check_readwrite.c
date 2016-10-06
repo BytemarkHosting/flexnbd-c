@@ -57,7 +57,7 @@ void * responder( void *respond_uncast )
 			fd_write_reply( sock_fd, wrong_handle, 0 );
 		}
 		else {
-			fd_write_reply( sock_fd, (char*)resp->received.handle.b, 0 );
+			fd_write_reply( sock_fd, (char *) resp->received.handle.w, 0 );
 		}
 		write( sock_fd, "12345678", 8 );
 	}
@@ -150,7 +150,7 @@ END_TEST
 
 Suite* readwrite_suite(void)
 {
-	Suite *s = suite_create("acl");
+	Suite *s = suite_create("readwrite");
 	TCase *tc_transfer = tcase_create("entrust");
 	TCase *tc_disconnect = tcase_create("disconnect");
 

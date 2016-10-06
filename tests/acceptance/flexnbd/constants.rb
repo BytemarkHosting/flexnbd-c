@@ -32,7 +32,7 @@ module FlexNBD
       txt_lines.each do |line|
         if line =~ /^#\s*define\s+([A-Z0-9_]+)\s+(\d+)\s*$/
           # Bodge until I can figure out what to do with #ifdefs
-          const_set($1, $2.to_i) unless constants.include?( $1 )
+          const_set($1, $2.to_i) unless const_defined?( $1 )
         end
       end
     end

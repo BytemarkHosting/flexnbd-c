@@ -6,6 +6,7 @@ class TestServeMode < Test::Unit::TestCase
 
   def setup
     super
+    @b = "\xFF".b
     @env = Environment.new
     @env.writefile1( "0" )
     @env.serve1
@@ -53,18 +54,18 @@ class TestServeMode < Test::Unit::TestCase
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
 
-      client.write( 0, "\xFF" )
+      client.write( 0, @b )
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
 
-      client.write( 0, "\xFF\xFF" )
+      client.write( 0, @b * 2 )
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
     end
 
-    assert_equal "\xFF\xFF", @env.file1.read( 0, 2 )
+    assert_equal @b * 2, @env.file1.read( 0, 2 )
   end
 
 
