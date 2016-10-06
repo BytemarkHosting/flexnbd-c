@@ -57,7 +57,7 @@ void * responder( void *respond_uncast )
 			fd_write_reply( sock_fd, wrong_handle, 0 );
 		}
 		else {
-			fd_write_reply( sock_fd, (char*)resp->received.handle.b, 0 );
+			fd_write_reply( sock_fd, resp->received.handle.w, 0 );
 		}
 		write( sock_fd, "12345678", 8 );
 	}
