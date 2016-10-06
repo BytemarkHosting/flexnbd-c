@@ -141,9 +141,9 @@ START_TEST( test_fatal_doesnt_call_handler )
 END_TEST
 
 
-Suite* error_suite(void)
+Suite* util_suite(void)
 {
-	Suite *s = suite_create("error");
+	Suite *s = suite_create("util");
 	TCase *tc_process = tcase_create("process");
 	TCase *tc_handler = tcase_create("handler");
 
@@ -163,7 +163,7 @@ Suite* error_suite(void)
 int main(void)
 {
 	int number_failed;
-	Suite *s = error_suite();
+	Suite *s = util_suite();
 	SRunner *sr = srunner_create(s);
 	srunner_run_all(sr, CK_NORMAL);
 	number_failed = srunner_ntests_failed(sr);
