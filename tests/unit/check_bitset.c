@@ -59,7 +59,7 @@ END_TEST
 START_TEST(test_bit_ranges)
 {
 	bitfield_word_t buffer[BIT_WORDS_FOR_SIZE(4160)];
-	uint64_t  *longs = (unsigned long*) buffer;
+	uint64_t  *longs = (uint64_t *) buffer;
 	uint64_t i;
 
 	memset(buffer, 0, 4160);
@@ -67,9 +67,9 @@ START_TEST(test_bit_ranges)
 	for (i=0; i<64; i++) {
 		bit_set_range(buffer, i*64, i);
 		fail_unless(
-			longs[i] == (1UL<<i)-1,
+			longs[i] == (1ULL<<i)-1,
 			"longs[%ld] = %lx SHOULD BE %lx",
-			i, longs[i], (1L<<i)-1
+			i, longs[i], (1ULL<<i)-1
 		);
 
 		fail_unless(longs[i+1] == 0, "bit_set_range overshot at i=%d", i);
