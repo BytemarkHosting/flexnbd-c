@@ -109,10 +109,10 @@ acceptance:
 test: check acceptance
 
 build/flexnbd.1: README.txt
-	a2x --destination-dir build --format manpage $<
+	txt2man -t flexnbd -s 1 $< > $@
 
 build/flexnbd-proxy.1: README.proxy.txt
-	a2x --destination-dir build --format manpage $<
+	txt2man -t flexnbd-proxy -s 1 $< > $@
 
 # If we don't pipe to file, gzip clobbers the original, causing make
 # to rebuild each time
