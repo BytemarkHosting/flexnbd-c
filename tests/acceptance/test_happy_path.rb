@@ -115,6 +115,11 @@ class TestHappyPath < Test::Unit::TestCase
 
 
   def test_write_to_high_block
+		# 
+		# This test does not work on 32 bit platforms.
+		#
+		skip("Not relevant on 32-bit platforms") if ( ["a"].pack("p").size < 8 )
+
     # Create a large file, then try to write to somewhere after the 2G boundary
     @env.truncate1 "4G"
     @env.serve1
