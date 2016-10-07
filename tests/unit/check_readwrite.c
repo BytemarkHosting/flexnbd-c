@@ -46,8 +46,7 @@ void * responder( void *respond_uncast )
 	struct respond * resp = (struct respond *) respond_uncast;
 	int sock_fd = resp->sock_fds[1];
 	struct nbd_request_raw request_raw;
-	char wrong_handle[] = "WHOOPSIE";
-
+	uint64_t wrong_handle = 0x80;
 
 	if( fd_read_request( sock_fd, &request_raw ) == -1){
 		fprintf(stderr, "Problem with fd_read_request\n");
