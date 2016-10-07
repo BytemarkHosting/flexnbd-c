@@ -1,3 +1,12 @@
+flexnbd (0.1.5-1) stable; urgency=medium
+
+  * This fixes the compiler warning pointer-to-int-cast in serve.c.
+  * Fix up "wrong" handle type from char* to uint64_t in check_readwrite test.
+  * fix check_bitset test on 32-bit platforms.
+  * Skip large file test on 32-bit platforms.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 07 Oct 2016 12:25:36 +0100
+
 flexnbd (0.1.4-1) stable; urgency=medium
 
   [ Michel Pollet ]
