@@ -94,7 +94,7 @@ CHECK_OBJ := $(CHECK_SRC:tests/unit/%.c=build/%.o)
 CHECK_BINS := $(CHECK_SRC:tests/unit/%.c=build/%)
 
 build/check_%: build/check_%.o
-	$(LINK) $^ -o $@ $(COMMON_OBJ) $(SERVER_OBJ) -lcheck
+	$(LINK) $^ -o $@ $(COMMON_OBJ) $(SERVER_OBJ) -lcheck -lsubunit
 
 check_objs: $(CHECK_OBJ)
 
