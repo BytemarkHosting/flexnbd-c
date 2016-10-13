@@ -3,7 +3,7 @@
 #include "ioutil.h"
 #include "sockutil.h"
 #include "util.h"
-#include "bitset.h"
+#include "bitstream.h"
 #include "nbdtypes.h"
 #include "self_pipe.h"
 

@@ -22,7 +22,7 @@
 #include "sockutil.h"
 #include "parse.h"
 #include "readwrite.h"
-#include "bitset.h"
+#include "bitstream.h"
 #include "self_pipe.h"
 #include "status.h"
 
