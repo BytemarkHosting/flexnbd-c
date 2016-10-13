@@ -5,11 +5,14 @@ CPPFLAGS = -Wall -I../src/server -I../src/common -I../src/proxy \
 		
 CFLAGS = $(CPPFLAGS) -g -O3 -std=gnu99
 
-all: holemap
+all: holemap semtest
 
 # holemap requires libmhash-dev for md5 calculation
 holemap: holemap.c ../src/server/*.h
 	$(CC) $(CFLAGS) -o $@ $^ ${shell pkg-config mhash --cflags --libs}
 
+semtest: semtest.c
+	$(CC) $(CFLAGS) -o $@ $^ -lpthread
+
 clean:
-	rm -f holemap
+	rm -f holemap semtest
