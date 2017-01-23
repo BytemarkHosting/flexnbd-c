@@ -1,19 +1,7 @@
 stages:
-  - test
   - package
   - publish
  
-test:jessie: &test
-  stage: test
-  image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
-  variables:
-    DISTRO: jessie
-  script:
-    - apt-get install check libev-dev net-tools dpkg-dev libsubunit-dev ruby ruby-test-unit
-    - make clean
-    - make build 
-    - make test
-
 package:jessie: &package
   stage: package
   image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
@@ -24,11 +12,6 @@ package:jessie: &package
   artifacts:
     paths:
       - pkg/
-
-test:stretch:
-  <<: *test
-  variables:
-    DISTRO: stretch
 
 package:stretch:
   <<: *package
