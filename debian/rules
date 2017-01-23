@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh $@ 
+
+override_dh_strip:
+	dh_strip --dbg-package=flexnbd-dbg
+
+#
+# TODO: The ruby test suites don't work during buiding in a chroot, so leave
+# them out for now.
+#
+#override_dh_auto_test:
+#	rake test:run
+
