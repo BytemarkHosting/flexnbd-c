@@ -1,3 +1,9 @@
+flexnbd (0.1.6) stable; urgency=medium
+
+  * Switched to native packaging.
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Mon, 23 Jan 2017 13:51:58 +0000
+
 flexnbd (0.1.5-1) stable; urgency=medium
 
   * This fixes the compiler warning pointer-to-int-cast in serve.c.
