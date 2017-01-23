@@ -9,7 +9,7 @@ test:jessie: &test
   variables:
     DISTRO: jessie
   script:
-    - apt-get install check libev-dev net-tools dpkg-dev libsubunit-dev
+    - apt-get install check libev-dev net-tools dpkg-dev libsubunit-dev ruby ruby-test-unit
     - make clean
     - make build 
     - make test
