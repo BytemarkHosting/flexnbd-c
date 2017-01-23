@@ -1,10 +1,44 @@
-image: "ruby:2.1"
-
-before_script:
-  - apt-get update; apt-get install -y check libev-dev net-tools dpkg-dev libsubunit-dev
-
-unit_test:
+stages:
+  - test
+  - package
+  - publish
+ 
+test:jessie: &test
+  stage: test
+  image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
+  variables:
+    DISTRO: jessie
   script:
-  - make clean
-  - make build 
-  - make test
+    - apt-get install check libev-dev net-tools dpkg-dev libsubunit-dev
+    - make clean
+    - make build 
+    - make test
+
+package:jessie: &package
+  stage: package
+  image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
+  variables:
+    DISTRO: jessie
+  script:
+    - package
+  artifacts:
+    paths:
+      - pkg/
+
+test:stretch:
+  <<: *test
+  variables:
+    DISTRO: stretch
+
+package:stretch:
+  <<: *package
+  variables:
+    DISTRO: stretch
+
+publish:
+  stage: publish
+  tags: 
+    - shell
+  script:
+    - publish
+
