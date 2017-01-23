@@ -1,4 +1,4 @@
-flexnbd (0.1.6) stable; urgency=medium
+flexnbd (0.1.5) stable; urgency=medium
 
   * Switched to native packaging.
 
