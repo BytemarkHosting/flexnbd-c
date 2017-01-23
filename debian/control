@@ -1,0 +1,25 @@
+Source: flexnbd
+Section: web
+Priority: extra
+Maintainer: Patrick J Cherry <patrick@bytemark.co.uk> 
+Build-Depends: debhelper (>= 7.0.50), ruby, gcc, libev-dev, txt2man, check, net-tools, libsubunit-dev, ruby-test-unit
+Standards-Version: 3.8.1
+Homepage: https://github.com/BytemarkHosting/flexnbd-c
+
+Package: flexnbd
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libev4 | libev3
+Description: FlexNBD server
+  An NBD server offering push-mirroring and intelligent sparse file handling
+
+Package: flexnbd-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    flexnbd (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for flexnbd
+ An NBD server offering push-mirroring and intelligent sparse file handling
+ .
+ This package contains the debugging symbols for flexnbd.
