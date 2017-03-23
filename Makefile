@@ -11,28 +11,9 @@ ifdef DEBUG
 else
 	CFLAGS_EXTRA=-O2
 endif
+
 CFLAGS_EXTRA  += -fPIC --std=gnu99
-LDFLAGS_EXTRA += -Wl,--relax,--gc-sections
-
-TOOLCHAIN		:= $(shell $(CC) --version|awk '/Debian/ {print "debian";exit;}')
-#
-# This bit adds extra flags depending of the distro, and the
-# architecture. To make sure debian packages have the right
-# set of 'native' flags on them
-#
-ifeq ($(TOOLCHAIN),debian)
-DEBARCH			:= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
-ifeq ($(DEBARCH),$(filter $(DEBARCH),amd64 i386))
-CFLAGS_EXTRA	+= -march=native
-endif
-ifeq ($(DEBARCH),armhf)
-CFLAGS_EXTRA	+=  -march=armv7-a -mtune=cortex-a8 -mfpu=neon
-endif
-LDFLAGS_EXTRA	+= -L$(LIB) -Wl,-rpath,${shell readlink -f ${LIB}}
-else
-LDFLAGS_EXTRA	+= -L$(LIB) -Wl,-rpath-link,$(LIB)
-endif
-
+LDFLAGS_EXTRA += -Wl,--relax,--gc-sections -L$(LIB) -Wl,-rpath-link,$(LIB)
 
 # The -Wunreachable-code warning is only implemented in clang, but it
 # doesn't break anything for gcc to see it.
@@ -42,9 +23,9 @@ WARNINGS=-Wall \
 				 -Wstrict-prototypes \
 				 -Wno-missing-field-initializers \
 				 -Wunreachable-code
+
 CCFLAGS=-D_GNU_SOURCE=1 $(WARNINGS) $(CFLAGS_EXTRA) $(CFLAGS)
 LLDFLAGS=-lm -lrt -lev $(LDFLAGS_EXTRA) $(LDFLAGS)
-
 
 CC?=gcc
 
