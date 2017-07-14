@@ -64,6 +64,8 @@
  *   Our current best estimate of how many seconds are left before the migration
  *   migration is finished.
  *
+ * migration_bytes_left:
+ *   The number of bytes remaining to migrate.
  */
 
 
@@ -84,6 +86,7 @@ struct status {
 	uint64_t migration_speed;
 	uint64_t migration_speed_limit;
 	uint64_t migration_seconds_left;
+	uint64_t migration_bytes_left;
 };
 
 /** Create a status object for the given server. */
