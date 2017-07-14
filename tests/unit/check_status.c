@@ -308,6 +308,7 @@ START_TEST( test_renders_migration_statistics )
 	status.migration_speed = 40000000;
 	status.migration_speed_limit = 40000001;
 	status.migration_seconds_left = 1;
+	status.migration_bytes_left = 5000;
 
 	status_write( &status, fds[1] );
 	fail_if_rendered( fds[0], "migration_duration" );
@@ -334,6 +335,9 @@ START_TEST( test_renders_migration_statistics )
 
 	status_write( &status, fds[1] );
 	fail_unless_rendered( fds[0], "migration_seconds_left=1" );
+
+	status_write( &status, fds[1] );
+	fail_unless_rendered( fds[0], "migration_bytes_left=5000" );
 
 	status.migration_speed_limit = UINT64_MAX;
 
