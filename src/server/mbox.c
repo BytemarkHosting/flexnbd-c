@@ -1,77 +1,73 @@
+
 #include "mbox.h"
 #include "util.h"
 
+#include <sys/socket.h>
 #include <pthread.h>
 
-struct mbox * mbox_create( void )
+DEFINE_FIFO(mbox_item_t, mbox_fifo);
+
+#define ARRAY_SIZE(w) (sizeof(w) / sizeof((w)[0]))
+
+mbox_p  mbox_create( void )
 {
-	struct mbox * mbox = xmalloc( sizeof( struct mbox ) );
-	FATAL_UNLESS( 0 == pthread_cond_init( &mbox->filled_cond, NULL ),
-			"Failed to initialise a condition variable" );
-	FATAL_UNLESS( 0 == pthread_cond_init( &mbox->emptied_cond, NULL ),
-			"Failed to initialise a condition variable" );
-	FATAL_UNLESS( 0 == pthread_mutex_init( &mbox->mutex, NULL ),
-			"Failed to initialise a mutex" );
+	mbox_p  mbox = xmalloc( sizeof( struct mbox_t ) );
+
+	int sv[2];
+	FATAL_UNLESS(socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == 0,
+			"Failed to socketpair");
+	mbox->signalw = sv[0];
+	mbox->signalr = sv[1];
+
 	return mbox;
 }
 
-void mbox_post( struct mbox * mbox, void * contents )
+void mbox_post( mbox_p  mbox, mbox_item_t item )
 {
-	pthread_mutex_lock( &mbox->mutex );
+	mbox_fifo_write(&mbox->fifo, item);
 	{
-		if (mbox->full){
-			pthread_cond_wait( &mbox->emptied_cond, &mbox->mutex );
-		}
-		mbox->contents = contents;
-		mbox->full = 1;
-		while( 0 != pthread_cond_signal( &mbox->filled_cond ) );
+		uint8_t w;
+		FATAL_UNLESS((write(mbox->signalw, &w, 1)) == 1,
+				"Write to socketpair");
 	}
-	pthread_mutex_unlock( &mbox->mutex );
 }
 
 
-void * mbox_contents( struct mbox * mbox )
+mbox_item_t mbox_contents( mbox_p  mbox )
 {
-	return mbox->contents;
+	const mbox_item_t zero = {0};
+
+	return mbox_fifo_isempty(&mbox->fifo) ?
+				zero :
+				mbox_fifo_read_at(&mbox->fifo, 0);
 }
 
 
-int mbox_is_full( struct mbox * mbox )
+int mbox_is_full( mbox_p  mbox )
 {
-	return mbox->full;
+	return mbox_fifo_isfull(&mbox->fifo);
 }
 
 
-void * mbox_receive( struct mbox * mbox )
-{
-	NULLCHECK( mbox );
-	void * result;
-
-	pthread_mutex_lock( &mbox->mutex );
-	{
-		if ( !mbox->full ) {
-			pthread_cond_wait( &mbox->filled_cond, &mbox->mutex );
-		}
-		mbox->full = 0;
-		result = mbox->contents;
-		mbox->contents = NULL;
-
-		while( 0 != pthread_cond_signal( &mbox->emptied_cond));
-	}
-	pthread_mutex_unlock( &mbox->mutex );
-
-	return result;
-}
-
-
-void mbox_destroy( struct mbox * mbox )
+mbox_item_t mbox_receive( mbox_p  mbox )
 {
 	NULLCHECK( mbox );
 
-	while( 0 != pthread_cond_destroy( &mbox->emptied_cond ) );
-	while( 0 != pthread_cond_destroy( &mbox->filled_cond ) );
+	while (mbox_fifo_isempty(&mbox->fifo)) {
+		uint8_t w;
+		FATAL_UNLESS((read(mbox->signalr, &w, 1)) == 1,
+				"Read from socketpair");
+	}
 
-	while( 0 != pthread_mutex_destroy( &mbox->mutex ) );
+	return mbox_fifo_read(&mbox->fifo);
+}
 
+
+void mbox_destroy( mbox_p  mbox )
+{
+	NULLCHECK( mbox );
+
+	close(mbox->signalw);
+	close(mbox->signalr);
 	free( mbox );
 }

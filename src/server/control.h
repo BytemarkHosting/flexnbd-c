@@ -31,7 +31,7 @@ struct control {
 	 * process (and we can only have a mirror thread if the control
 	 * thread has started it).
 	 */
-	struct mbox * mirror_state_mbox;
+	struct mbox_t * mirror_state_mbox;
 };
 
 struct control_client{
@@ -41,7 +41,7 @@ struct control_client{
 	/* Passed in on creation.  We know it's all right to do this
 	 * because we know there's only ever one control_client.
 	 */
-	struct mbox * mirror_state_mbox;
+	struct mbox_t * mirror_state_mbox;
 };
 
 struct control * control_create(

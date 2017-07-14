@@ -9,7 +9,7 @@
 #include <fcntl.h>
 
 #include "util.h"
-#include "bitset.h"
+#include "bitstream.h"
 #include "ioutil.h"
 
 

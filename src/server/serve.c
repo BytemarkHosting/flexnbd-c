@@ -4,7 +4,7 @@
 #include "ioutil.h"
 #include "sockutil.h"
 #include "util.h"
-#include "bitset.h"
+#include "bitstream.h"
 #include "control.h"
 #include "self_pipe.h"
 

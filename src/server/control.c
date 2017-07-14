@@ -83,7 +83,7 @@ void control_destroy( struct control * control )
 struct control_client * control_client_create(
 		struct flexnbd * flexnbd,
 		int client_fd ,
-		struct mbox * state_mbox )
+		struct mbox_t * state_mbox )
 {
 	NULLCHECK( flexnbd );
 
@@ -256,7 +256,7 @@ void * control_runner( void * control_uncast )
 
 #define write_socket(msg) write(client_fd, (msg "\n"), strlen((msg))+1)
 
-void control_write_mirror_response( enum mirror_state mirror_state, int client_fd )
+void control_write_mirror_response( mirror_state_t mirror_state, int client_fd )
 {
 	switch (mirror_state) {
 		case MS_INIT:
@@ -290,22 +290,16 @@ void control_write_mirror_response( enum mirror_state mirror_state, int client_f
 
 
 /* Call this in the thread where you want to receive the mirror state */
-enum mirror_state control_client_mirror_wait(
+mirror_state_t control_client_mirror_wait(
 		struct control_client* client)
 {
 	NULLCHECK( client );
 	NULLCHECK( client->mirror_state_mbox );
 
-	struct mbox * mbox = client->mirror_state_mbox;
-	enum mirror_state mirror_state;
-	enum mirror_state * contents;
+	struct mbox_t * mbox = client->mirror_state_mbox;
+	mirror_state_t mirror_state;
 
-	contents = (enum mirror_state*)mbox_receive( mbox );
-	NULLCHECK( contents );
-
-	mirror_state = *contents;
-
-	free( contents );
+	mirror_state = mbox_receive( mbox ).i;
 
 	return mirror_state;
 }
@@ -425,7 +419,7 @@ int control_mirror(struct control_client* client, int linesc, char** lines)
 			);
 
 		debug("Control thread mirror super waiting");
-		enum mirror_state state =
+		mirror_state_t state =
 			control_client_mirror_wait( client );
 		debug("Control thread writing response");
 		control_write_mirror_response( state, client->socket );

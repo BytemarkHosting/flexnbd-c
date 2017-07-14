@@ -22,7 +22,7 @@
 #include "sockutil.h"
 #include "parse.h"
 #include "readwrite.h"
-#include "bitset.h"
+#include "bitstream.h"
 #include "self_pipe.h"
 #include "status.h"
 
@@ -66,7 +66,7 @@ struct xfer {
 
 struct mirror_ctrl {
 	struct server *serve;
-	struct mirror *mirror;
+	mirror_p mirror;
 
 	/* libev stuff */
 	struct ev_loop *ev_loop;
@@ -90,16 +90,16 @@ struct mirror_ctrl {
 
 };
 
-struct mirror * mirror_alloc(
+mirror_p mirror_alloc(
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
 		uint64_t max_Bps,
-		enum mirror_finish_action action_at_finish,
-		struct mbox * commit_signal)
+		mirror_finish_action_t action_at_finish,
+		mbox_p  commit_signal)
 {
-	struct mirror * mirror;
+	mirror_p mirror;
 
-	mirror = xmalloc(sizeof(struct mirror));
+	mirror = xmalloc(sizeof(mirror_t));
 	mirror->connect_to = connect_to;
 	mirror->connect_from = connect_from;
 	mirror->max_bytes_per_second = max_Bps;
@@ -116,7 +116,7 @@ struct mirror * mirror_alloc(
 	return mirror;
 }
 
-void mirror_set_state_f( struct mirror * mirror, enum mirror_state state )
+void mirror_set_state_f( mirror_p mirror, mirror_state_t state )
 {
 	NULLCHECK( mirror );
 	mirror->commit_state = state;
@@ -127,7 +127,7 @@ void mirror_set_state_f( struct mirror * mirror, enum mirror_state state )
 	mirror_set_state_f( mirror, state );\
 } while(0)
 
-enum mirror_state mirror_get_state( struct mirror * mirror )
+mirror_state_t mirror_get_state( mirror_p mirror )
 {
 	NULLCHECK( mirror );
 	return mirror->commit_state;
@@ -136,7 +136,7 @@ enum mirror_state mirror_get_state( struct mirror * mirror )
 #define mirror_state_is( mirror, state ) mirror_get_state( mirror ) == state
 
 
-void mirror_init( struct mirror * mirror, const char * filename )
+void mirror_init( mirror_p mirror, const char * filename )
 {
 	int map_fd;
 	uint64_t size;
@@ -163,7 +163,7 @@ void mirror_init( struct mirror * mirror, const char * filename )
 
 
 /* Call this before a mirror attempt. */
-void mirror_reset( struct mirror * mirror )
+void mirror_reset( mirror_p mirror )
 {
 	NULLCHECK( mirror );
 	mirror_set_state( mirror, MS_INIT );
@@ -176,16 +176,16 @@ void mirror_reset( struct mirror * mirror )
 }
 
 
-struct mirror * mirror_create(
+mirror_p mirror_create(
 		const char * filename,
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
 		uint64_t max_Bps,
 		int action_at_finish,
-		struct mbox * commit_signal)
+		mbox_p  commit_signal)
 {
 	/* FIXME: shouldn't map_fd get closed? */
-	struct mirror * mirror;
+	mirror_p mirror;
 
 	mirror = mirror_alloc( connect_to,
 			connect_from,
@@ -201,7 +201,7 @@ struct mirror * mirror_create(
 }
 
 
-void mirror_destroy( struct mirror *mirror )
+void mirror_destroy( mirror_p mirror )
 {
 	NULLCHECK( mirror );
 	self_pipe_destroy( mirror->abandon_signal );
@@ -254,7 +254,7 @@ void mirror_cleanup( struct server * serve,
 		int fatal __attribute__((unused)))
 {
 	NULLCHECK( serve );
-	struct mirror * mirror = serve->mirror;
+	mirror_p mirror = serve->mirror;
 	NULLCHECK( mirror );
 	info( "Cleaning up mirror thread");
 
@@ -270,7 +270,7 @@ void mirror_cleanup( struct server * serve,
 }
 
 
-int mirror_connect( struct mirror * mirror, uint64_t local_size )
+int mirror_connect( mirror_p mirror, uint64_t local_size )
 {
 	struct sockaddr * connect_from = NULL;
 	int connected =  0;
@@ -325,7 +325,7 @@ int mirror_connect( struct mirror * mirror, uint64_t local_size )
 }
 
 
-int mirror_should_quit( struct mirror * mirror )
+int mirror_should_quit( mirror_p mirror )
 {
 	switch( mirror->action_at_finish ) {
 		case ACTION_EXIT:
@@ -359,7 +359,7 @@ int mirror_should_wait( struct mirror_ctrl *ctrl )
  * next transfer, then puts it together. */
 int mirror_setup_next_xfer( struct mirror_ctrl *ctrl )
 {
-	struct mirror* mirror = ctrl->mirror;
+	mirror_p mirror = ctrl->mirror;
 	struct server* serve = ctrl->serve;
 	struct bitset_stream_entry e = { .event = BITSET_STREAM_UNSET };
 	uint64_t current = mirror->offset, run = 0, size = serve->size;
@@ -508,7 +508,7 @@ static void mirror_read_cb( struct ev_loop *loop, ev_io *w, int revents )
 	struct mirror_ctrl* ctrl = (struct mirror_ctrl*) w->data;
 	NULLCHECK( ctrl );
 
-	struct mirror *m = ctrl->mirror;
+	mirror_p m = ctrl->mirror;
 	NULLCHECK( m );
 
 	struct xfer *xfer = &ctrl->xfer;
@@ -733,7 +733,7 @@ void mirror_run( struct server *serve )
 	NULLCHECK( serve );
 	NULLCHECK( serve->mirror );
 
-	struct mirror *m = serve->mirror;
+	mirror_p m = serve->mirror;
 
 	m->migration_started = monotonic_time_ms();
 	info("Starting mirror" );
@@ -849,18 +849,17 @@ void mirror_run( struct server *serve )
 }
 
 
-void mbox_post_mirror_state( struct mbox * mbox, enum mirror_state st )
+void mbox_post_mirror_state( mbox_p  mbox, mirror_state_t st )
 {
 	NULLCHECK( mbox );
-	enum mirror_state * contents = xmalloc( sizeof( enum mirror_state ) );
 
-	*contents = st;
+	mbox_item_t ste = { .i = st };
 
-	mbox_post( mbox, contents );
+	mbox_post( mbox, ste );
 }
 
 
-void mirror_signal_commit( struct mirror * mirror )
+void mirror_signal_commit( mirror_p mirror )
 {
 	NULLCHECK( mirror );
 
@@ -887,7 +886,7 @@ void* mirror_runner(void* serve_params_uncast)
 
 	NULLCHECK( serve );
 	NULLCHECK( serve->mirror );
-	struct mirror * mirror = serve->mirror;
+	mirror_p mirror = serve->mirror;
 
 	error_set_handler( (cleanup_handler *) mirror_cleanup, serve );
 
@@ -932,15 +931,15 @@ abandon_mirror:
 }
 
 
-struct mirror_super * mirror_super_create(
+mirror_super_p mirror_super_create(
 		const char * filename,
 		union mysockaddr * connect_to,
 		union mysockaddr * connect_from,
 		uint64_t max_Bps,
-		enum mirror_finish_action action_at_finish,
-		struct mbox * state_mbox)
+		mirror_finish_action_t action_at_finish,
+		mbox_p  state_mbox)
 {
-	struct mirror_super * super = xmalloc( sizeof( struct mirror_super) );
+	mirror_super_p super = xmalloc( sizeof( struct mirror_super_t) );
 	super->mirror = mirror_create(
 			filename,
 			connect_to,
@@ -955,8 +954,8 @@ struct mirror_super * mirror_super_create(
 
 /* Post the current state of the mirror into super->state_mbox.*/
 void mirror_super_signal_committed(
-		struct mirror_super * super ,
-		enum mirror_state commit_state )
+		mirror_super_p super ,
+		mirror_state_t commit_state )
 {
 	NULLCHECK( super );
 	NULLCHECK( super->state_mbox );
@@ -967,7 +966,7 @@ void mirror_super_signal_committed(
 }
 
 
-void mirror_super_destroy( struct mirror_super * super )
+void mirror_super_destroy( mirror_super_p super )
 {
 	NULLCHECK( super );
 
@@ -993,8 +992,8 @@ void * mirror_super_runner( void * serve_uncast )
 	int should_retry = 0;
 	int success = 0, abandoned = 0;
 
-	struct mirror * mirror = serve->mirror;
-	struct mirror_super *  super  = serve->mirror_super;
+	mirror_p mirror = serve->mirror;
+	mirror_super_p  super  = serve->mirror_super;
 
 	do {
 		FATAL_IF( 0 != pthread_create(
@@ -1005,8 +1004,8 @@ void * mirror_super_runner( void * serve_uncast )
 				"Failed to create mirror thread");
 
 		debug("Supervisor waiting for commit signal");
-		enum mirror_state * commit_state =
-			mbox_receive( mirror->commit_signal );
+		mirror_state_t commit_state =
+			mbox_receive( mirror->commit_signal ).i;
 
 		debug( "Supervisor got commit signal" );
 		if ( first_pass ) {
@@ -1015,18 +1014,14 @@ void * mirror_super_runner( void * serve_uncast )
 			 * retry behind the scenes. This may race with migration completing
 			 * but since we "shouldn't retry" in that case either, that's fine
 			 */
-			should_retry = *commit_state == MS_GO;
+			should_retry = commit_state == MS_GO;
 
 			/* Only send this signal the first time */
 			mirror_super_signal_committed(
 					super,
-					*commit_state);
+					commit_state);
 			debug("Mirror supervisor committed");
 		}
-		/* We only care about the value of the commit signal on
-		 * the first pass, so this is ok
-		 */
-		free( commit_state );
 
 		debug("Supervisor waiting for mirror thread" );
 		pthread_join( mirror->thread, NULL );

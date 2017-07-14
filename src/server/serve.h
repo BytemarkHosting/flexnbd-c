@@ -53,8 +53,8 @@ struct server {
 	 * shutting down on a SIGTERM. */
 	struct flexthread_mutex *   l_start_mirror;
 
-	struct mirror* mirror;
-	struct mirror_super * mirror_super;
+	struct mirror_t * mirror;
+	struct mirror_super_t * mirror_super;
 	/* This is used to stop the mirror from starting after we
 	 * receive a SIGTERM */
 	int mirror_can_start;

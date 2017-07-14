@@ -6,7 +6,7 @@
 
 START_TEST( test_allocs_cvar )
 {
-	struct mbox * mbox = mbox_create();
+	struct mbox_t * mbox = mbox_create();
 	fail_if( NULL == mbox, "Nothing allocated" );
 
 	pthread_cond_t cond_zero;
@@ -22,7 +22,7 @@ END_TEST
 
 START_TEST( test_post_stores_value )
 {
-	struct mbox * mbox = mbox_create();
+	struct mbox_t * mbox = mbox_create();
 	
 	void * deadbeef = (void *)0xDEADBEEF;
 	mbox_post( mbox, deadbeef );
@@ -33,19 +33,18 @@ START_TEST( test_post_stores_value )
 END_TEST
 
 
-void * mbox_receive_runner( void * mbox_uncast )
+mbox_item_t mbox_receive_runner( void * mbox_uncast )
 {
-	struct mbox * mbox = (struct mbox *)mbox_uncast;
+	struct mbox_t * mbox = (struct mbox_t *)mbox_uncast;
 	void * contents = NULL;
 
-	contents = mbox_receive( mbox );
-	return contents;
+	return mbox_receive( mbox );
 }
 
 
 START_TEST( test_receive_blocks_until_post )
 {
-	struct mbox * mbox = mbox_create();
+	struct mbox_t * mbox = mbox_create();
 	pthread_t receiver;
 	pthread_create( &receiver, NULL, mbox_receive_runner, mbox );
 	
