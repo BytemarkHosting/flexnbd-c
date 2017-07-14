@@ -1,3 +1,9 @@
+flexnbd (0.1.7) stable; urgency=medium
+
+  * Return bytes_left in migration statistics.
+
+ -- Chris Elsworth <chris.elsworth@bytemark.co.uk>  Fri, 14 Jul 2017 17:00:38 +0100
+
 flexnbd (0.1.6) stable; urgency=medium
 
   * Remove lots of per-cpu compiler flags, notably march=native.
