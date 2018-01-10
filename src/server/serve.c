@@ -422,6 +422,9 @@ void accept_nbd_client(
 	int slot;
 	char s_client_address[64] = {0};
 
+	FATAL_IF_NEGATIVE( sock_set_keepalive_params( client_fd, CLIENT_KEEPALIVE_TIME, CLIENT_KEEPALIVE_INTVL, CLIENT_KEEPALIVE_PROBES),
+		"Error setting keepalive parameters on client socket fd %d", client_fd );
+
 
 	if ( !server_should_accept_client( params, client_address, s_client_address, 64 ) ) {
 		FATAL_IF_NEGATIVE( close( client_fd ),

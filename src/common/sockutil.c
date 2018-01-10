@@ -68,6 +68,37 @@ int sock_set_reuseaddr( int fd, int optval )
 	return setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) );
 }
 
+int sock_set_keepalive_params( int fd, int time, int intvl, int probes)
+{
+	if (sock_set_keepalive(fd, 1) ||
+		sock_set_tcp_keepidle(fd, time) ||
+		sock_set_tcp_keepintvl(fd, intvl) ||
+		sock_set_tcp_keepcnt(fd, probes)) {
+		return -1;
+	}
+	return 0;
+}
+
+int sock_set_keepalive( int fd, int optval )
+{
+	return setsockopt( fd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval) );
+}
+
+int sock_set_tcp_keepidle( int fd, int optval )
+{
+	return setsockopt( fd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval) );
+}
+
+int sock_set_tcp_keepintvl( int fd, int optval )
+{
+	return setsockopt( fd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval) );
+}
+
+int sock_set_tcp_keepcnt( int fd, int optval )
+{
+	return setsockopt( fd, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval) );
+}
+
 /* Set the tcp_nodelay option */
 int sock_set_tcp_nodelay( int fd, int optval )
 {

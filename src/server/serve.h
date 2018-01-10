@@ -21,6 +21,9 @@ struct client_tbl_entry {
 
 
 #define MAX_NBD_CLIENTS 16
+#define CLIENT_KEEPALIVE_TIME 30
+#define CLIENT_KEEPALIVE_INTVL 10
+#define CLIENT_KEEPALIVE_PROBES 3
 struct server {
 	/* The flexnbd wrapper this server is attached to */
 	struct flexnbd * flexnbd;

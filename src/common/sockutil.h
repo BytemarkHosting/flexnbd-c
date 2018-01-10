@@ -14,8 +14,23 @@ size_t sockaddr_size(const struct sockaddr* sa);
  */
 const char* sockaddr_address_string(const struct sockaddr* sa, char* dest, size_t len);
 
+/* Configure TCP keepalive on a socket */
+int sock_set_keepalive_params( int fd, int time, int intvl, int probes);
+
+/* Set the SOL_KEEPALIVE otion */
+int sock_set_keepalive(int fd, int optval);
+
 /* Set the SOL_REUSEADDR otion */
 int sock_set_reuseaddr(int fd, int optval);
+
+/* Set the tcp_keepidle option */
+int sock_set_tcp_keepidle(int fd, int optval);
+
+/* Set the tcp_keepintvl option */
+int sock_set_tcp_keepintvl(int fd, int optval);
+
+/* Set the tcp_keepcnt option */
+int sock_set_tcp_keepcnt(int fd, int optval);
 
 /* Set the tcp_nodelay option */
 int sock_set_tcp_nodelay(int fd, int optval);
