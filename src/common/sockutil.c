@@ -70,10 +70,13 @@ int sock_set_reuseaddr( int fd, int optval )
 
 int sock_set_keepalive_params( int fd, int time, int intvl, int probes)
 {
-	return sock_set_keepalive(fd, 1) ||
+	if (sock_set_keepalive(fd, 1) ||
 		sock_set_tcp_keepidle(fd, time) ||
 		sock_set_tcp_keepintvl(fd, intvl) ||
-		sock_set_tcp_keepcnt(fd, probes);
+		sock_set_tcp_keepcnt(fd, probes)) {
+		    return -1;
+	}
+	return 0;
 }
 
 int sock_set_keepalive( int fd, int optval )
