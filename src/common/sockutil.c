@@ -74,7 +74,7 @@ int sock_set_keepalive_params( int fd, int time, int intvl, int probes)
 		sock_set_tcp_keepidle(fd, time) ||
 		sock_set_tcp_keepintvl(fd, intvl) ||
 		sock_set_tcp_keepcnt(fd, probes)) {
-		    return -1;
+		return -1;
 	}
 	return 0;
 }
