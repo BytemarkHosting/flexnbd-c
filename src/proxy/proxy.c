@@ -79,6 +79,9 @@ struct proxier* proxy_create(
 	out->req.buf  = xmalloc( NBD_MAX_SIZE );
 	out->rsp.buf  = xmalloc( NBD_MAX_SIZE );
 
+	log_context = xmalloc( strlen(s_upstream_address) + strlen(s_upstream_port) + 2 );
+	sprintf(log_context, "%s:%s", s_upstream_address, s_upstream_port);
+
 	return out;
 }
 
