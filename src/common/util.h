@@ -21,6 +21,9 @@ extern int log_level;
 /* set up the error globals */
 void error_init(void);
 
+/* some context for the overall process that appears on each log line */
+extern char *log_context;
+
 
 void exit_err( const char * );
 
@@ -92,7 +95,7 @@ uint64_t monotonic_time_ms(void);
 
 #define levstr(i) (i==0?'D':(i==1?'I':(i==2?'W':(i==3?'E':'F'))))
 
-#define myloglev(level, msg, ...) mylog( level, "%"PRIu64":%c:%d %p %s:%d: "msg"\n", monotonic_time_ms(), levstr(level), getpid(),pthread_self(), __FILE__, __LINE__, ##__VA_ARGS__ )
+#define myloglev(level, msg, ...) mylog( level, "%"PRIu64":%c:%d %p %s %s:%d: "msg"\n", monotonic_time_ms(), levstr(level), getpid(),pthread_self(), log_context, __FILE__, __LINE__, ##__VA_ARGS__ )
 
 #ifdef DEBUG
 #  define debug(msg, ...) myloglev(0, msg, ##__VA_ARGS__)
