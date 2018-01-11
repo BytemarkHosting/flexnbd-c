@@ -78,6 +78,8 @@ struct server * server_create (
 	NULLCHECK( out->close_signal );
 	NULLCHECK( out->acl_updated_signal );
 
+	log_context = s_file;
+
 	return out;
 }
 

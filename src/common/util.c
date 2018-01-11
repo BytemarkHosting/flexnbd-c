@@ -13,6 +13,7 @@
 pthread_key_t cleanup_handler_key;
 
 int log_level = 2;
+char *log_context = "";
 
 void error_init(void)
 {
