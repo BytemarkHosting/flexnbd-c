@@ -16,7 +16,7 @@
 
 
 /* 1MiB is the de-facto standard for maximum size of header + data */
-#define NBD_MAX_SIZE ( 1024 * 1024 )
+#define NBD_MAX_SIZE ( 16 * 1024 * 1024 )
 
 #define NBD_REQUEST_SIZE ( sizeof( struct nbd_request_raw ) )
 #define NBD_REPLY_SIZE   ( sizeof( struct nbd_reply_raw ) )
