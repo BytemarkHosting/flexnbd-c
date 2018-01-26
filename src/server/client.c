@@ -234,6 +234,10 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 				debug( "Connection reset while"
 						" reading request" );
 				return 0;
+			case ETIMEDOUT:
+				debug( "Connection timed out while"
+						" reading request" );
+				return 0;
 			default:
 				/* FIXME: I've seen this happen, but I
 				 * couldn't reproduce it so I'm leaving
