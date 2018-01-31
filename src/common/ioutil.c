@@ -351,7 +351,7 @@ ssize_t iobuf_write( int fd, struct iobuf *iobuf )
 
 struct iommap *iommap_alloc(int fd, off64_t from, uint64_t len) {
 
-	off64_t mmap_from = from & ~((off64_t) getpagesize() - 1);
+	off66_t mmap_from = from & ~((off64_t) getpagesize() - 1);
         uint64_t mmap_len = len + (from - mmap_from);
         void *mmap_buf = NULL;
 
@@ -370,7 +370,7 @@ struct iommap *iommap_alloc(int fd, off64_t from, uint64_t len) {
 
 void iommap_sync(struct iommap *im) {
         if (im->mmap_len)
-		msync(im->mmap_buf, im->mmap_len, MS_ASYNC | MS_INVALIDATE);
+		msync(im->mmap_buf, im->mmap_len, MS_SYNC | MS_INVALIDATE);
 	return;
 }
 
