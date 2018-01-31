@@ -4,12 +4,17 @@ VPATH=src:tests/unit
 DESTDIR?=/
 PREFIX?=/usr/local/bin
 INSTALLDIR=$(DESTDIR)/$(PREFIX)
-	
+
 ifdef DEBUG
 	CFLAGS_EXTRA=-g -DDEBUG
 	LDFLAGS_EXTRA=-g
 else
 	CFLAGS_EXTRA=-O2
+endif
+
+NO_MSYNC=1
+ifdef NO_MSYNC
+	CFLAGS_EXTRA += -DNO_MSYNC
 endif
 
 CFLAGS_EXTRA  += -fPIC --std=gnu99

@@ -472,7 +472,7 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		bitset_set_range(client->serve->allocation_map, request.from, request.len);
 	}
 
-	if (1) /* not sure whether this is necessary... */
+#ifndef NO_MSYNC
 	{
 		/* multiple of 4K page size */
 		uint64_t from_rounded = request.from & (!0xfff);
@@ -485,6 +485,7 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 			"msync failed %ld %ld", request.from, request.len
 		);
 	}
+#endif
 	client_write_reply( client, &request, 0);
 }
 
