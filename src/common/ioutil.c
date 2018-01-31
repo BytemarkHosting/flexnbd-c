@@ -73,7 +73,6 @@ int build_allocation_map(struct bitset * allocation_map, int fd)
 	return 1;
 }
 
-
 int open_and_mmap(const char* filename, int* out_fd, uint64_t *out_size, void **out_map)
 {
 	/* 
@@ -101,7 +100,7 @@ int open_and_mmap(const char* filename, int* out_fd, uint64_t *out_size, void **
 		*out_size = size;
 	}
 
-	if (out_map) {
+	if (0) {
 		*out_map = mmap64(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED,
 		  *out_fd, 0);
 		if (((long) *out_map) == -1) {
@@ -349,3 +348,36 @@ ssize_t iobuf_write( int fd, struct iobuf *iobuf )
 
 	return count;
 }
+
+struct iommap *iommap_alloc(int fd, off64_t from, uint64_t len) {
+
+	off64_t mmap_from = from & ~((off64_t) getpagesize() - 1);
+        uint64_t mmap_len = len + (from - mmap_from);
+        void *mmap_buf = NULL;
+
+	// TODO: Check the error code from mmap64
+	if(mmap_len)
+		mmap_buf = mmap64(NULL, mmap_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mmap_from);
+
+	struct iommap *im = xmalloc(sizeof(struct iommap ));
+
+	im->mmap_buf = mmap_buf;
+	im->mmap_len = mmap_len;
+	im->buf = (char *) mmap_buf + from - mmap_from;
+	debug("mmapped file from %ld:%d", mmap_from, mmap_len);
+	return im;
+}
+
+void iommap_sync(struct iommap *im) {
+        if (im->mmap_len)
+		msync(im->mmap_buf, im->mmap_len, MS_ASYNC | MS_INVALIDATE);
+	return;
+}
+
+void iommap_free(struct iommap *im) {
+        if (im->mmap_len)
+		munmap(im->mmap_buf, im->mmap_len);
+
+	free(im);
+}
+

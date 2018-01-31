@@ -11,7 +11,20 @@ struct iobuf {
 ssize_t iobuf_read( int fd, struct iobuf* iobuf, size_t default_size );
 ssize_t iobuf_write( int fd, struct iobuf* iobuf );
 
+#include <inttypes.h>
+
+struct iommap {
+	char *buf;
+	char *mmap_buf;
+	uint64_t mmap_len;
+};
+
+struct iommap *iommap_alloc(int fd, off64_t from, uint64_t len);
+void   iommap_sync(struct iommap *im);
+void   iommap_free(struct iommap *im);
+
 #include "serve.h"
+
 struct bitset; /* don't need whole of bitset.h here */
 
 /** Scan the file opened in ''fd'', set bits in ''allocation_map''  that

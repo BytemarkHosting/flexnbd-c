@@ -118,6 +118,7 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 		 */
 
 		uint64_t run = bitset_run_count(map, from, len);
+		struct iommap *iommap = iommap_alloc(client->fileno, from, len); 
 
 		debug("write_not_zeroes: from=%ld, len=%d, run=%d", from, len, run);
 
@@ -155,7 +156,7 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 		if (bitset_is_set_at(map, from)) {
 			debug("writing the lot: from=%ld, run=%d", from, run);
 			/* already allocated, just write it all */
-			DO_READ(client->mapped + from, run);
+			DO_READ(iommap->buf, run);
 			/* We know from our earlier call to  bitset_run_count that the
 			 * bitset is all-1s at this point, but we need to dirty it for the
 			 * sake of the event stream - the actual bytes have changed, and we
@@ -186,7 +187,7 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 					(0 == memcmp( zerobuffer, zerobuffer+1, blockrun-1 ));
 
 				if ( !all_zeros ) {
-					memcpy(client->mapped+from, zerobuffer, blockrun);
+					memcpy(iommap->buf, zerobuffer, blockrun);
 					bitset_set_range(map, from, blockrun);
 					/* at this point we could choose to
 					 * short-cut the rest of the write for
@@ -205,6 +206,8 @@ void write_not_zeroes(struct client* client, uint64_t from, uint64_t len)
 				from += blockrun;
 			}
 		}
+		iommap_sync(iommap);
+		iommap_free(iommap);
 	}
 }
 
@@ -449,22 +452,28 @@ void client_reply_to_read( struct client* client, struct nbd_request request )
 void client_reply_to_write( struct client* client, struct nbd_request request )
 {
 	debug("request write from=%"PRIu64", len=%"PRIu32", handle=0x%08X", request.from, request.len, request.handle);
-	if (client->serve->allocation_map_built) {
+	// TODO: Just write directly for now.  Not (yet) convinced my changes later on work.
+	// if (client->serve->allocation_map_built) {
+	if (0) {
 		write_not_zeroes( client, request.from, request.len );
 	}
 	else {
 		debug("No allocation map, writing directly.");
 		/* If we get cut off partway through reading this data:
 		 * */
+		struct iommap *iommap = iommap_alloc(client->fileno, request.from, request.len); 
+
 		ERROR_IF_NEGATIVE(
 			readloop( client->socket,
-				client->mapped + request.from,
+				iommap->buf,
 				request.len),
 			"reading write data failed from=%ld, len=%d",
 			request.from,
 			request.len
 		);
 
+		iommap_sync(iommap);
+		iommap_free(iommap);
 		/* the allocation_map is shared between client threads, and may be
 		 * being built. We need to reflect the write in it, as it may be in
 		 * a position the builder has already gone over.
@@ -472,20 +481,6 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		bitset_set_range(client->serve->allocation_map, request.from, request.len);
 	}
 
-#ifndef NO_MSYNC
-	{
-		/* multiple of 4K page size */
-		uint64_t from_rounded = request.from & (!0xfff);
-		uint64_t len_rounded = request.len + (request.from - from_rounded);
-
-		FATAL_IF_NEGATIVE(
-			msync( client->mapped + from_rounded,
-				len_rounded,
-				MS_SYNC | MS_INVALIDATE),
-			"msync failed %ld %ld", request.from, request.len
-		);
-	}
-#endif
 	client_write_reply( client, &request, 0);
 }
 
@@ -651,9 +646,6 @@ void client_cleanup(struct client* client,
 		debug("Closed client socket fd %d", client->socket);
 		client->socket = -1;
 	}
-	if (client->mapped) {
-		munmap(client->mapped, client->serve->size);
-	}
 	if (client->fileno) {
 		FATAL_IF_NEGATIVE( close(client->fileno),
 			"Error closing file %d",
@@ -669,23 +661,18 @@ void client_cleanup(struct client* client,
 void* client_serve(void* client_uncast)
 {
 	struct client* client = (struct client*) client_uncast;
+	void** a = NULL;
 
 	error_set_handler((cleanup_handler*) client_cleanup, client);
-
 	info("client: mmaping file");
 	FATAL_IF_NEGATIVE(
 		open_and_mmap(
 			client->serve->filename,
 			&client->fileno,
 			NULL,
-			(void**) &client->mapped
+			a
 		),
 		"Couldn't open/mmap file %s: %s", client->serve->filename, strerror( errno )
-	);
-
-	FATAL_IF_NEGATIVE(
-		madvise( client->mapped, client->serve->size, MADV_RANDOM ),
-		SHOW_ERRNO( "Failed to madvise() %s", client->serve->filename )
 	);
 
 	debug( "Opened client file fd %d", client->fileno);

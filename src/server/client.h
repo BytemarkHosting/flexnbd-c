@@ -29,7 +29,6 @@ struct client {
 	int     socket;
 
 	int     fileno;
-	char*   mapped;
 
 	struct self_pipe * stop_signal;
 
