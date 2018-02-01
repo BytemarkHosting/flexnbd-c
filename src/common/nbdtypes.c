@@ -13,6 +13,7 @@ void nbd_r2h_init( struct nbd_init_raw * from, struct nbd_init * to )
 	memcpy( to->passwd, from->passwd, 8 );
 	to->magic = be64toh( from->magic );
 	to->size = be64toh( from->size );
+	to->flags = be32toh( from->flags );
 }
 
 void nbd_h2r_init( struct nbd_init * from, struct nbd_init_raw * to)
@@ -20,6 +21,7 @@ void nbd_h2r_init( struct nbd_init * from, struct nbd_init_raw * to)
 	memcpy( to->passwd, from->passwd, 8 );
 	to->magic = htobe64( from->magic );
 	to->size = htobe64( from->size );
+	to->flags = htobe32( from->flags );
 }
 
 

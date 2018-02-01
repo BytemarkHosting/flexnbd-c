@@ -307,7 +307,9 @@ void client_write_init( struct client * client, uint64_t size )
 	memcpy( init.passwd, INIT_PASSWD, sizeof( init.passwd ) );
 	init.magic = INIT_MAGIC;
 	init.size = size;
-	memset( init.reserved, 0, 128 );
+	// TODO actually implement these flags!
+	init.flags = NBD_FLAG_HAS_FLAGS | NBD_FLAG_SEND_FLUSH | NBD_FLAG_SEND_FUA;
+	// memset( init.reserved, 0, 124 );
 
 	nbd_h2r_init( &init, &init_raw );
 

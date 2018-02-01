@@ -11,6 +11,14 @@
 #define REQUEST_WRITE 1
 #define REQUEST_DISCONNECT 2
 
+#define NBD_FLAG_HAS_FLAGS         (1 << 0)
+#define NBD_FLAG_READ_ONLY         (1 << 1)
+#define NBD_FLAG_SEND_FLUSH        (1 << 2)
+#define NBD_FLAG_SEND_FUA          (1 << 3)
+#define NBD_FLAG_ROTATIONAL        (1 << 4)
+#define NBD_FLAG_SEND_TRIM         (1 << 5)
+#define NBD_FLAG_SEND_WRITE_ZEROES (1 << 6)
+
 /* The top 2 bytes of the type field are overloaded and can contain flags */
 #define REQUEST_MASK 0x0000ffff
 
@@ -38,7 +46,8 @@ struct nbd_init_raw {
 	char passwd[8];
 	__be64 magic;
 	__be64 size;
-	char reserved[128];
+	__be32 flags;
+	char reserved[124];
 };
 
 struct nbd_request_raw {
@@ -55,13 +64,12 @@ struct nbd_reply_raw {
 	nbd_handle_t handle;         /* handle you got from request  */
 };
 
-
-
 struct nbd_init {
 	char passwd[8];
 	uint64_t magic;
 	uint64_t size;
-	char reserved[128];
+	uint32_t flags;
+	char reserved[124];
 };
 
 struct nbd_request {
