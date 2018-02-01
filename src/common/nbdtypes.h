@@ -8,20 +8,27 @@
 #define REQUEST_MAGIC 0x25609513
 #define REPLY_MAGIC 0x67446698
 #define REQUEST_READ 0
+
 #define REQUEST_WRITE 1
 #define REQUEST_DISCONNECT 2
+#define REQUEST_FLUSH 3
+#define REQUEST_TRIM 4
+#define REQUEST_WRITE_ZEROES 6
 
-#define NBD_FLAG_HAS_FLAGS         (1 << 0)
-#define NBD_FLAG_READ_ONLY         (1 << 1)
-#define NBD_FLAG_SEND_FLUSH        (1 << 2)
-#define NBD_FLAG_SEND_FUA          (1 << 3)
-#define NBD_FLAG_ROTATIONAL        (1 << 4)
-#define NBD_FLAG_SEND_TRIM         (1 << 5)
-#define NBD_FLAG_SEND_WRITE_ZEROES (1 << 6)
+#define FLAG_HAS_FLAGS         (1 << 0)
+#define FLAG_READ_ONLY         (1 << 1)
+#define FLAG_SEND_FLUSH        (1 << 2)
+#define FLAG_SEND_FUA          (1 << 3)
+#define FLAG_ROTATIONAL        (1 << 4)
+#define FLAG_SEND_TRIM         (1 << 5)
+#define FLAG_SEND_WRITE_ZEROES (1 << 6)
+#define FLAG_CAN_MULTI_CONN    (1 << 8)        /* multiple connections are okay */
+
+#define CMD_FLAG_FUA     (1 << 0) 
+#define CMD_FLAG_NO_HOLE (1 << 1)
 
 /* The top 2 bytes of the type field are overloaded and can contain flags */
-#define REQUEST_MASK 0x0000ffff
-
+// #define REQUEST_MASK 0x0000ffff
 
 /* 1MiB is the de-facto standard for maximum size of header + data */
 #define NBD_MAX_SIZE ( 32 * 1024 * 1024 )
@@ -52,7 +59,8 @@ struct nbd_init_raw {
 
 struct nbd_request_raw {
 	__be32 magic;
-	__be32 type;    /* == READ || == WRITE  */
+	__be16 flags; 
+	__be16 type;    /* == READ || == WRITE || == FLUSH */
 	nbd_handle_t handle;
 	__be64 from;
 	__be32 len;
@@ -74,7 +82,8 @@ struct nbd_init {
 
 struct nbd_request {
 	uint32_t magic;
-	uint32_t type;    /* == READ || == WRITE || == DISCONNECT */
+	uint16_t flags; 
+	uint16_t type;    /* == READ || == WRITE || == DISCONNECT || == FLUSH */
 	nbd_handle_t handle;
 	uint64_t from;
 	uint32_t len;
