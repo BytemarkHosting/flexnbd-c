@@ -307,9 +307,11 @@ void client_write_init( struct client * client, uint64_t size )
 	memcpy( init.passwd, INIT_PASSWD, sizeof( init.passwd ) );
 	init.magic = INIT_MAGIC;
 	init.size = size;
-	// TODO actually implement these flags!
+	/* As more features are implemented, this is the place to advertise
+	 * them.
+	 */
 	init.flags = FLAG_HAS_FLAGS | FLAG_SEND_FLUSH | FLAG_SEND_FUA;
-	// memset( init.reserved, 0, 124 );
+	memset( init.reserved, 0, 124 );
 
 	nbd_h2r_init( &init, &init_raw );
 
