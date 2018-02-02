@@ -4,6 +4,7 @@ require 'open3'
 require 'timeout'
 require 'rexml/document'
 require 'rexml/streamlistener'
+require 'English'
 
 Thread.abort_on_exception = true
 
