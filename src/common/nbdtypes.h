@@ -15,22 +15,24 @@
 #define REQUEST_TRIM 4
 #define REQUEST_WRITE_ZEROES 6
 
-#define FLAG_HAS_FLAGS         (1 << 0)
-#define FLAG_READ_ONLY         (1 << 1)
-#define FLAG_SEND_FLUSH        (1 << 2)
-#define FLAG_SEND_FUA          (1 << 3)
-#define FLAG_ROTATIONAL        (1 << 4)
-#define FLAG_SEND_TRIM         (1 << 5)
-#define FLAG_SEND_WRITE_ZEROES (1 << 6)
-#define FLAG_CAN_MULTI_CONN    (1 << 8)        /* multiple connections are okay */
+/* values for flags field */
+#define FLAG_HAS_FLAGS	(1 << 0)	/* Flags are there */
+#define FLAG_SEND_FLUSH	(1 << 2)	/* Send FLUSH */
+#define FLAG_SEND_FUA	(1 << 3)	/* Send FUA (Force Unit Access) */
+
+/* Not yet implemented by flexnbd */
+#define FLAG_READ_ONLY	(1 << 1)	/* Device is read-only */
+#define FLAG_ROTATIONAL	(1 << 4)	/* Use elevator algorithm - rotational media */
+#define FLAG_SEND_TRIM	(1 << 5)	/* Send TRIM (discard) */
+#define FLAG_SEND_WRITE_ZEROES (1 << 6) /* Send NBD_CMD_WRITE_ZEROES */
+#define FLAG_CAN_MULTI_CONN    (1 << 8) /* multiple connections are okay */
 
 #define CMD_FLAG_FUA     (1 << 0) 
 #define CMD_FLAG_NO_HOLE (1 << 1)
 
-/* The top 2 bytes of the type field are overloaded and can contain flags */
-// #define REQUEST_MASK 0x0000ffff
-
-/* 1MiB is the de-facto standard for maximum size of header + data */
+/* 32 MiB is the maximum qemu will send you:
+ * https://github.com/qemu/qemu/blob/v2.11.0/include/block/nbd.h#L183
+ */
 #define NBD_MAX_SIZE ( 32 * 1024 * 1024 )
 
 #define NBD_REQUEST_SIZE ( sizeof( struct nbd_request_raw ) )
