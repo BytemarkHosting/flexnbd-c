@@ -55,7 +55,7 @@ int nbd_check_hello( struct nbd_init_raw* init_raw, uint64_t* out_size, uint32_t
 	if ( NULL != out_size ) {
 		*out_size = be64toh( init_raw->size );
 	}
-	
+
 	if ( NULL != out_flags ) {
 		*out_flags = be32toh( init_raw->flags );
 	}

@@ -204,7 +204,7 @@ void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size, uin
 	}
 
 	proxy->upstream_size = size;
-	
+
 	if ( proxy->upstream_flags == 0 ) {
 		info( "Upstream transmission flags set to %"PRIu32"", flags );
 	} else if ( proxy->upstream_flags != flags ) {

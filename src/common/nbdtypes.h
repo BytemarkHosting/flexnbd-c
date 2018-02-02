@@ -19,7 +19,7 @@
 #define FLAG_SEND_FUA	(1 << 3)	/* Send FUA (Force Unit Access) */
 
 /* values for command flag field */
-#define CMD_FLAG_FUA     (1 << 0) 
+#define CMD_FLAG_FUA     (1 << 0)
 
 #if 0
 /* Not yet implemented by flexnbd */
@@ -67,7 +67,7 @@ struct nbd_init_raw {
 
 struct nbd_request_raw {
 	__be32 magic;
-	__be16 flags; 
+	__be16 flags;
 	__be16 type;    /* == READ || == WRITE || == FLUSH */
 	nbd_handle_t handle;
 	__be64 from;
@@ -90,7 +90,7 @@ struct nbd_init {
 
 struct nbd_request {
 	uint32_t magic;
-	uint16_t flags; 
+	uint16_t flags;
 	uint16_t type;    /* == READ || == WRITE || == DISCONNECT || == FLUSH */
 	nbd_handle_t handle;
 	uint64_t from;
