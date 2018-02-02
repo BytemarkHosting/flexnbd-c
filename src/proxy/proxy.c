@@ -106,7 +106,7 @@ void proxy_destroy( struct proxier* proxy )
 }
 
 /* Shared between our two different connect_to_upstream paths */
-void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size );
+void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size, uint32_t flags );
 
 /* Try to establish a connection to our upstream server. Return 1 on success,
  * 0 on failure. this is a blocking call that returns a non-blocking socket.
@@ -120,12 +120,13 @@ int proxy_connect_to_upstream( struct proxier* proxy )
 
 	int fd = socket_connect( &proxy->connect_to.generic, connect_from );
 	uint64_t size = 0;
+	uint32_t flags = 0;
 
 	if ( -1 == fd ) {
 		return 0;
 	}
 
-	if( !socket_nbd_read_hello( fd, &size ) ) {
+	if( !socket_nbd_read_hello( fd, &size, &flags ) ) {
 		WARN_IF_NEGATIVE(
 			sock_try_close( fd ),
 			"Couldn't close() after failed read of NBD hello on fd %i", fd
@@ -135,7 +136,7 @@ int proxy_connect_to_upstream( struct proxier* proxy )
 
 	proxy->upstream_fd = fd;
 	sock_set_nonblock( fd, 1 );
-	proxy_finish_connect_to_upstream( proxy, size );
+	proxy_finish_connect_to_upstream( proxy, size, flags );
 
 	return 1;
 }
@@ -191,7 +192,7 @@ error:
 	return;
 }
 
-void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size ) {
+void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size, uint32_t flags ) {
 
 	if ( proxy->upstream_size == 0 ) {
 		info( "Size of upstream image is %"PRIu64" bytes", size );
@@ -203,6 +204,17 @@ void proxy_finish_connect_to_upstream( struct proxier *proxy, uint64_t size ) {
 	}
 
 	proxy->upstream_size = size;
+	
+	if ( proxy->upstream_flags == 0 ) {
+		info( "Upstream transmission flags set to %"PRIu32"", flags );
+	} else if ( proxy->upstream_flags != flags ) {
+		warn(
+			"Upstream transmission flags changed from %"PRIu32" to %"PRIu32"",
+			proxy->upstream_flags, flags
+		);
+	}
+
+	proxy->upstream_flags = flags;
 
 	if ( AF_UNIX != proxy->connect_to.family ) {
 		if ( sock_set_tcp_nodelay( proxy->upstream_fd, 1 ) == -1 ) {
@@ -516,10 +528,17 @@ int proxy_read_init_from_upstream( struct proxier* proxy, int state )
 
 	if ( proxy->init.needle == proxy->init.size ) {
 		uint64_t upstream_size;
-		if ( !nbd_check_hello( (struct nbd_init_raw*) proxy->init.buf, &upstream_size ) ) {
+		uint32_t upstream_flags;
+		if ( !nbd_check_hello( (struct nbd_init_raw*) proxy->init.buf, &upstream_size, &upstream_flags ) ) {
 			warn( "Upstream sent invalid init" );
 			goto disconnect;
 		}
+
+		/* record the flags, and log the reconnection */
+		// TODO: Should we call this at all here?  We lose the
+		// upstream_size and flags otherwise, but then we can't
+		// renegotiate anyway.
+		// proxy_finish_connect_to_upstream( proxy, upstream_size, upstream_flags );
 
 		/* Currently, we only get disconnected from upstream (so needing to come
 		 * here) when we have an outstanding request. If that becomes false,
@@ -683,7 +702,7 @@ void proxy_session( struct proxier* proxy )
 
 
 	/* First action: Write hello to downstream */
-	nbd_hello_to_buf( (struct nbd_init_raw *) proxy->rsp.buf, proxy->upstream_size );
+	nbd_hello_to_buf( (struct nbd_init_raw *) proxy->rsp.buf, proxy->upstream_size, proxy->upstream_flags );
 	proxy->rsp.size = sizeof( struct nbd_init_raw );
 	proxy->rsp.needle = 0;
 	state = WRITE_TO_DOWNSTREAM;
