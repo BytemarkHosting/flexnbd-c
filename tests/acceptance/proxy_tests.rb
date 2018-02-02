@@ -114,7 +114,7 @@ module ProxyTests
       sc2.write_data( b * 4096 )
 
       # Check it to make sure it's correct
-      rsp = timeout(15) { client.read_response }
+      rsp = Timeout.timeout(15) { client.read_response }
       assert_equal ::FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
       assert_equal req1[:handle], rsp[:handle]
@@ -163,7 +163,7 @@ module ProxyTests
       sc2.write_reply( req2[:handle] )
 
       # Check it to make sure it's correct
-      rsp = timeout(15) { client.read_response }
+      rsp = Timeout.timeout(15) { client.read_response }
       assert_equal ::FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
       assert_equal req1[:handle], rsp[:handle]
@@ -178,7 +178,7 @@ module ProxyTests
 
       c2 = nil
       assert_raises(Timeout::Error) do
-        timeout(1) do
+        Timeout.timeout(1) do
           c2 = FlexNBD::FakeSource.new(@env.ip, @env.port2, "Couldn't connect to proxy (2)")
           c2.read_hello
         end
