@@ -1,6 +1,7 @@
 require 'test/unit'
 require 'environment'
 require 'flexnbd/fake_source'
+require 'pp'
 
 class TestServeMode < Test::Unit::TestCase
 
@@ -21,8 +22,11 @@ class TestServeMode < Test::Unit::TestCase
     client = FlexNBD::FakeSource.new(@env.ip, @env.port1, "Connecting to server failed")
     begin
       result = client.read_hello
-      assert_equal "NBDMAGIC", result[:magic]
+      assert_equal 'NBDMAGIC', result[:passwd]
+      assert_equal 0x00420281861253, result[:magic]
       assert_equal @env.file1.size, result[:size]
+      assert_equal 13, result[:flags]
+      assert_equal "\x0" * 124, result[:reserved]
       yield client
     ensure
       client.close rescue nil

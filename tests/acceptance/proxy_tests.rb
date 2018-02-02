@@ -15,7 +15,7 @@ module ProxyTests
     begin
 
       result = client.read_hello
-      assert_equal "NBDMAGIC", result[:magic]
+      assert_equal "NBDMAGIC", result[:passwd]
       assert_equal override_size || @env.file1.size, result[:size]
 
       yield client

@@ -28,21 +28,19 @@ module FlexNBD
       @sock.close
     end
 
+    def read_hello
+      timing_out(::FlexNBD::MS_HELLO_TIME_SECS,
+                 'Timed out waiting for hello.') do
+        fail 'No hello.' unless (hello = @sock.read(152)) &&
+                                hello.length == 152
 
-    def read_hello()
-      timing_out( ::FlexNBD::MS_HELLO_TIME_SECS,
-                  "Timed out waiting for hello." ) do
-        fail "No hello." unless (hello = @sock.read( 152 )) &&
-          hello.length==152
+        passwd_s = hello[0..7]
+        magic    = hello[8..15].unpack('Q>').first
+        size     = hello[16..23].unpack('Q>').first
+        flags    = hello[24..27].unpack('L>').first
+        reserved = hello[28..-1]
 
-        magic_s = hello[0..7]
-        ignore_s= hello[8..15]
-        size_s  = hello[16..23]
-
-        size_h, size_l = size_s.unpack("NN")
-        size = (size_h << 32) + size_l
-
-        return { :magic => magic_s, :size => size }
+        return { passwd: passwd_s, magic: magic, size: size, flags: flags, reserved: reserved }
       end
     end
 
