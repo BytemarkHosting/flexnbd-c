@@ -106,10 +106,11 @@ int socket_nbd_write_hello( int fd, off64_t out_size, uint32_t out_flags )
 	return 1;
 }
 
-void fill_request(struct nbd_request *request, int type, uint64_t from, uint32_t len)
+void fill_request(struct nbd_request *request, uint16_t type, uint16_t flags, uint64_t from, uint32_t len)
 {
 	request->magic  = htobe32(REQUEST_MAGIC);
-	request->type   = htobe32(type);
+	request->type   = htobe16(type);
+	request->flags  = htobe16(flags);
 	request->handle.w = (((uint64_t)rand()) << 32) | ((uint64_t)rand());
 	request->from   = htobe64(from);
 	request->len    = htobe32(len);
@@ -158,7 +159,7 @@ void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd, void* out_
 	struct nbd_request request;
 	struct nbd_reply   reply;
 
-	fill_request(&request, REQUEST_READ, from, len);
+	fill_request(&request, REQUEST_READ, 0, from, len);
 	FATAL_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
 
@@ -182,7 +183,7 @@ void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd, void* in_b
 	struct nbd_request request;
 	struct nbd_reply   reply;
 
-	fill_request(&request, REQUEST_WRITE, from, len);
+	fill_request(&request, REQUEST_WRITE, 0, from, len);
 	ERROR_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
 
@@ -207,7 +208,7 @@ int socket_nbd_disconnect( int fd )
 	int success = 1;
 	struct nbd_request request;
 
-	fill_request( &request, REQUEST_DISCONNECT, 0, 0 );
+	fill_request( &request, REQUEST_DISCONNECT, 0, 0, 0 );
 	/* FIXME: This shouldn't be a FATAL error.  We should just drop
 	 * the mirror without affecting the main server.
 	 */
