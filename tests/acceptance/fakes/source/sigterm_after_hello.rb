@@ -9,10 +9,10 @@ include FlexNBD
 
 addr, port, pid = *ARGV
 
-client = FakeSource.new( addr, port, "Timed out connecting." )
+client = FakeSource.new(addr, port, 'Timed out connecting.')
 client.read_hello
 
-Process.kill( "TERM", pid.to_i )
+Process.kill('TERM', pid.to_i)
 
 sleep(0.2)
 client.close

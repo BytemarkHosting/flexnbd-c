@@ -10,12 +10,12 @@ require 'flexnbd/fake_dest'
 include FlexNBD
 
 addr, port = *ARGV
-server = FakeDest.new( addr, port )
-client = server.accept( "Timed out waiting for a connection" )
+server = FakeDest.new(addr, port)
+client = server.accept('Timed out waiting for a connection')
 client.write_hello
 client.close
 
-new_client = server.accept( "Timed out waiting for a reconnection" )
+new_client = server.accept('Timed out waiting for a reconnection')
 new_client.close
 
 server.close

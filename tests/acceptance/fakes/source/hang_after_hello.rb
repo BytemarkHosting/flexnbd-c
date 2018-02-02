@@ -7,10 +7,10 @@
 # listening for an incoming migration.
 
 addr, port = *ARGV
-require "flexnbd/fake_source"
+require 'flexnbd/fake_source'
 include FlexNBD
 
-client = FakeSource.new( addr, port, "Timed out connecting" )
+client = FakeSource.new(addr, port, 'Timed out connecting')
 client.read_hello
 
 # Now we do two things:
@@ -24,16 +24,16 @@ client.read_hello
 kidpid = fork do
   client.close
   new_client = nil
-  sleep( FlexNBD::CLIENT_MAX_WAIT_SECS + 1 )
-  new_client = FakeSource.new( addr, port, "Timed out reconnecting." )
+  sleep(FlexNBD::CLIENT_MAX_WAIT_SECS + 1)
+  new_client = FakeSource.new(addr, port, 'Timed out reconnecting.')
   new_client.read_hello
   exit 0
 end
 
 # Sleep for longer than the child, to give the flexnbd process a bit
 # of slop
-sleep( FlexNBD::CLIENT_MAX_WAIT_SECS + 3 )
+sleep(FlexNBD::CLIENT_MAX_WAIT_SECS + 3)
 client.close
 
-_,status = Process.waitpid2( kidpid )
+_, status = Process.waitpid2(kidpid)
 exit status.exitstatus

@@ -11,10 +11,10 @@ include FlexNBD
 
 addr, port, srv_pid = *ARGV
 
-client = FakeSource.new( addr, port, "Timed out connecting" )
+client = FakeSource.new(addr, port, 'Timed out connecting')
 client.read_hello
-client.write_write_request( 0, 8 )
-client.write_data( "12345678" )
+client.write_write_request(0, 8)
+client.write_data('12345678')
 
 # Use system "kill" rather than Process.kill because Process.kill
 # doesn't seem to work
@@ -25,12 +25,11 @@ client.close
 
 system "kill -CONT #{srv_pid}"
 
-
 sleep(0.25)
 
 begin
-  client2 = FakeSource.new( addr, port, "Expected timeout" )
-  fail "Unexpected reconnection"
+  client2 = FakeSource.new(addr, port, 'Expected timeout')
+  raise 'Unexpected reconnection'
 rescue Timeout::Error
   # expected
 end
