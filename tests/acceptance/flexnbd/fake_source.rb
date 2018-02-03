@@ -53,6 +53,10 @@ module FlexNBD
     def write_write_request(from, len, handle = 'myhandle')
       send_request(1, handle, from, len)
     end
+    
+    def write_flush_request(handle = 'myhandle')
+      send_request(3, handle, 0, 0)
+    end
 
     def write_entrust_request(handle = 'myhandle')
       send_request(65_536, handle)
@@ -93,6 +97,10 @@ module FlexNBD
     def write(from, data)
       write_write_request(from, data.length)
       write_data(data)
+    end
+
+    def flush
+      write_flush_request
     end
 
     def read_response

@@ -24,7 +24,9 @@ class TestServeMode < Test::Unit::TestCase
       assert_equal 'NBDMAGIC', result[:passwd]
       assert_equal 0x00420281861253, result[:magic]
       assert_equal @env.file1.size, result[:size]
-      assert_equal 13, result[:flags]
+      # See src/common/nbdtypes.h for the various flags. At the moment we
+      # support HAS_FLAGS (1), SEND_FLUSH (4), SEND_FUA (8)
+      assert_equal (1 | 4 | 8), result[:flags]
       assert_equal "\x0" * 124, result[:reserved]
       yield client
     ensure
@@ -104,6 +106,16 @@ class TestServeMode < Test::Unit::TestCase
       client.write(0, "\x00" * @env.file1.size)
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+    end
+  end
+
+  def test_flush_is_accepted
+    connect_to_server do |client|
+      # Start with a file of all-zeroes.
+      client.flush
+      rsp = client.read_response
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 0, rsp[:error]
     end
   end
 end
