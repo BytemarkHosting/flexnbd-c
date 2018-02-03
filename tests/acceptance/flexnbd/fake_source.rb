@@ -40,11 +40,12 @@ module FlexNBD
       end
     end
 
-    def send_request(type, handle = 'myhandle', from = 0, len = 0, magic = REQUEST_MAGIC)
+    def send_request(type, handle = 'myhandle', from = 0, len = 0, magic = REQUEST_MAGIC, flags = 0)
       raise 'Bad handle' unless handle.length == 8
 
       @sock.write(magic)
-      @sock.write([type].pack('N'))
+      @sock.write([flags].pack('n'))
+      @sock.write([type].pack('n'))
       @sock.write(handle)
       @sock.write([n64(from)].pack('q'))
       @sock.write([len].pack('N'))
@@ -53,7 +54,11 @@ module FlexNBD
     def write_write_request(from, len, handle = 'myhandle')
       send_request(1, handle, from, len)
     end
-    
+
+    def write_write_request_with_fua(from, len, handle = 'myhandle')
+      send_request(1, handle, from, len, REQUEST_MAGIC, 1)
+    end
+
     def write_flush_request(handle = 'myhandle')
       send_request(3, handle, 0, 0)
     end
@@ -96,6 +101,11 @@ module FlexNBD
 
     def write(from, data)
       write_write_request(from, data.length)
+      write_data(data)
+    end
+
+    def write_with_fua(from, data)
+      write_write_request_with_fua(from, data.length)
       write_data(data)
     end
 

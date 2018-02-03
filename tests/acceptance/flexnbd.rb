@@ -195,6 +195,7 @@ module FlexNBD
       @ctrl = "/tmp/.flexnbd.ctrl.#{Time.now.to_i}.#{rand}"
       @ip = ip
       @port = port
+      @pid = @wait_thread = nil
       @kill = []
       @prefetch_proxy = false
     end

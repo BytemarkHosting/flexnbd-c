@@ -1,7 +1,6 @@
 require 'test/unit'
 require 'environment'
 require 'flexnbd/fake_source'
-require 'pp'
 
 class TestServeMode < Test::Unit::TestCase
   def setup
@@ -113,6 +112,16 @@ class TestServeMode < Test::Unit::TestCase
     connect_to_server do |client|
       # Start with a file of all-zeroes.
       client.flush
+      rsp = client.read_response
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 0, rsp[:error]
+    end
+  end
+
+  def test_write_with_fua_is_accepted
+    connect_to_server do |client|
+      # Start with a file of all-zeroes.
+      client.write_with_fua(0, "\x00" * @env.file1.size)
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
