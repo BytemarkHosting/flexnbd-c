@@ -481,7 +481,7 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 	if (request.flags & CMD_FLAG_FUA)
 	{
 		/* multiple of 4K page size */
-		uint64_t from_rounded = request.from & (!0xfff);
+		uint64_t from_rounded = request.from & (~0xfff);
 		uint64_t len_rounded = request.len + (request.from - from_rounded);
 		debug("Calling msync from=%"PRIu64", len=%"PRIu64"",from_rounded, len_rounded);
 
