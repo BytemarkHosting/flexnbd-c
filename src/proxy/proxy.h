@@ -46,7 +46,7 @@ struct proxier {
 	/* This is the size we advertise to the downstream server */
 	uint64_t          upstream_size;
 
-	/* These are thet transmission flags sent as part of the handshake */
+	/* These are the transmission flags sent as part of the handshake */
 	uint32_t          upstream_flags;
 
 	/* We transform the raw request header into here */
