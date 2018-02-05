@@ -471,8 +471,8 @@ int proxy_read_from_downstream( struct proxier *proxy, int state )
 
 	if ( proxy->req.needle == proxy->req.size ) {
 		debug(
-			"Received NBD request from downstream. type=%"PRIu32" from=%"PRIu64" len=%"PRIu32,
-			request->type, request->from, request->len
+			"Received NBD request from downstream. type=%"PRIu16" flags=%"PRIu16" from=%"PRIu64" len=%"PRIu32,
+			request->type, request->flags, request->from, request->len
 		);
 
 		/* Finished reading, so advance state. Leave size untouched so the next
