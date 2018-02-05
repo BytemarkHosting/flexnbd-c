@@ -500,7 +500,7 @@ void client_reply_to_flush( struct client* client, struct nbd_request request )
 	debug("request flush from=%"PRIu64", len=%"PRIu32", handle=0x%08X", request.from, request.len, request.handle);
 
 	ERROR_IF_NEGATIVE(
-		fsync(client->fileno),
+		msync(client->mapped, client->mapped_size, MS_SYNC | MS_INVALIDATE),
 		"flush failed"
 	);
 
@@ -697,7 +697,7 @@ void* client_serve(void* client_uncast)
 		open_and_mmap(
 			client->serve->filename,
 			&client->fileno,
-			NULL,
+			&client->mapped_size,
 			(void**) &client->mapped
 		),
 		"Couldn't open/mmap file %s: %s", client->serve->filename, strerror( errno )
