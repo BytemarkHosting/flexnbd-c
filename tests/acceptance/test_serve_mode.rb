@@ -7,8 +7,6 @@ class TestServeMode < Test::Unit::TestCase
     super
     @b = "\xFF".b
     @env = Environment.new
-    @env.writefile1('0')
-    @env.serve1
   end
 
   def teardown
@@ -17,6 +15,8 @@ class TestServeMode < Test::Unit::TestCase
   end
 
   def connect_to_server
+    @env.writefile1('0')
+    @env.serve1
     client = FlexNBD::FakeSource.new(@env.ip, @env.port1, 'Connecting to server failed')
     begin
       result = client.read_hello
@@ -119,10 +119,7 @@ class TestServeMode < Test::Unit::TestCase
 
   def test_write_with_fua_is_accepted
     page_size = Integer(`getconf PAGESIZE`)
-    @env = Environment.new
     @env.blocksize = page_size * 10
-    @env.writefile1('0')
-    @env.serve1
     connect_to_server do |client|
       # Write somewhere in the third page
       pos = page_size * 3 + 100
