@@ -7,6 +7,8 @@ class Environment
 
   def initialize
     # Make sure we have a few pages of memory so we can test msync offsets
+    # NB If you change this, you need to match it in the flexnbd/fake_dest
+    # Flexnbd::FakeDest::Client#write_hello
     @blocksize = Integer(`getconf PAGE_SIZE`) * 4
     @filename1 = "/tmp/.flexnbd.test.#{$PROCESS_ID}.#{Time.now.to_i}.1"
     @filename2 = "/tmp/.flexnbd.test.#{$PROCESS_ID}.#{Time.now.to_i}.2"

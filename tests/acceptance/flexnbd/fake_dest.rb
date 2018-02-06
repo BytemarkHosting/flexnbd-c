@@ -22,7 +22,7 @@ module FlexNBD
         if opts[:size] == :wrong
           write_rand(@sock, 8)
         else
-          @sock.write("\x00\x00\x00\x00\x00\x00\x10\x00")
+          @sock.write("\x00\x00\x00\x00\x00\x01\x00\x00")
         end
 
         @sock.write("\x00" * 128)
