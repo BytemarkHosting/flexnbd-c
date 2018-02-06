@@ -534,11 +534,8 @@ int proxy_read_init_from_upstream( struct proxier* proxy, int state )
 			goto disconnect;
 		}
 
-		/* record the flags, and log the reconnection */
-		// TODO: Should we call this at all here?  We lose the
-		// upstream_size and flags otherwise, but then we can't
-		// renegotiate anyway.
-		// proxy_finish_connect_to_upstream( proxy, upstream_size, upstream_flags );
+		/* record the flags, and log the reconnection, set TCP_NODELAY */
+		proxy_finish_connect_to_upstream( proxy, upstream_size, upstream_flags );
 
 		/* Currently, we only get disconnected from upstream (so needing to come
 		 * here) when we have an outstanding request. If that becomes false,
