@@ -110,7 +110,6 @@ class TestServeMode < Test::Unit::TestCase
 
   def test_flush_is_accepted
     connect_to_server do |client|
-      # Start with a file of all-zeroes.
       client.flush
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
@@ -119,12 +118,21 @@ class TestServeMode < Test::Unit::TestCase
   end
 
   def test_write_with_fua_is_accepted
+    page_size = Integer(`getconf PAGESIZE`)
     connect_to_server do |client|
-      # Start with a file of all-zeroes.
-      client.write_with_fua(0, "\x00" * @env.file1.size)
+      # Write somewhere in the third page
+      pos = page_size * 3 + 100
+      client.write_with_fua(pos, "\x00" * 33)
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
+      # TODO: test offset and length
+      # Should be rounded to the third page
+      # assert_equal(msync_offset, page_size *3)
+
+      # Should be 100 + 33, as we've started writing 100 bytes into a page, for
+      # 33 bytes
+      # assert_equal(msync_length, 133)
     end
   end
 end

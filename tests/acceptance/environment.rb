@@ -6,7 +6,8 @@ class Environment
               :port1, :port2, :nbd1, :nbd2, :file1, :file2)
 
   def initialize
-    @blocksize = 1024
+    # Make sure we have a few pages of memory so we can test msync offsets
+    @blocksize = Integer(`getconf PAGE_SIZE`) * 4
     @filename1 = "/tmp/.flexnbd.test.#{$PROCESS_ID}.#{Time.now.to_i}.1"
     @filename2 = "/tmp/.flexnbd.test.#{$PROCESS_ID}.#{Time.now.to_i}.2"
     @ip = '127.0.0.1'

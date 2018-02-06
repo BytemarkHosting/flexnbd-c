@@ -480,8 +480,8 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 	// Only flush if FUA is set
 	if (request.flags & CMD_FLAG_FUA)
 	{
-		/* multiple of 4K page size */
-		uint64_t from_rounded = request.from & (~0xfff);
+		/* multiple of page size */
+		uint64_t from_rounded = request.from & (~(sysconf(_SC_PAGE_SIZE)-1));
 		uint64_t len_rounded = request.len + (request.from - from_rounded);
 		debug("Calling msync from=%"PRIu64", len=%"PRIu64"",from_rounded, len_rounded);
 
