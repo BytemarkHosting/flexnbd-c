@@ -119,6 +119,10 @@ class TestServeMode < Test::Unit::TestCase
 
   def test_write_with_fua_is_accepted
     page_size = Integer(`getconf PAGESIZE`)
+    @env = Environment.new
+    @env.blocksize = page_size * 10
+    @env.writefile1('0')
+    @env.serve1
     connect_to_server do |client|
       # Write somewhere in the third page
       pos = page_size * 3 + 100

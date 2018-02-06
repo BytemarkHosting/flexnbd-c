@@ -6,10 +6,7 @@ class Environment
               :port1, :port2, :nbd1, :nbd2, :file1, :file2)
 
   def initialize
-    # Make sure we have a few pages of memory so we can test msync offsets
-    # NB If you change this, you need to match it in the flexnbd/fake_dest
-    # Flexnbd::FakeDest::Client#write_hello
-    @blocksize = Integer(`getconf PAGE_SIZE`) * 4
+    @blocksize = 1024
     @filename1 = "/tmp/.flexnbd.test.#{$PROCESS_ID}.#{Time.now.to_i}.1"
     @filename2 = "/tmp/.flexnbd.test.#{$PROCESS_ID}.#{Time.now.to_i}.2"
     @ip = '127.0.0.1'
@@ -20,6 +17,11 @@ class Environment
     @nbd2 = FlexNBD::FlexNBD.new('../../build/flexnbd', @ip, @port2)
 
     @fake_pid = nil
+  end
+
+  def blocksize=(b)
+    raise RuntimeError, "Unable to change blocksize after files have been opened" if @file1 or @file2
+    @blocksize = b
   end
 
   def prefetch_proxy!
