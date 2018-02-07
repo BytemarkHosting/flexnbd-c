@@ -85,7 +85,8 @@ check: $(OBJS) $(CHECK_BINS)
 	r=true ; for bin in $(CHECK_BINS); do $$bin || r=false; done ; $$r
 
 acceptance: build
-	cd tests/acceptance && RUBYOPT='-I.' ruby nbd_scenarios -v
+	$(MAKE) -C tests/acceptance/ld_preloads all
+	cd tests/acceptance && LD_PRELOADS=$$(echo ld_preloads/*.o) RUBYOPT='-I.' ruby nbd_scenarios -v
 
 test: check acceptance
 
@@ -108,6 +109,7 @@ install:
 
 clean:
 	rm -rf build/*
+	$(RM) $(LD_PRELOAD_OBJ)
 
 
 .PHONY: clean objs check_objs all server proxy check_bins check doc build test acceptance

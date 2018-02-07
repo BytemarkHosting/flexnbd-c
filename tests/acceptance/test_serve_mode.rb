@@ -1,6 +1,7 @@
 require 'test/unit'
 require 'environment'
 require 'flexnbd/fake_source'
+require 'tempfile'
 
 class TestServeMode < Test::Unit::TestCase
   def setup
@@ -11,6 +12,7 @@ class TestServeMode < Test::Unit::TestCase
 
   def teardown
     @env.cleanup
+    teardown_msync_catcher
     super
   end
 
@@ -35,6 +37,26 @@ class TestServeMode < Test::Unit::TestCase
         nil
       end
     end
+  end
+
+  def setup_msync_catcher
+    @msync_catcher = Tempfile.new('msync')
+    ENV['MSYNC_CATCHER_OUTPUT'] = @msync_catcher.path
+  end
+  
+  def parse_msync_output
+    op = []
+    until @msync_catcher.eof?
+      op << @msync_catcher.readline.chomp.split(':').map do |e|
+        e =~ /^\d+$/ ? e.to_i : e
+      end
+    end
+    op
+  end
+
+  def teardown_msync_catcher
+    @msync_catcher.close if @msync_catcher
+    ENV.delete 'MSYNC_CATCHER_OUTPUT'
   end
 
   def test_bad_request_magic_receives_error_response
@@ -109,15 +131,21 @@ class TestServeMode < Test::Unit::TestCase
   end
 
   def test_flush_is_accepted
+    setup_msync_catcher
     connect_to_server do |client|
       client.flush
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
     end
+    op = parse_msync_output
+    assert_equal 1, op.count, 'Only one msync expected'
+    assert_equal @env.blocksize, op.first[2], 'msync length wrong'
+    assert_equal 6, op.first[3], 'msync called with incorrect flags'
   end
 
   def test_write_with_fua_is_accepted
+    setup_msync_catcher
     page_size = Integer(`getconf PAGESIZE`)
     @env.blocksize = page_size * 10
     connect_to_server do |client|
@@ -127,13 +155,15 @@ class TestServeMode < Test::Unit::TestCase
       rsp = client.read_response
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 0, rsp[:error]
-      # TODO: test offset and length
-      # Should be rounded to the third page
-      # assert_equal(msync_offset, page_size *3)
-
-      # Should be 100 + 33, as we've started writing 100 bytes into a page, for
-      # 33 bytes
-      # assert_equal(msync_length, 133)
     end
+
+    op = parse_msync_output
+    assert_equal 1, op.count, 'Only one msync expected'
+
+    # Should be 100 + 33, as we've started writing 100 bytes into a page, for
+    # 33 bytes
+    assert_equal 133, op.first[2], 'msync length wrong'
+    assert_equal 6, op.first[3], 'msync called with incorrect flags'
   end
+
 end
