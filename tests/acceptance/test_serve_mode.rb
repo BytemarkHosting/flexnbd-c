@@ -40,10 +40,17 @@ class TestServeMode < Test::Unit::TestCase
   end
 
   def setup_msync_catcher
+    `make -C ld_preloads/ msync_catcher.o`
+    omit 'LD_PRELOAD library not found' unless
+      File.exist?('ld_preloads/msync_catcher.o')
+
     @msync_catcher = Tempfile.new('msync')
     ENV['MSYNC_CATCHER_OUTPUT'] = @msync_catcher.path
+
+    @ld_preload_orig = ENV['LD_PRELOAD']
+    ENV['LD_PRELOAD'] = 'ld_preloads/msync_catcher.o'
   end
-  
+
   def parse_msync_output
     op = []
     until @msync_catcher.eof?
@@ -56,7 +63,9 @@ class TestServeMode < Test::Unit::TestCase
 
   def teardown_msync_catcher
     @msync_catcher.close if @msync_catcher
+
     ENV.delete 'MSYNC_CATCHER_OUTPUT'
+    ENV['LD_PRELOAD'] = @ld_preload_orig
   end
 
   def test_bad_request_magic_receives_error_response
