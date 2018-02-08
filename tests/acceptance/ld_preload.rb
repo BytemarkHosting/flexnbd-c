@@ -33,4 +33,10 @@ module LdPreload
       @ld_preload_logs[obj_name].eof?
     lines
   end
+
+  def parse_ld_preload_logs(obj_name)
+    read_ld_preload_log(obj_name).map do |l|
+      l.split(':').map { |i| i =~ /^\d+$/ ? i.to_i : i }
+    end
+  end
 end

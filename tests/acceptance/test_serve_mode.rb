@@ -40,12 +40,6 @@ class TestServeMode < Test::Unit::TestCase
     end
   end
 
-  def parse_msync_logs
-    read_ld_preload_log('msync_logger').map do |l|
-      l.split(':').map { |i| i =~ /^\d+$/ ? i.to_i : i }
-    end
-  end
-
   def test_bad_request_magic_receives_error_response
     connect_to_server do |client|
       # replace REQUEST_MAGIC with all 0s to make it look bad
@@ -145,7 +139,7 @@ class TestServeMode < Test::Unit::TestCase
         assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
         assert_equal 0, rsp[:error]
       end
-      op = parse_msync_logs
+      op = parse_ld_preload_logs('msync_logger')
       assert_equal 1, op.count, 'Only one msync expected'
       assert_equal @env.blocksize, op.first[2], 'msync length wrong'
       assert_equal 6, op.first[3], 'msync called with incorrect flags'
@@ -165,7 +159,7 @@ class TestServeMode < Test::Unit::TestCase
         assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
         assert_equal 0, rsp[:error]
       end
-      op = parse_msync_logs
+      op = parse_ld_preload_logs('msync_logger')
 
       assert_equal 1, op.count, 'Only one msync expected'
 
@@ -188,6 +182,17 @@ class TestServeMode < Test::Unit::TestCase
       assert_equal 0x00420281861253, result[:magic]
       assert_equal 1024, result[:size]
       client.close
+    end
+  end
+
+  def test_server_sets_tcpkeepalive
+    with_ld_preload('setsockopt_logger') do
+      connect_to_server(&:close)
+      op = parse_ld_preload_logs('setsockopt_logger')
+      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1, 0] }, 'TCP Keepalive not successfully set')
+      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_TCP, Socket::TCP_KEEPIDLE, 30, 0] },  'TCP Keepalive idle timeout not set to 30s')
+      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_TCP, Socket::TCP_KEEPINTVL, 10, 0] }, 'TCP keepalive retry time not set to 10s')
+      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_TCP, Socket::TCP_KEEPCNT, 3, 0] }, 'TCP keepalive count not set to 3')
     end
   end
 end
