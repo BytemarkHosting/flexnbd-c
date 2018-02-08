@@ -14,8 +14,8 @@ require 'flexnbd/fake_dest'
 include FlexNBD
 
 addr, port = *ARGV
-server = FakeDest.new( addr, port )
-client = server.accept( "Client didn't make a connection" )
+server = FakeDest.new(addr, port)
+client = server.accept("Client didn't make a connection")
 
 # Sleep for one second past the timeout (a bit of slop in case ruby
 # doesn't launch things quickly)
@@ -26,10 +26,10 @@ client.close
 # Invert the sense of the timeout exception, since we *don't* want a
 # connection attempt
 begin
-  server.accept( "Expected timeout" )
-  fail "Unexpected reconnection"
+  server.accept('Expected timeout')
+  raise 'Unexpected reconnection'
 rescue Timeout::Error
-  # expected 
+  # expected
 end
 
 server.close

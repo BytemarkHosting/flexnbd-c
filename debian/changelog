@@ -1,4 +1,4 @@
-flexnbd (0.1.8) UNRELEASED; urgency=medium
+flexnbd (0.2.0) UNRELEASED; urgency=medium
 
   [ James Carter ]
   * Set TCP keepalive on sockets so broken connections are reaped (#33, !33,
@@ -7,6 +7,9 @@ flexnbd (0.1.8) UNRELEASED; urgency=medium
 
   [ Chris Cottam ]
   * Increased NBD_MAX_SIZE from 1MB to 32MB for qemu 2.11 (!35)
+
+  [ Patrick J Cherry ]
+  * Added FLUSH and FUA support (!38) 
 
  -- James Carter <james.carter@bytemark.co.uk>  Thu, 11 Jan 2018 10:05:35 +0000
 

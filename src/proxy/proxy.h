@@ -46,10 +46,13 @@ struct proxier {
 	/* This is the size we advertise to the downstream server */
 	uint64_t          upstream_size;
 
+	/* These are the transmission flags sent as part of the handshake */
+	uint32_t          upstream_flags;
+
 	/* We transform the raw request header into here */
 	struct nbd_request req_hdr;
 
-    /* We transform the raw reply header into here */
+	/* We transform the raw reply header into here */
 	struct nbd_reply   rsp_hdr;
 
 	/* Used for our non-blocking negotiation with upstream. TODO: maybe use

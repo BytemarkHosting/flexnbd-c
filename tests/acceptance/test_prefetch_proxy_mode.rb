@@ -2,7 +2,6 @@ require 'test/unit'
 require 'environment'
 require 'proxy_tests'
 
-
 class TestPrefetchProxyMode < Test::Unit::TestCase
   include ProxyTests
 
@@ -10,7 +9,7 @@ class TestPrefetchProxyMode < Test::Unit::TestCase
     super
     @env = Environment.new
     @env.prefetch_proxy!
-    @env.writefile1( "f" * 16 )
+    @env.writefile1('f' * 16)
   end
 
   def teardown
@@ -18,5 +17,3 @@ class TestPrefetchProxyMode < Test::Unit::TestCase
     super
   end
 end
-
-

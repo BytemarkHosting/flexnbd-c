@@ -293,7 +293,8 @@ int mirror_connect( struct mirror * mirror, uint64_t local_size )
 
 		if( FD_ISSET( mirror->client, &fds ) ){
 			uint64_t remote_size;
-			if ( socket_nbd_read_hello( mirror->client, &remote_size ) ) {
+			uint32_t remote_flags;
+			if ( socket_nbd_read_hello( mirror->client, &remote_size, &remote_flags ) ) {
 				if( remote_size == local_size ){
 					connected = 1;
 					mirror_set_state( mirror, MS_GO );

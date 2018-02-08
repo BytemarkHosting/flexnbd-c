@@ -3,6 +3,7 @@
 
 #include <signal.h>
 #include <time.h>
+#include <inttypes.h>
 
 /** CLIENT_HANDLER_TIMEOUT
  * This is the length of time (in seconds) any request can be outstanding for.
@@ -30,6 +31,8 @@ struct client {
 
 	int     fileno;
 	char*   mapped;
+
+	uint64_t  mapped_size;
 
 	struct self_pipe * stop_signal;
 

@@ -307,7 +307,11 @@ void client_write_init( struct client * client, uint64_t size )
 	memcpy( init.passwd, INIT_PASSWD, sizeof( init.passwd ) );
 	init.magic = INIT_MAGIC;
 	init.size = size;
-	memset( init.reserved, 0, 128 );
+	/* As more features are implemented, this is the place to advertise
+	 * them.
+	 */
+	init.flags = FLAG_HAS_FLAGS | FLAG_SEND_FLUSH | FLAG_SEND_FUA;
+	memset( init.reserved, 0, 124 );
 
 	nbd_h2r_init( &init, &init_raw );
 
@@ -383,8 +387,8 @@ int client_request_needs_reply( struct client * client,
 	}
 
 	debug(
-		"request type=%"PRIu32", from=%"PRIu64", len=%"PRIu32", handle=0x%08X",
-		request.type, request.from, request.len, request.handle
+		"request type=%"PRIu16", flags=%"PRIu16", from=%"PRIu64", len=%"PRIu32", handle=0x%08X",
+		request.type, request.flags, request.from, request.len, request.handle
 	);
 
 	/* check it's not out of range */
@@ -411,7 +415,8 @@ int client_request_needs_reply( struct client * client,
 		debug("request disconnect");
 		client->disconnect = 1;
 		return 0;
-
+	case REQUEST_FLUSH:
+		break;
 	default:
 		fatal("Unknown request 0x%08X", request.type);
 	}
@@ -472,11 +477,13 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 		bitset_set_range(client->serve->allocation_map, request.from, request.len);
 	}
 
-	if (1) /* not sure whether this is necessary... */
+	// Only flush if FUA is set
+	if (request.flags & CMD_FLAG_FUA)
 	{
-		/* multiple of 4K page size */
-		uint64_t from_rounded = request.from & (!0xfff);
+		/* multiple of page size */
+		uint64_t from_rounded = request.from & (~(sysconf(_SC_PAGE_SIZE)-1));
 		uint64_t len_rounded = request.len + (request.from - from_rounded);
+		debug("Calling msync from=%"PRIu64", len=%"PRIu64"",from_rounded, len_rounded);
 
 		FATAL_IF_NEGATIVE(
 			msync( client->mapped + from_rounded,
@@ -488,6 +495,17 @@ void client_reply_to_write( struct client* client, struct nbd_request request )
 	client_write_reply( client, &request, 0);
 }
 
+void client_reply_to_flush( struct client* client, struct nbd_request request ) 
+{
+	debug("request flush from=%"PRIu64", len=%"PRIu32", handle=0x%08X", request.from, request.len, request.handle);
+
+	ERROR_IF_NEGATIVE(
+		msync(client->mapped, client->mapped_size, MS_SYNC | MS_INVALIDATE),
+		"flush failed"
+	);
+
+	client_write_reply( client, &request, 0);
+}
 
 void client_reply( struct client* client, struct nbd_request request )
 {
@@ -497,6 +515,9 @@ void client_reply( struct client* client, struct nbd_request request )
 		break;
 	case REQUEST_WRITE:
 		client_reply_to_write( client, request );
+		break;
+	case REQUEST_FLUSH:
+		client_reply_to_flush( client, request );
 		break;
 	}
 }
@@ -676,7 +697,7 @@ void* client_serve(void* client_uncast)
 		open_and_mmap(
 			client->serve->filename,
 			&client->fileno,
-			NULL,
+			&client->mapped_size,
 			(void**) &client->mapped
 		),
 		"Couldn't open/mmap file %s: %s", client->serve->filename, strerror( errno )

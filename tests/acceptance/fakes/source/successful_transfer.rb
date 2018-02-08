@@ -9,10 +9,9 @@ include FlexNBD
 
 addr, port, srv_pid, newaddr, newport = *ARGV
 
-client  = FakeSource.new( addr, port, "Timed out connecting" )
-client.send_mirror()
+client = FakeSource.new(addr, port, 'Timed out connecting')
+client.send_mirror
 
 sleep(1)
 
-
-exit( 0 )
+exit(0)

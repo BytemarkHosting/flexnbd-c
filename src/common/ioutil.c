@@ -85,7 +85,7 @@ int open_and_mmap(const char* filename, int* out_fd, uint64_t *out_size, void **
 	off64_t size;
 
 	/* O_DIRECT should not be used with mmap() */
-	*out_fd = open(filename, O_RDWR | O_SYNC );
+	*out_fd = open(filename, O_RDWR | O_NOATIME );
 
 	if (*out_fd < 1) {
 		warn("open(%s) failed: does it exist?", filename);

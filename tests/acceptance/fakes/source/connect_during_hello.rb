@@ -10,9 +10,9 @@ include FlexNBD
 
 addr, port = *ARGV
 
-client1 = FakeSource.new( addr, port, "Timed out connecting" )
+client1 = FakeSource.new(addr, port, 'Timed out connecting')
 sleep(0.25)
-client2 = FakeSource.new( addr, port, "Timed out connecting a second time" )
+client2 = FakeSource.new(addr, port, 'Timed out connecting a second time')
 
 # This is the expected source crashing after connect
 client1.close

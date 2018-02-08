@@ -8,8 +8,8 @@ require 'flexnbd/fake_dest'
 include FlexNBD
 
 addr, port, pid = *ARGV
-server = FakeDest.new( addr, port )
-client = server.accept( "Timed out waiting for a connection" )
+server = FakeDest.new(addr, port)
+client = server.accept('Timed out waiting for a connection')
 client.write_hello
 
 Process.kill(15, pid.to_i)

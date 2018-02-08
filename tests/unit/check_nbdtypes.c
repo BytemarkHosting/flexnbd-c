@@ -66,18 +66,35 @@ START_TEST(test_request_magic )
 }
 END_TEST
 
-START_TEST(test_request_type )
+START_TEST(test_request_type)
 {
 	struct nbd_request_raw request_raw;
 	struct nbd_request     request;
 
-	request_raw.type = 12345;
+	request_raw.type = 123;
 	nbd_r2h_request( &request_raw, &request );
-	fail_unless( be32toh( 12345 ) == request.type, "Type was not converted." );
+	fail_unless( be16toh( 123 ) == request.type, "Type was not converted." );
 
-	request.type = 67890;
+	request.type = 234;
 	nbd_h2r_request( &request, &request_raw );
-	fail_unless( htobe32( 67890 ) == request_raw.type, "Type was not converted back." );
+	fail_unless( htobe16( 234 ) == request_raw.type, "Type was not converted back." );
+}
+END_TEST
+
+
+
+START_TEST(test_request_flags)
+{
+	struct nbd_request_raw request_raw;
+	struct nbd_request     request;
+
+	request_raw.flags = 123;
+	nbd_r2h_request( &request_raw, &request );
+	fail_unless( be16toh( 123 ) == request.flags, "Flags were not converted." );
+
+	request.flags = 234;
+	nbd_h2r_request( &request, &request_raw );
+	fail_unless( htobe16( 234 ) == request_raw.flags, "Flags were not converted back." );
 }
 END_TEST
 

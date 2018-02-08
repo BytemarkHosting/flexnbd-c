@@ -41,7 +41,7 @@ int socket_connect(struct sockaddr* to, struct sockaddr* from)
 	return fd;
 }
 
-int nbd_check_hello( struct nbd_init_raw* init_raw, uint64_t* out_size )
+int nbd_check_hello( struct nbd_init_raw* init_raw, uint64_t* out_size, uint32_t* out_flags )
 {
 	if ( strncmp( init_raw->passwd, INIT_PASSWD, 8 ) != 0 ) {
 		warn( "wrong passwd" );
@@ -56,13 +56,17 @@ int nbd_check_hello( struct nbd_init_raw* init_raw, uint64_t* out_size )
 		*out_size = be64toh( init_raw->size );
 	}
 
+	if ( NULL != out_flags ) {
+		*out_flags = be32toh( init_raw->flags );
+	}
+
 	return 1;
 fail:
 	return 0;
 
 }
 
-int socket_nbd_read_hello( int fd, uint64_t* out_size )
+int socket_nbd_read_hello( int fd, uint64_t* out_size, uint32_t* out_flags )
 {
 	struct nbd_init_raw init_raw;
 
@@ -72,16 +76,17 @@ int socket_nbd_read_hello( int fd, uint64_t* out_size )
 		return 0;
 	}
 
-	return nbd_check_hello( &init_raw, out_size );
+	return nbd_check_hello( &init_raw, out_size, out_flags );
 }
 
-void nbd_hello_to_buf( struct nbd_init_raw *buf, off64_t out_size )
+void nbd_hello_to_buf( struct nbd_init_raw *buf, off64_t out_size, uint32_t out_flags )
 {
 	struct nbd_init init;
 
 	memcpy( &init.passwd, INIT_PASSWD, 8 );
 	init.magic  = INIT_MAGIC;
 	init.size   = out_size;
+	init.flags  = out_flags;
 
 	memset( buf, 0, sizeof( struct nbd_init_raw ) ); // ensure reserved is 0s
 	nbd_h2r_init( &init, buf );
@@ -89,10 +94,10 @@ void nbd_hello_to_buf( struct nbd_init_raw *buf, off64_t out_size )
 	return;
 }
 
-int socket_nbd_write_hello(int fd, off64_t out_size)
+int socket_nbd_write_hello( int fd, off64_t out_size, uint32_t out_flags )
 {
 	struct nbd_init_raw init_raw;
-	nbd_hello_to_buf( &init_raw, out_size );
+	nbd_hello_to_buf( &init_raw, out_size, out_flags );
 
 	if ( 0 > writeloop( fd, &init_raw, sizeof( init_raw ) ) ) {
 		warn( SHOW_ERRNO( "failed to write hello to socket" ) );
@@ -101,10 +106,11 @@ int socket_nbd_write_hello(int fd, off64_t out_size)
 	return 1;
 }
 
-void fill_request(struct nbd_request *request, int type, uint64_t from, uint32_t len)
+void fill_request(struct nbd_request *request, uint16_t type, uint16_t flags, uint64_t from, uint32_t len)
 {
 	request->magic  = htobe32(REQUEST_MAGIC);
-	request->type   = htobe32(type);
+	request->type   = htobe16(type);
+	request->flags  = htobe16(flags);
 	request->handle.w = (((uint64_t)rand()) << 32) | ((uint64_t)rand());
 	request->from   = htobe64(from);
 	request->len    = htobe32(len);
@@ -153,7 +159,7 @@ void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd, void* out_
 	struct nbd_request request;
 	struct nbd_reply   reply;
 
-	fill_request(&request, REQUEST_READ, from, len);
+	fill_request(&request, REQUEST_READ, 0, from, len);
 	FATAL_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
 
@@ -177,7 +183,7 @@ void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd, void* in_b
 	struct nbd_request request;
 	struct nbd_reply   reply;
 
-	fill_request(&request, REQUEST_WRITE, from, len);
+	fill_request(&request, REQUEST_WRITE, 0, from, len);
 	ERROR_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
 	  "Couldn't write request");
 
@@ -202,7 +208,7 @@ int socket_nbd_disconnect( int fd )
 	int success = 1;
 	struct nbd_request request;
 
-	fill_request( &request, REQUEST_DISCONNECT, 0, 0 );
+	fill_request( &request, REQUEST_DISCONNECT, 0, 0, 0 );
 	/* FIXME: This shouldn't be a FATAL error.  We should just drop
 	 * the mirror without affecting the main server.
 	 */
@@ -213,7 +219,8 @@ int socket_nbd_disconnect( int fd )
 
 #define CHECK_RANGE(error_type) { \
 	uint64_t size;\
-	int success = socket_nbd_read_hello(params->client, &size); \
+	uint32_t flags;\
+	int success = socket_nbd_read_hello(params->client, &size, &flags); \
 	if ( success ) {\
 		uint64_t endpoint = params->from + params->len; \
 		if (endpoint > size || \
