@@ -618,11 +618,6 @@ int proxy_read_from_upstream( struct proxier* proxy, int state )
 			goto disconnect;
 		}
 
-		if ( reply->error != 0 ) {
-			warn( "NBD error returned from upstream: %"PRIu32, reply->error );
-			goto disconnect;
-		}
-
 		if ( proxy->req_hdr.type == REQUEST_READ ) {
 			/* Get the read reply data too. */
 			proxy->rsp.size += proxy->req_hdr.len;

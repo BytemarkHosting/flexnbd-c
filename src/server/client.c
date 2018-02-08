@@ -391,7 +391,9 @@ int client_request_needs_reply( struct client * client,
 		request.type, request.flags, request.from, request.len, request.handle
 	);
 
-	/* check it's not out of range */
+	/* check it's not out of range. NBD protocol requires ENOSPC to be
+	 * returned in this instance 
+	 */
 	if ( request.from+request.len > client->serve->size) {
 		warn("write request %"PRIu64"+%"PRIu32" out of range",
 		  request.from, request.len
@@ -399,7 +401,7 @@ int client_request_needs_reply( struct client * client,
 		if ( request.type == REQUEST_WRITE ) {
 			client_flush( client, request.len );
 		}
-		client_write_reply( client, &request, EPERM ); /* TODO: Change to ERANGE ? */
+		client_write_reply( client, &request, ENOSPC );
 		client->disconnect = 0;
 		return 0;
 	}
@@ -418,7 +420,12 @@ int client_request_needs_reply( struct client * client,
 	case REQUEST_FLUSH:
 		break;
 	default:
-		fatal("Unknown request 0x%08X", request.type);
+		/* NBD prototcol says servers SHOULD return EINVAL to unknown
+		 * commands */
+		warn("Unknown request 0x%08X", request.type);
+		client_write_reply( client, &request, EINVAL );
+		client->disconnect = 0;
+		return 0;
 	}
 	return 1;
 }

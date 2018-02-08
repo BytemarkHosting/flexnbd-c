@@ -112,7 +112,8 @@ class TestServeMode < Test::Unit::TestCase
 
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 'myhandle', rsp[:handle]
-      assert rsp[:error] != 0, "Server sent success reply back: #{rsp[:error]}"
+      # NBD protocol suggests ENOSPC (28) is returned
+      assert_equal 28, rsp[:error], 'Server sent incorrect response'
 
       # Ensure we're not disconnected by sending a request. We don't care about
       # whether the reply is good or not, here.
@@ -129,7 +130,26 @@ class TestServeMode < Test::Unit::TestCase
 
       assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
       assert_equal 'myhandle', rsp[:handle]
-      assert rsp[:error] != 0, "Server sent success reply back: #{rsp[:error]}"
+      # NBD protocol suggests ENOSPC (28) is returned
+      assert_equal 28, rsp[:error], 'Server sent incorrect response'
+
+      # Ensure we're not disconnected by sending a request. We don't care about
+      # whether the reply is good or not, here.
+      client.write(0, "\x00" * @env.file1.size)
+      rsp = client.read_response
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+    end
+  end
+
+  def test_unknown_command_receives_error_response
+    connect_to_server do |client|
+      client.send_request(123)
+      rsp = client.read_response
+
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 'myhandle', rsp[:handle]
+      # NBD protocol suggests EINVAL (22) is returned
+      assert_equal 22, rsp[:error], 'Server sent incorrect response'
 
       # Ensure we're not disconnected by sending a request. We don't care about
       # whether the reply is good or not, here.
