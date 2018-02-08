@@ -195,4 +195,18 @@ class TestServeMode < Test::Unit::TestCase
     assert_equal 6, op.first[3], 'msync called with incorrect flags'
   end
 
+  def test_odd_size_discs_are_truncated_to_nearest_512
+    # This should get rounded down to 1024
+    @env.blocksize = 1024 + 511
+    @env.writefile1('0')
+    @env.serve1
+    client = FlexNBD::FakeSource.new(@env.ip, @env.port1, 'Connecting to server failed')
+    begin
+      result = client.read_hello
+      assert_equal 'NBDMAGIC', result[:passwd]
+      assert_equal 0x00420281861253, result[:magic]
+      assert_equal 1024, result[:size]
+      client.close
+    end
+  end
 end

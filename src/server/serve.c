@@ -710,6 +710,15 @@ void serve_init_allocation_map(struct server* params)
 
 	FATAL_IF_NEGATIVE(fd, "Couldn't open %s", params->filename );
 	size = lseek64( fd, 0, SEEK_END );
+
+	/* If discs are not in multiples of 512, then odd things happen,
+	 * resulting in reads/writes past the ends of files.
+	 */ 
+	if ( size != (size & ~0x1ff)) {
+		warn("file does not fit into 512-byte sectors; the end of the file will be ignored.");
+		size &= ~0x1ff;
+	}
+
 	params->size = size;
 	FATAL_IF_NEGATIVE( size, "Couldn't find size of %s",
 			   params->filename );
