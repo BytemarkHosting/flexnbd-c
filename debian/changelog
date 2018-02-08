@@ -10,6 +10,10 @@ flexnbd (0.2.0) UNRELEASED; urgency=medium
 
   [ Patrick J Cherry ]
   * Added FLUSH and FUA support (!38) 
+  * Server returns ENOSPC in response to writes beyond the end of the
+    filesystem, and EINVAL to unknown commands. (#36, !40)
+  * Proxy passes all NBD protocol errors through to the client instead of
+    disconnecting and retrying (#36, !40)
 
  -- James Carter <james.carter@bytemark.co.uk>  Thu, 11 Jan 2018 10:05:35 +0000
 
