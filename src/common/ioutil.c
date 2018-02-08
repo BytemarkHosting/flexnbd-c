@@ -103,7 +103,7 @@ int open_and_mmap(const char* filename, int* out_fd, uint64_t *out_size, void **
 	 */
 	if ( size != (size & (~0x1ff))) {
 		warn("file does not fit into 512-byte sectors; the end of the file will be ignored.");
-		size = size & (~0x1ff);
+		size &= ~0x1ff;
 	}
 
 	if (out_size) {
