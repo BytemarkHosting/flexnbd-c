@@ -97,6 +97,15 @@ int open_and_mmap(const char* filename, int* out_fd, uint64_t *out_size, void **
 		warn("lseek64() failed");
 		return size;
 	}
+
+	/* If discs are not in multiples of 512, then odd things happen,
+	 * resulting in reads/writes past the ends of files.
+	 */
+	if ( size != (size & (~0x1ff))) {
+		warn("file does not fit into 512-byte sectors; the end of the file will be ignored.");
+		size = size & (~0x1ff);
+	}
+
 	if (out_size) {
 		*out_size = size;
 	}
