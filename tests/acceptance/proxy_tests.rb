@@ -72,6 +72,20 @@ module ProxyTests
     end
   end
 
+  def test_write_request_past_end_of_disc_returns_to_client
+    with_proxied_client do |client|
+      n = 1000
+      offset = n * 4096
+      client.write(offset, b * 4096)
+      rsp = client.read_response
+
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 'myhandle', rsp[:handle]
+      # NBD protocol say ENOSPC (28) in this situation
+      assert_equal 28, rsp[:error]
+    end
+  end
+
   def make_fake_server
     server = FlexNBD::FakeDest.new(@env.ip, @env.port1)
     @server_up = true
