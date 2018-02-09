@@ -3,7 +3,6 @@ require 'environment'
 require 'proxy_tests'
 
 class TestProxyMode < Test::Unit::TestCase
-
   include ProxyTests
 
   def setup
