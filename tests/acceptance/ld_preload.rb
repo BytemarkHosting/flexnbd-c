@@ -39,4 +39,9 @@ module LdPreload
       l.split(':').map { |i| i =~ /^\d+$/ ? i.to_i : i }
     end
   end
+
+  def assert_func_call(loglines, args, msg)
+    re = Regexp.new('^' + args.join(':'))
+    assert(loglines.any? { |l| l.match(re) }, msg)
+  end
 end

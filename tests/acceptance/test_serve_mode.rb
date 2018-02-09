@@ -188,11 +188,23 @@ class TestServeMode < Test::Unit::TestCase
   def test_server_sets_tcpkeepalive
     with_ld_preload('setsockopt_logger') do
       connect_to_server(&:close)
-      op = parse_ld_preload_logs('setsockopt_logger')
-      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1, 0] }, 'TCP Keepalive not successfully set')
-      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_TCP, Socket::TCP_KEEPIDLE, 30, 0] },  'TCP Keepalive idle timeout not set to 30s')
-      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_TCP, Socket::TCP_KEEPINTVL, 10, 0] }, 'TCP keepalive retry time not set to 10s')
-      assert(op.any? { |e| e == ['setsockopt', Socket::SOL_TCP, Socket::TCP_KEEPCNT, 3, 0] }, 'TCP keepalive count not set to 3')
+      op = read_ld_preload_log('setsockopt_logger')
+      assert_func_call(op,
+                       ['setsockopt', '\d+',
+                        Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1, 0],
+                       'TCP Keepalive not successfully set')
+      assert_func_call(op,
+                       ['setsockopt', '\d+',
+                        Socket::SOL_TCP, Socket::TCP_KEEPIDLE, 30, 0],
+                       'TCP Keepalive idle timeout not set to 30s')
+      assert_func_call(op,
+                       ['setsockopt', '\d+',
+                        Socket::SOL_TCP, Socket::TCP_KEEPINTVL, 10, 0],
+                       'TCP keepalive retry time not set to 10s')
+      assert_func_call(op,
+                       ['setsockopt', '\d+',
+                        Socket::SOL_TCP, Socket::TCP_KEEPCNT, 3, 0],
+                       'TCP keepalive count not set to 3')
     end
   end
 end

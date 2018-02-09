@@ -26,7 +26,7 @@ int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t
   fn = getenv("OUTPUT_setsockopt_logger");
   if ( fn != NULL && optval != NULL && optlen == 4) {
     fd = fopen(fn,"a");
-    fprintf(fd,"setsockopt:%d:%d:%i:%d\n", level, optname, *(int *)optval, retval);
+    fprintf(fd,"setsockopt:%d:%d:%d:%i:%d\n", sockfd, level, optname, *(int *)optval, retval);
     fclose(fd);
   }
 
