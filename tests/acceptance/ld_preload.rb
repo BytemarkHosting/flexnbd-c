@@ -1,7 +1,11 @@
 require 'tempfile'
 
-# LdPreload is a little wrapper for using LD_PRELOAD when testing flexnbd
+#
+# LdPreload is a little wrapper for using LD_PRELOAD loggers to pick up system
+# calls when testing flexnbd.
+#
 module LdPreload
+  #
   # This takes an object name, sets up a temporary log file, whose name is
   # recorded in the environment as OUTPUT_obj_name, where obj_name is the
   # name of the preload module to build and load.
@@ -34,6 +38,10 @@ module LdPreload
     lines
   end
 
+  #
+  # The next to methods assume the log file has one entry per line, and that
+  # each entry is a series of values separated by colons.
+  #
   def parse_ld_preload_logs(obj_name)
     read_ld_preload_log(obj_name).map do |l|
       l.split(':').map { |i| i =~ /^\d+$/ ? i.to_i : i }
