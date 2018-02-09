@@ -1,11 +1,9 @@
 require 'test/unit'
 require 'environment'
-require 'ld_preload'
 require 'proxy_tests'
 
 class TestProxyMode < Test::Unit::TestCase
 
-  include LdPreload
   include ProxyTests
 
   def setup

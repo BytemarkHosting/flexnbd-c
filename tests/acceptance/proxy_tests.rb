@@ -1,8 +1,12 @@
 
 require 'flexnbd/fake_source'
 require 'flexnbd/fake_dest'
+require 'ld_preload'
 
 module ProxyTests
+
+  include LdPreload
+
   def b
     "\xFF".b
   end
