@@ -116,7 +116,7 @@ void fill_request(struct nbd_request_raw *request_raw, uint16_t type, uint16_t f
 	request_raw->len    = htobe32(len);
 }
 
-void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
+void read_reply(int fd, uint64_t request_raw_handle, struct nbd_reply *reply)
 {
 	struct nbd_reply_raw reply_raw;
 
@@ -131,7 +131,7 @@ void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 	if (reply->error != 0) {
 		error("Server replied with error %d", reply->error);
 	}
-	if (request->handle.w != reply->handle.w) {
+	if (request_raw_handle != reply_raw.handle.w) {
 		error("Did not reply with correct handle");
 	}
 }
@@ -157,17 +157,15 @@ void wait_for_data( int fd, int timeout_secs )
 void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd, void* out_buf, int timeout_secs)
 {
 	struct nbd_request_raw request_raw;
-	struct nbd_request     request;
 	struct nbd_reply       reply;
 
 	fill_request(&request_raw, REQUEST_READ, 0, from, len);
-	FATAL_IF_NEGATIVE(writeloop(fd, &request_raw, sizeof(request)),
+	FATAL_IF_NEGATIVE(writeloop(fd, &request_raw, sizeof(request_raw)),
 	  "Couldn't write request");
 
 
 	wait_for_data( fd, timeout_secs );
-	nbd_r2h_request( &request_raw, &request );
-	read_reply(fd, &request, &reply);
+	read_reply(fd, request_raw.handle.w, &reply);
 
 	if (out_buf) {
 		FATAL_IF_NEGATIVE(readloop(fd, out_buf, len),
@@ -184,7 +182,6 @@ void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd, void* out_
 void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd, void* in_buf, int timeout_secs)
 {
 	struct nbd_request_raw request_raw;
-	struct nbd_request     request;
 	struct nbd_reply       reply;
 
 	fill_request(&request_raw, REQUEST_WRITE, 0, from, len);
@@ -203,8 +200,7 @@ void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd, void* in_b
 	}
 
 	wait_for_data( fd, timeout_secs );
-	nbd_r2h_request( &request_raw, &request );
-	read_reply(fd, &request, &reply);
+	read_reply(fd, request_raw.handle.w, &reply);
 }
 
 
