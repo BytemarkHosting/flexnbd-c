@@ -76,8 +76,12 @@ struct proxier* proxy_create(
 	}
 
 	out->init.buf = xmalloc( sizeof( struct nbd_init_raw ) );
-	out->req.buf  = xmalloc( NBD_MAX_SIZE );
-	out->rsp.buf  = xmalloc( NBD_MAX_SIZE );
+
+	/* Add on the request / response size to our malloc to accommodate both
+	 * the struct and the data
+	 */
+	out->req.buf  = xmalloc( NBD_MAX_SIZE + NBD_REQUEST_SIZE );
+	out->rsp.buf  = xmalloc( NBD_MAX_SIZE + NBD_RESPONSE_SIZE );
 
 	log_context = xmalloc( strlen(s_upstream_address) + strlen(s_upstream_port) + 2 );
 	sprintf(log_context, "%s:%s", s_upstream_address, s_upstream_port);
@@ -440,15 +444,18 @@ int proxy_read_from_downstream( struct proxier *proxy, int state )
 			return EXIT;
 		}
 
-		/* Simple validations */
+		/* Simple validations -- the request / reply size have already
+		 * been taken into account in the xmalloc, so no need to worry
+		 * about them here
+		 */
 		if ( ( request->type & REQUEST_MASK ) == REQUEST_READ ) {
-			if (request->len > ( NBD_MAX_SIZE - NBD_REPLY_SIZE ) ) {
+			if ( request->len > NBD_MAX_SIZE ) {
 				warn( "NBD read request size %"PRIu32" too large", request->len );
 				return EXIT;
 			}
 		}
 		if ( (request->type & REQUEST_MASK ) == REQUEST_WRITE ) {
-			if (request->len > ( NBD_MAX_SIZE - NBD_REQUEST_SIZE ) ) {
+			if ( request->len > NBD_MAX_SIZE ) {
 				warn( "NBD write request size %"PRIu32" too large", request->len );
 				return EXIT;
 			}
