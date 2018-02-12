@@ -77,11 +77,11 @@ struct proxier* proxy_create(
 
 	out->init.buf = xmalloc( sizeof( struct nbd_init_raw ) );
 
-	/* Add on the request / response size to our malloc to accommodate both
+	/* Add on the request / reply size to our malloc to accommodate both
 	 * the struct and the data
 	 */
 	out->req.buf  = xmalloc( NBD_MAX_SIZE + NBD_REQUEST_SIZE );
-	out->rsp.buf  = xmalloc( NBD_MAX_SIZE + NBD_RESPONSE_SIZE );
+	out->rsp.buf  = xmalloc( NBD_MAX_SIZE + NBD_REPLY_SIZE );
 
 	log_context = xmalloc( strlen(s_upstream_address) + strlen(s_upstream_port) + 2 );
 	sprintf(log_context, "%s:%s", s_upstream_address, s_upstream_port);
