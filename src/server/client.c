@@ -228,14 +228,14 @@ int client_read_request( struct client * client , struct nbd_request *out_reques
 		*disconnected = 1;
 		switch( errno ){
 			case 0:
-				debug( "EOF while reading request" );
+				warn( "EOF while reading request" );
 				return 0;
 			case ECONNRESET:
-				debug( "Connection reset while"
+				warn( "Connection reset while"
 						" reading request" );
 				return 0;
 			case ETIMEDOUT:
-				debug( "Connection timed out while"
+				warn( "Connection timed out while"
 						" reading request" );
 				return 0;
 			default:
