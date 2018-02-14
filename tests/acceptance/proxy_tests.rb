@@ -207,4 +207,17 @@ module ProxyTests
       end
     end
   end
+
+  def test_maximum_write_request_size
+    # Defined in src/common/nbdtypes.h
+    nbd_max_block_size = 32 * 1024 * 1024
+    @env.writefile1('0' * 40 * 1024)
+    with_proxied_client do |client|
+      # This will crash with EPIPE if the proxy dies.
+      client.write(0, b * nbd_max_block_size)
+      rsp = client.read_response
+      assert_equal FlexNBD::REPLY_MAGIC, rsp[:magic]
+      assert_equal 0, rsp[:error]
+    end
+  end
 end
