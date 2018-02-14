@@ -22,7 +22,7 @@ int msync(void *addr, size_t length, int flags) {
   
   retval = real_msync(addr, length, flags);
   
-  fn = getenv("MSYNC_CATCHER_OUTPUT");
+  fn = getenv("OUTPUT_msync_logger");
   if ( fn != NULL ) {
     fd = fopen(fn,"a");
     fprintf(fd,"msync:%d:%i:%i:%i\n", addr, length, flags, retval);

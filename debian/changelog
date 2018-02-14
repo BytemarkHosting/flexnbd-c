@@ -18,6 +18,8 @@ flexnbd (0.2.0) UNRELEASED; urgency=medium
   * Tweak logging for readloop failures (!44)
   * Alter semantics of NBD_MAX_BLOCK_SIZE to remove struct size overheads when
     calculating if a request exceeds the max block size (!45)
+  * Added tests for setting TCP_NODELAY on upstream-reconnections in the
+    proxy, and refactored the other LD_PRELOAD tests (!43)
 
  -- James Carter <james.carter@bytemark.co.uk>  Thu, 11 Jan 2018 10:05:35 +0000
 
