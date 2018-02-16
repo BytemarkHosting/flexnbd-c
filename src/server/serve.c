@@ -332,6 +332,8 @@ int server_count_clients( struct server *params )
 {
 	NULLCHECK( params );
 	int i, count = 0;
+	
+	cleanup_client_threads( params->nbd_client, params->max_nbd_clients );
 
 	for ( i = 0 ; i < params->max_nbd_clients ; i++ ) {
 		if ( params->nbd_client[i].thread != 0 ) {

@@ -207,4 +207,14 @@ class TestServeMode < Test::Unit::TestCase
                        'TCP keepalive count not set to 3')
     end
   end
+
+  def test_status_returns_correct_client_count
+    require 'pp'
+    connect_to_server do |client|
+      status = @env.status1
+      assert_equal('1', status['num_clients'])
+    end
+    status = @env.status1
+    assert_equal('0', status['num_clients'])
+  end
 end
