@@ -338,7 +338,6 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_gets_has_control);
 	tcase_add_test(tc_create, test_gets_is_mirroring);
 	tcase_add_test(tc_create, test_gets_clients_allowed);
-	tcase_add_test(tc_create, test_gets_num_clients);
 	tcase_add_test(tc_create, test_gets_pid);
 	tcase_add_test(tc_create, test_gets_size);
 	tcase_add_test(tc_create, test_gets_migration_statistics);
