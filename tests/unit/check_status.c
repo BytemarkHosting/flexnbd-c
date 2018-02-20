@@ -105,25 +105,6 @@ START_TEST( test_gets_clients_allowed )
 }
 END_TEST
 
-START_TEST( test_gets_num_clients )
-{
-	struct server * server = mock_server();
-	struct status * status = status_create( server );
-
-	fail_if( status->num_clients != 0, "num_clients was wrong" );
-	status_destroy( status );
-
-	server->nbd_client[0].thread = 1;
-	server->nbd_client[1].thread = 1;
-	status = status_create( server );
-
-	fail_unless( status->num_clients == 2, "num_clients was wrong" );
-	status_destroy( status );
-	destroy_mock_server( server );
-
-}
-END_TEST
-
 START_TEST( test_gets_pid )
 {
 	struct server * server = mock_server();
@@ -357,7 +338,6 @@ Suite *status_suite(void)
 	tcase_add_test(tc_create, test_gets_has_control);
 	tcase_add_test(tc_create, test_gets_is_mirroring);
 	tcase_add_test(tc_create, test_gets_clients_allowed);
-	tcase_add_test(tc_create, test_gets_num_clients);
 	tcase_add_test(tc_create, test_gets_pid);
 	tcase_add_test(tc_create, test_gets_size);
 	tcase_add_test(tc_create, test_gets_migration_statistics);

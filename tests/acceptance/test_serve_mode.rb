@@ -207,4 +207,17 @@ class TestServeMode < Test::Unit::TestCase
                        'TCP keepalive count not set to 3')
     end
   end
+
+  def test_status_returns_correct_client_count
+    @env.writefile1('0')
+    @env.serve1
+    assert_equal('0', @env.status1['num_clients'])
+    client = FlexNBD::FakeSource.new(@env.ip, @env.port1, 'Connecting to server failed')
+    assert_equal('1', @env.status1['num_clients'])
+    client2 = FlexNBD::FakeSource.new(@env.ip, @env.port1, 'Connecting to server failed')
+    assert_equal('2', @env.status1['num_clients'])
+    client2.close
+    client.close
+    assert_equal('0', @env.status1['num_clients'])
+  end
 end
