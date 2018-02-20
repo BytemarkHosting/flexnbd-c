@@ -14,6 +14,7 @@ flexnbd (0.2.0) UNRELEASED; urgency=medium
     filesystem, and EINVAL to unknown commands. (#36, !40)
   * Proxy passes all NBD protocol errors through to the client instead of
     disconnecting and retrying (#36, !40)
+  * Fix struct types in readwrite.c (#35, !41)
   * Ignore ends of discs that stray outside of 512-byte sector sizes (!42). 
   * Tweak logging for readloop failures (!44)
   * Alter semantics of NBD_MAX_BLOCK_SIZE to remove struct size overheads when

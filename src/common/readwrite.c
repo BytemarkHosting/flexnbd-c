@@ -106,17 +106,17 @@ int socket_nbd_write_hello( int fd, off64_t out_size, uint32_t out_flags )
 	return 1;
 }
 
-void fill_request(struct nbd_request *request, uint16_t type, uint16_t flags, uint64_t from, uint32_t len)
+void fill_request(struct nbd_request_raw *request_raw, uint16_t type, uint16_t flags, uint64_t from, uint32_t len)
 {
-	request->magic  = htobe32(REQUEST_MAGIC);
-	request->type   = htobe16(type);
-	request->flags  = htobe16(flags);
-	request->handle.w = (((uint64_t)rand()) << 32) | ((uint64_t)rand());
-	request->from   = htobe64(from);
-	request->len    = htobe32(len);
+	request_raw->magic  = htobe32(REQUEST_MAGIC);
+	request_raw->type   = htobe16(type);
+	request_raw->flags  = htobe16(flags);
+	request_raw->handle.w = (((uint64_t)rand()) << 32) | ((uint64_t)rand());
+	request_raw->from   = htobe64(from);
+	request_raw->len    = htobe32(len);
 }
 
-void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
+void read_reply(int fd, uint64_t request_raw_handle, struct nbd_reply *reply)
 {
 	struct nbd_reply_raw reply_raw;
 
@@ -131,7 +131,7 @@ void read_reply(int fd, struct nbd_request *request, struct nbd_reply *reply)
 	if (reply->error != 0) {
 		error("Server replied with error %d", reply->error);
 	}
-	if (request->handle.w != reply->handle.w) {
+	if (request_raw_handle != reply_raw.handle.w) {
 		error("Did not reply with correct handle");
 	}
 }
@@ -156,15 +156,16 @@ void wait_for_data( int fd, int timeout_secs )
 
 void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd, void* out_buf, int timeout_secs)
 {
-	struct nbd_request request;
-	struct nbd_reply   reply;
+	struct nbd_request_raw request_raw;
+	struct nbd_reply       reply;
 
-	fill_request(&request, REQUEST_READ, 0, from, len);
-	FATAL_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
+	fill_request(&request_raw, REQUEST_READ, 0, from, len);
+	FATAL_IF_NEGATIVE(writeloop(fd, &request_raw, sizeof(request_raw)),
 	  "Couldn't write request");
 
+
 	wait_for_data( fd, timeout_secs );
-	read_reply(fd, &request, &reply);
+	read_reply(fd, request_raw.handle.w, &reply);
 
 	if (out_buf) {
 		FATAL_IF_NEGATIVE(readloop(fd, out_buf, len),
@@ -180,11 +181,11 @@ void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd, void* out_
 
 void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd, void* in_buf, int timeout_secs)
 {
-	struct nbd_request request;
-	struct nbd_reply   reply;
+	struct nbd_request_raw request_raw;
+	struct nbd_reply       reply;
 
-	fill_request(&request, REQUEST_WRITE, 0, from, len);
-	ERROR_IF_NEGATIVE(writeloop(fd, &request, sizeof(request)),
+	fill_request(&request_raw, REQUEST_WRITE, 0, from, len);
+	ERROR_IF_NEGATIVE(writeloop(fd, &request_raw, sizeof(request_raw)),
 	  "Couldn't write request");
 
 	if (in_buf) {
@@ -199,20 +200,20 @@ void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd, void* in_b
 	}
 
 	wait_for_data( fd, timeout_secs );
-	read_reply(fd, &request, &reply);
+	read_reply(fd, request_raw.handle.w, &reply);
 }
 
 
 int socket_nbd_disconnect( int fd )
 {
 	int success = 1;
-	struct nbd_request request;
+	struct nbd_request_raw request_raw;
 
-	fill_request( &request, REQUEST_DISCONNECT, 0, 0, 0 );
+	fill_request( &request_raw, REQUEST_DISCONNECT, 0, 0, 0 );
 	/* FIXME: This shouldn't be a FATAL error.  We should just drop
 	 * the mirror without affecting the main server.
 	 */
-	FATAL_IF_NEGATIVE( writeloop( fd, &request, sizeof( request ) ),
+	FATAL_IF_NEGATIVE( writeloop( fd, &request_raw, sizeof( request_raw ) ),
 			"Failed to write the disconnect request." );
 	return success;
 }
