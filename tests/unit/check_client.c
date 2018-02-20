@@ -9,114 +9,104 @@
 
 #include <unistd.h>
 
-struct server fake_server = {0};
+struct server fake_server = { 0 };
+
 #define FAKE_SERVER &fake_server
 #define FAKE_SOCKET (42)
 
-START_TEST( test_assigns_socket )
+START_TEST(test_assigns_socket)
 {
-	struct client * c;
+    struct client *c;
 
-	c = client_create( FAKE_SERVER, FAKE_SOCKET );
+    c = client_create(FAKE_SERVER, FAKE_SOCKET);
 
-	fail_unless( 42 == c->socket, "Socket wasn't assigned." );
+    fail_unless(42 == c->socket, "Socket wasn't assigned.");
 }
-END_TEST
 
-
-START_TEST( test_assigns_server )
+END_TEST START_TEST(test_assigns_server)
 {
-	struct client * c;
-	/* can't predict the storage size so we can't allocate one on
-	 * the stack
-	 */
-	c = client_create( FAKE_SERVER, FAKE_SOCKET );
+    struct client *c;
+    /* can't predict the storage size so we can't allocate one on
+     * the stack
+     */
+    c = client_create(FAKE_SERVER, FAKE_SOCKET);
 
-	fail_unless( FAKE_SERVER == c->serve, "Serve wasn't assigned." );
+    fail_unless(FAKE_SERVER == c->serve, "Serve wasn't assigned.");
 
 }
-END_TEST
 
-
-START_TEST( test_opens_stop_signal )
+END_TEST START_TEST(test_opens_stop_signal)
 {
-	struct client *c = client_create( FAKE_SERVER, FAKE_SOCKET );
+    struct client *c = client_create(FAKE_SERVER, FAKE_SOCKET);
 
-	client_signal_stop( c );
+    client_signal_stop(c);
 
-	fail_unless( 1 == self_pipe_signal_clear( c->stop_signal ),
-			"No signal was sent." );
+    fail_unless(1 == self_pipe_signal_clear(c->stop_signal),
+		"No signal was sent.");
 
 }
-END_TEST
 
+END_TEST int fd_is_closed(int);
 
-int fd_is_closed(int);
-
-START_TEST( test_closes_stop_signal )
+START_TEST(test_closes_stop_signal)
 {
-	struct client *c = client_create( FAKE_SERVER, FAKE_SOCKET );
-	int read_fd = c->stop_signal->read_fd;
-	int write_fd = c->stop_signal->write_fd;
+    struct client *c = client_create(FAKE_SERVER, FAKE_SOCKET);
+    int read_fd = c->stop_signal->read_fd;
+    int write_fd = c->stop_signal->write_fd;
 
-	client_destroy( c );
+    client_destroy(c);
 
-	fail_unless( fd_is_closed( read_fd ), "Stop signal wasn't destroyed." );
-	fail_unless( fd_is_closed( write_fd ), "Stop signal wasn't destroyed." );
+    fail_unless(fd_is_closed(read_fd), "Stop signal wasn't destroyed.");
+    fail_unless(fd_is_closed(write_fd), "Stop signal wasn't destroyed.");
 }
-END_TEST
 
-
-START_TEST( test_read_request_quits_on_stop_signal )
+END_TEST START_TEST(test_read_request_quits_on_stop_signal)
 {
-	int fds[2];
-	struct nbd_request nbdr;
-	pipe( fds );
-	struct client *c = client_create( FAKE_SERVER, fds[0] );
-	
-	client_signal_stop( c );
+    int fds[2];
+    struct nbd_request nbdr;
+    pipe(fds);
+    struct client *c = client_create(FAKE_SERVER, fds[0]);
 
-	int client_serve_request( struct client *);
-	fail_unless( 1 == client_serve_request( c ), "Didn't quit on stop." );
+    client_signal_stop(c);
 
-	close( fds[0] );
-	close( fds[1] );
+    int client_serve_request(struct client *);
+    fail_unless(1 == client_serve_request(c), "Didn't quit on stop.");
+
+    close(fds[0]);
+    close(fds[1]);
 }
-END_TEST
 
-
-Suite *client_suite(void)
+END_TEST Suite * client_suite(void)
 {
-	Suite *s = suite_create("client");
+    Suite *s = suite_create("client");
 
-	TCase *tc_create = tcase_create("create");
-	TCase *tc_signal = tcase_create("signal");
-	TCase *tc_destroy = tcase_create("destroy");
+    TCase *tc_create = tcase_create("create");
+    TCase *tc_signal = tcase_create("signal");
+    TCase *tc_destroy = tcase_create("destroy");
 
-	tcase_add_test(tc_create, test_assigns_socket);
-	tcase_add_test(tc_create, test_assigns_server);
+    tcase_add_test(tc_create, test_assigns_socket);
+    tcase_add_test(tc_create, test_assigns_server);
 
-	tcase_add_test(tc_signal, test_opens_stop_signal);
-	tcase_add_test(tc_signal, test_read_request_quits_on_stop_signal);
+    tcase_add_test(tc_signal, test_opens_stop_signal);
+    tcase_add_test(tc_signal, test_read_request_quits_on_stop_signal);
 
-	tcase_add_test( tc_destroy, test_closes_stop_signal );
+    tcase_add_test(tc_destroy, test_closes_stop_signal);
 
-	suite_add_tcase(s, tc_create);
-	suite_add_tcase(s, tc_signal);
-	suite_add_tcase(s, tc_destroy);
+    suite_add_tcase(s, tc_create);
+    suite_add_tcase(s, tc_signal);
+    suite_add_tcase(s, tc_destroy);
 
-	return s;
+    return s;
 }
 
 int main(void)
 {
-	int number_failed;
-	
-	Suite *s = client_suite();
-	SRunner *sr = srunner_create(s);
-	srunner_run_all(sr, CK_NORMAL);
-	number_failed = srunner_ntests_failed(sr);
-	srunner_free(sr);
-	return (number_failed == 0) ? 0 : 1;
-}
+    int number_failed;
 
+    Suite *s = client_suite();
+    SRunner *sr = srunner_create(s);
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+    return (number_failed == 0) ? 0 : 1;
+}

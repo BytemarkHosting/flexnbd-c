@@ -9,279 +9,287 @@
 #include "sockutil.h"
 #include "util.h"
 
-size_t sockaddr_size( const struct sockaddr* sa )
+size_t sockaddr_size(const struct sockaddr * sa)
 {
-	struct sockaddr_un* un = (struct sockaddr_un*) sa;
-	size_t ret = 0;
+    struct sockaddr_un *un = (struct sockaddr_un *) sa;
+    size_t ret = 0;
 
-	switch( sa->sa_family ) {
-		case AF_INET:
-			ret = sizeof( struct sockaddr_in );
-			break;
-		case AF_INET6:
-			ret = sizeof( struct sockaddr_in6 );
-			break;
-		case AF_UNIX:
-			ret = sizeof( un->sun_family ) + SUN_LEN( un );
-			break;
-	}
+    switch (sa->sa_family) {
+    case AF_INET:
+	ret = sizeof(struct sockaddr_in);
+	break;
+    case AF_INET6:
+	ret = sizeof(struct sockaddr_in6);
+	break;
+    case AF_UNIX:
+	ret = sizeof(un->sun_family) + SUN_LEN(un);
+	break;
+    }
 
-	return ret;
+    return ret;
 }
 
-const char* sockaddr_address_string( const struct sockaddr* sa, char* dest, size_t len )
+const char *sockaddr_address_string(const struct sockaddr *sa, char *dest,
+				    size_t len)
 {
-	NULLCHECK( sa );
-	NULLCHECK( dest );
+    NULLCHECK(sa);
+    NULLCHECK(dest);
 
-	struct sockaddr_in*  in  = ( struct sockaddr_in*  ) sa;
-	struct sockaddr_in6* in6 = ( struct sockaddr_in6* ) sa;
-	struct sockaddr_un*  un  = ( struct sockaddr_un*  ) sa;
+    struct sockaddr_in *in = (struct sockaddr_in *) sa;
+    struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) sa;
+    struct sockaddr_un *un = (struct sockaddr_un *) sa;
 
-	unsigned short real_port = ntohs( in->sin_port ); // common to in and in6
-	const char* ret = NULL;
+    unsigned short real_port = ntohs(in->sin_port);	// common to in and in6
+    const char *ret = NULL;
 
-	memset( dest, 0, len );
+    memset(dest, 0, len);
 
-	if ( sa->sa_family == AF_INET ) {
-		ret = inet_ntop( AF_INET, &in->sin_addr, dest, len );
-	} else if ( sa->sa_family == AF_INET6 ) {
-		ret = inet_ntop( AF_INET6, &in6->sin6_addr, dest, len );
-	} else if ( sa->sa_family == AF_UNIX ) {
-		ret = strncpy( dest, un->sun_path, SUN_LEN( un ) );
-	}
+    if (sa->sa_family == AF_INET) {
+	ret = inet_ntop(AF_INET, &in->sin_addr, dest, len);
+    } else if (sa->sa_family == AF_INET6) {
+	ret = inet_ntop(AF_INET6, &in6->sin6_addr, dest, len);
+    } else if (sa->sa_family == AF_UNIX) {
+	ret = strncpy(dest, un->sun_path, SUN_LEN(un));
+    }
 
-	if ( ret == NULL ) {
-		strncpy( dest, "???", len );
-	}
+    if (ret == NULL) {
+	strncpy(dest, "???", len);
+    }
 
-	if ( NULL != ret && real_port > 0 && sa->sa_family != AF_UNIX ) {
-		size_t size = strlen( dest );
-		snprintf( dest + size, len - size, " port %d", real_port );
-	}
+    if (NULL != ret && real_port > 0 && sa->sa_family != AF_UNIX) {
+	size_t size = strlen(dest);
+	snprintf(dest + size, len - size, " port %d", real_port);
+    }
 
-	return ret;
+    return ret;
 }
 
-int sock_set_reuseaddr( int fd, int optval )
+int sock_set_reuseaddr(int fd, int optval)
 {
-	return setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) );
+    return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval,
+		      sizeof(optval));
 }
 
-int sock_set_keepalive_params( int fd, int time, int intvl, int probes)
+int sock_set_keepalive_params(int fd, int time, int intvl, int probes)
 {
-	if (sock_set_keepalive(fd, 1) ||
-		sock_set_tcp_keepidle(fd, time) ||
-		sock_set_tcp_keepintvl(fd, intvl) ||
-		sock_set_tcp_keepcnt(fd, probes)) {
-		return -1;
-	}
-	return 0;
+    if (sock_set_keepalive(fd, 1) ||
+	sock_set_tcp_keepidle(fd, time) ||
+	sock_set_tcp_keepintvl(fd, intvl) ||
+	sock_set_tcp_keepcnt(fd, probes)) {
+	return -1;
+    }
+    return 0;
 }
 
-int sock_set_keepalive( int fd, int optval )
+int sock_set_keepalive(int fd, int optval)
 {
-	return setsockopt( fd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval) );
+    return setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &optval,
+		      sizeof(optval));
 }
 
-int sock_set_tcp_keepidle( int fd, int optval )
+int sock_set_tcp_keepidle(int fd, int optval)
 {
-	return setsockopt( fd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval) );
+    return setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &optval,
+		      sizeof(optval));
 }
 
-int sock_set_tcp_keepintvl( int fd, int optval )
+int sock_set_tcp_keepintvl(int fd, int optval)
 {
-	return setsockopt( fd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval) );
+    return setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &optval,
+		      sizeof(optval));
 }
 
-int sock_set_tcp_keepcnt( int fd, int optval )
+int sock_set_tcp_keepcnt(int fd, int optval)
 {
-	return setsockopt( fd, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval) );
+    return setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &optval,
+		      sizeof(optval));
 }
 
 /* Set the tcp_nodelay option */
-int sock_set_tcp_nodelay( int fd, int optval )
+int sock_set_tcp_nodelay(int fd, int optval)
 {
-	return setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval) );
+    return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &optval,
+		      sizeof(optval));
 }
 
-int sock_set_tcp_cork( int fd, int optval )
+int sock_set_tcp_cork(int fd, int optval)
 {
-	return setsockopt( fd, IPPROTO_TCP, TCP_CORK, &optval, sizeof(optval) );
+    return setsockopt(fd, IPPROTO_TCP, TCP_CORK, &optval, sizeof(optval));
 }
 
-int sock_set_nonblock( int fd, int optval )
+int sock_set_nonblock(int fd, int optval)
 {
-	int flags = fcntl( fd, F_GETFL );
+    int flags = fcntl(fd, F_GETFL);
 
-	if ( flags == -1 ) {
-		return -1;
-	}
+    if (flags == -1) {
+	return -1;
+    }
 
-	if ( optval ) {
-		flags = flags | O_NONBLOCK;
+    if (optval) {
+	flags = flags | O_NONBLOCK;
+    } else {
+	flags = flags & (~O_NONBLOCK);
+    }
+
+    return fcntl(fd, F_SETFL, flags);
+}
+
+int sock_try_bind(int fd, const struct sockaddr *sa)
+{
+    int bind_result;
+    char s_address[256];
+    int retry = 10;
+
+    sockaddr_address_string(sa, &s_address[0], 256);
+
+    do {
+	bind_result = bind(fd, sa, sockaddr_size(sa));
+	if (0 == bind_result) {
+	    info("Bound to %s", s_address);
+	    break;
 	} else {
-		flags = flags & (~O_NONBLOCK);
+	    warn(SHOW_ERRNO("Couldn't bind to %s", s_address));
+
+	    switch (errno) {
+		/* bind() can give us EACCES, EADDRINUSE, EADDRNOTAVAIL, EBADF,
+		 * EINVAL, ENOTSOCK, EFAULT, ELOOP, ENAMETOOLONG, ENOENT,
+		 * ENOMEM, ENOTDIR, EROFS
+		 *
+		 * Any of these other than  EADDRINUSE & EADDRNOTAVAIL signify
+		 * that there's a logic error somewhere.
+		 *
+		 * EADDRINUSE is fatal: if there's something already where we
+		 * want to be listening, we have no guarantees that any clients
+		 * will cope with it.
+		 */
+	    case EADDRNOTAVAIL:
+		retry--;
+		if (retry) {
+		    debug("retrying");
+		    sleep(1);
+		}
+		continue;
+	    case EADDRINUSE:
+		warn("%s in use, giving up.", s_address);
+		retry = 0;
+		break;
+	    default:
+		warn("giving up");
+		retry = 0;
+	    }
+	}
+    } while (retry);
+
+    return bind_result;
+}
+
+int sock_try_select(int nfds, fd_set * readfds, fd_set * writefds,
+		    fd_set * exceptfds, struct timeval *timeout)
+{
+    int result;
+
+    do {
+	result = select(nfds, readfds, writefds, exceptfds, timeout);
+	if (errno != EINTR) {
+	    break;
 	}
 
-	return fcntl( fd, F_SETFL, flags );
+    } while (result == -1);
+
+    return result;
 }
 
-int sock_try_bind( int fd, const struct sockaddr* sa )
+int sock_try_connect(int fd, struct sockaddr *to, socklen_t addrlen,
+		     int wait)
 {
-	int bind_result;
-	char s_address[256];
-	int retry = 10;
+    fd_set fds;
+    struct timeval tv = { wait, 0 };
+    int result = 0;
 
-	sockaddr_address_string( sa, &s_address[0], 256 );
+    if (sock_set_nonblock(fd, 1) == -1) {
+	warn(SHOW_ERRNO
+	     ("Failed to set socket non-blocking for connect()"));
+	return connect(fd, to, addrlen);
+    }
 
-	do {
-		bind_result = bind( fd, sa, sockaddr_size( sa ) );
-		if ( 0 == bind_result ) {
-			info( "Bound to %s", s_address );
-			break;
-		}
-		else {
-			warn( SHOW_ERRNO( "Couldn't bind to %s", s_address ) );
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
 
-			switch ( errno ) {
-				/* bind() can give us EACCES, EADDRINUSE, EADDRNOTAVAIL, EBADF,
-				 * EINVAL, ENOTSOCK, EFAULT, ELOOP, ENAMETOOLONG, ENOENT,
-				 * ENOMEM, ENOTDIR, EROFS
-				 *
-				 * Any of these other than  EADDRINUSE & EADDRNOTAVAIL signify
-				 * that there's a logic error somewhere.
-				 *
-				 * EADDRINUSE is fatal: if there's something already where we
-				 * want to be listening, we have no guarantees that any clients
-				 * will cope with it.
-				 */
-				case EADDRNOTAVAIL:
-					retry--;
-					if (retry) {
-						debug( "retrying" );
-						sleep( 1 );
-					}
-					continue;
-				case EADDRINUSE:
-					warn( "%s in use, giving up.", s_address );
-					retry = 0;
-					break;
-				default:
-					warn( "giving up" );
-					retry = 0;
-			}
-		}
-	} while ( retry );
+    do {
+	result = connect(fd, to, addrlen);
 
-	return bind_result;
-}
-
-int sock_try_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
-{
-	int result;
-
-	do {
-		result = select(nfds, readfds, writefds, exceptfds, timeout);
-		if ( errno != EINTR ) {
-			break;
-		}
-
-	} while ( result == -1 );
-
-	return result;
-}
-
-int sock_try_connect( int fd, struct sockaddr* to, socklen_t addrlen, int wait )
-{
-	fd_set fds;
-	struct timeval tv = { wait, 0 };
-	int result = 0;
-
-	if ( sock_set_nonblock( fd, 1 ) == -1 ) {
-		warn( SHOW_ERRNO( "Failed to set socket non-blocking for connect()" ) );
-		return connect( fd, to, addrlen );
-	}
-
-	FD_ZERO( &fds );
-	FD_SET( fd, &fds );
-
-	do {
-		result = connect( fd, to, addrlen );
-
-		if ( result == -1 ) {
-			switch( errno ) {
-				case EINPROGRESS:
-					result = 0;
-					break; /* success */
-				case EAGAIN:
-				case EINTR:
-					/* Try connect() again. This only breaks out of the switch,
-					 * not the do...while loop. since result == -1, we go again.
-					 */
-					break;
-				default:
-					warn( SHOW_ERRNO( "Failed to connect()" ) );
-					goto out;
-			}
-		}
-	} while ( result == -1 );
-
-	if ( -1 == sock_try_select( FD_SETSIZE, NULL, &fds, NULL, &tv) ) {
-		warn( SHOW_ERRNO( "failed to select() on non-blocking connect" ) );
-		result = -1;
+	if (result == -1) {
+	    switch (errno) {
+	    case EINPROGRESS:
+		result = 0;
+		break;		/* success */
+	    case EAGAIN:
+	    case EINTR:
+		/* Try connect() again. This only breaks out of the switch,
+		 * not the do...while loop. since result == -1, we go again.
+		 */
+		break;
+	    default:
+		warn(SHOW_ERRNO("Failed to connect()"));
 		goto out;
+	    }
 	}
+    } while (result == -1);
 
-	if ( !FD_ISSET( fd, &fds ) ) {
-		result = -1;
-		errno = ETIMEDOUT;
-		goto out;
-	}
+    if (-1 == sock_try_select(FD_SETSIZE, NULL, &fds, NULL, &tv)) {
+	warn(SHOW_ERRNO("failed to select() on non-blocking connect"));
+	result = -1;
+	goto out;
+    }
 
-	int scratch;
-	socklen_t s_size = sizeof( scratch );
-	if ( getsockopt( fd, SOL_SOCKET, SO_ERROR, &scratch, &s_size ) == -1 ) {
-		result = -1;
-		warn( SHOW_ERRNO( "getsockopt() failed" ) );
-		goto out;
-	}
+    if (!FD_ISSET(fd, &fds)) {
+	result = -1;
+	errno = ETIMEDOUT;
+	goto out;
+    }
 
-	if ( scratch == EINPROGRESS ) {
-		scratch = ETIMEDOUT;
-	}
+    int scratch;
+    socklen_t s_size = sizeof(scratch);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &scratch, &s_size) == -1) {
+	result = -1;
+	warn(SHOW_ERRNO("getsockopt() failed"));
+	goto out;
+    }
 
-	result = scratch ? -1 : 0;
-	errno = scratch;
+    if (scratch == EINPROGRESS) {
+	scratch = ETIMEDOUT;
+    }
 
-out:
-	if ( sock_set_nonblock( fd, 0 ) == -1 ) {
-		warn( SHOW_ERRNO( "Failed to make socket blocking after connect()" ) );
-		return -1;
-	}
+    result = scratch ? -1 : 0;
+    errno = scratch;
 
-	debug( "sock_try_connect: %i", result );
-	return result;
+  out:
+    if (sock_set_nonblock(fd, 0) == -1) {
+	warn(SHOW_ERRNO("Failed to make socket blocking after connect()"));
+	return -1;
+    }
+
+    debug("sock_try_connect: %i", result);
+    return result;
 }
 
-int sock_try_close( int fd )
+int sock_try_close(int fd)
 {
-	int result;
+    int result;
 
-	do {
-		result = close( fd );
+    do {
+	result = close(fd);
 
-		if ( result == -1 ) {
-			if ( EINTR == errno ) {
-				continue; /* retry EINTR */
-			} else {
-				warn( SHOW_ERRNO( "Failed to close() fd %i", fd ) );
-				break; /* Other errors get reported */
-			}
-		}
+	if (result == -1) {
+	    if (EINTR == errno) {
+		continue;	/* retry EINTR */
+	    } else {
+		warn(SHOW_ERRNO("Failed to close() fd %i", fd));
+		break;		/* Other errors get reported */
+	    }
+	}
 
-	} while( 0 );
+    } while (0);
 
-	return result;
+    return result;
 }
-

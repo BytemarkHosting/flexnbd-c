@@ -2,7 +2,7 @@
 #define MODE_H
 
 
-void mode(char* mode, int argc, char **argv);
+void mode(char *mode, int argc, char **argv);
 
 
 #include <getopt.h>
@@ -68,9 +68,9 @@ void mode(char* mode, int argc, char **argv);
   "\t--" OPT_VERBOSE ",-" SOPT_VERBOSE "\t\tOutput debug information.\n"
 
 #ifdef DEBUG
-# define VERBOSE_LOG_LEVEL 0
+#define VERBOSE_LOG_LEVEL 0
 #else
-# define VERBOSE_LOG_LEVEL 1
+#define VERBOSE_LOG_LEVEL 1
 #endif
 
 #define QUIET_LOG_LEVEL 4
@@ -91,7 +91,6 @@ void mode(char* mode, int argc, char **argv);
 #define MAX_SPEED_LINE \
 	 "\t--" OPT_MAX_SPEED ",-m <bps>\tMaximum speed of the migration, in bytes/sec.\n"
 
-char * help_help_text;
+char *help_help_text;
 
 #endif
-
