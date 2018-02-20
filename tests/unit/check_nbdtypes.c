@@ -233,6 +233,7 @@ Suite * nbdtypes_suite(void)
     tcase_add_test(tc_init, test_init_size);
     tcase_add_test(tc_request, test_request_magic);
     tcase_add_test(tc_request, test_request_type);
+    tcase_add_test(tc_request, test_request_flags);
     tcase_add_test(tc_request, test_request_handle);
     tcase_add_test(tc_request, test_request_from);
     tcase_add_test(tc_request, test_request_len);
