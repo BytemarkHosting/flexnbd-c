@@ -1,4 +1,4 @@
-flexnbd (0.2.0) UNRELEASED; urgency=medium
+flexnbd (0.2.0) stable; urgency=medium
 
   [ James Carter ]
   * Set TCP keepalive on sockets so broken connections are reaped (#33, !33,
@@ -24,7 +24,7 @@ flexnbd (0.2.0) UNRELEASED; urgency=medium
   * Clean up dead threads before calculating the number of connected clients
     on the status command (!46)
 
- -- James Carter <james.carter@bytemark.co.uk>  Thu, 11 Jan 2018 10:05:35 +0000
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 20 Feb 2018 11:43:22 +0000
 
 flexnbd (0.1.7) stable; urgency=medium
 
