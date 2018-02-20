@@ -1,3 +1,31 @@
+flexnbd (0.2.0) stable; urgency=medium
+
+  [ James Carter ]
+  * Set TCP keepalive on sockets so broken connections are reaped (#33, !33,
+    !36)
+  * Add a context to logs to make debugging problems easier (#34, !34)
+
+  [ Chris Cottam ]
+  * Increased NBD_MAX_SIZE from 1MB to 32MB for qemu 2.11 (!35)
+
+  [ Patrick J Cherry ]
+  * Added FLUSH and FUA support (!38) 
+  * Server returns ENOSPC in response to writes beyond the end of the
+    filesystem, and EINVAL to unknown commands. (#36, !40)
+  * Proxy passes all NBD protocol errors through to the client instead of
+    disconnecting and retrying (#36, !40)
+  * Fix struct types in readwrite.c (#35, !41)
+  * Ignore ends of discs that stray outside of 512-byte sector sizes (!42). 
+  * Tweak logging for readloop failures (!44)
+  * Alter semantics of NBD_MAX_BLOCK_SIZE to remove struct size overheads when
+    calculating if a request exceeds the max block size (!45)
+  * Added tests for setting TCP_NODELAY on upstream-reconnections in the
+    proxy, and refactored the other LD_PRELOAD tests (!43)
+  * Clean up dead threads before calculating the number of connected clients
+    on the status command (!46)
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 20 Feb 2018 11:43:22 +0000
+
 flexnbd (0.1.7) stable; urgency=medium
 
   * Return bytes_left in migration statistics.

@@ -1,6 +1,4 @@
 #!/usr/bin/env ruby
-# encoding: utf-8
-
 # We connect, pause the server, issue a write request, disconnect,
 # then cont the server. This ensures that our disconnect happens
 # while the server is trying to read the write data.
@@ -10,11 +8,11 @@ include FlexNBD
 
 addr, port, srv_pid = *ARGV
 
-client = FakeSource.new( addr, port, "Timed out connecting" )
+client = FakeSource.new(addr, port, 'Timed out connecting')
 client.read_hello
 
 system "kill -STOP #{srv_pid}"
-client.write_write_request( 0, 8 )
+client.write_write_request(0, 8)
 client.close
 system "kill -CONT #{srv_pid}"
 
@@ -24,7 +22,7 @@ system "kill -CONT #{srv_pid}"
 sleep(0.25)
 
 # ...and can we reconnect?
-client2 = FakeSource.new( addr, port, "Timed out connecting" )
+client2 = FakeSource.new(addr, port, 'Timed out connecting')
 client2.close
 
 exit(0)

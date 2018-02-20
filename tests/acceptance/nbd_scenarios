@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 
-test_files = Dir[File.dirname( __FILE__ ) + "/test*.rb"]
+test_files = Dir[File.dirname(__FILE__) + '/test*.rb']
 for filename in test_files
   require filename
 end

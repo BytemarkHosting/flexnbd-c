@@ -12,13 +12,12 @@ include FlexNBD
 
 addr, port = *ARGV
 
-
-client = FakeSource.new( addr, port, "Timed out connecting." )
+client = FakeSource.new(addr, port, 'Timed out connecting.')
 client.read_hello
 client.close
 
 sleep(0.2)
 
-FakeSource.new( addr, port, "Timed out reconnecting." )
+FakeSource.new(addr, port, 'Timed out reconnecting.')
 
 exit(0)

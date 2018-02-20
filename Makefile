@@ -109,7 +109,6 @@ install:
 clean:
 	rm -rf build/*
 
-
 .PHONY: clean objs check_objs all server proxy check_bins check doc build test acceptance
 
 # Include extra dependencies at the end, NOT before 'all'

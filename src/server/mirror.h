@@ -58,65 +58,65 @@ enum mirror_state;
 #define MS_REQUEST_LIMIT_SECS_F 60.0
 
 enum mirror_finish_action {
-	ACTION_EXIT,
-	ACTION_UNLINK,
-	ACTION_NOTHING
+    ACTION_EXIT,
+    ACTION_UNLINK,
+    ACTION_NOTHING
 };
 
 enum mirror_state {
-	MS_UNKNOWN,
-	MS_INIT,
-	MS_GO,
-	MS_ABANDONED,
-	MS_DONE,
-	MS_FAIL_CONNECT,
-	MS_FAIL_REJECTED,
-	MS_FAIL_NO_HELLO,
-	MS_FAIL_SIZE_MISMATCH
+    MS_UNKNOWN,
+    MS_INIT,
+    MS_GO,
+    MS_ABANDONED,
+    MS_DONE,
+    MS_FAIL_CONNECT,
+    MS_FAIL_REJECTED,
+    MS_FAIL_NO_HELLO,
+    MS_FAIL_SIZE_MISMATCH
 };
 
 struct mirror {
-	pthread_t            thread;
+    pthread_t thread;
 
-	/* Signal to this then join the thread if you want to abandon mirroring */
-	struct self_pipe *   abandon_signal;
+    /* Signal to this then join the thread if you want to abandon mirroring */
+    struct self_pipe *abandon_signal;
 
-	union mysockaddr *   connect_to;
-	union mysockaddr *   connect_from;
-	int                  client;
-	const char *         filename;
+    union mysockaddr *connect_to;
+    union mysockaddr *connect_from;
+    int client;
+    const char *filename;
 
-	/* Limiter, used to restrict migration speed Only dirty bytes (those going
-	 * over the network) are considered */
-	uint64_t              max_bytes_per_second;
+    /* Limiter, used to restrict migration speed Only dirty bytes (those going
+     * over the network) are considered */
+    uint64_t max_bytes_per_second;
 
-	enum mirror_finish_action action_at_finish;
+    enum mirror_finish_action action_at_finish;
 
-	char                 *mapped;
+    char *mapped;
 
-	/* We need to send every byte at least once; we do so by  */
-	uint64_t offset;
+    /* We need to send every byte at least once; we do so by  */
+    uint64_t offset;
 
-	enum mirror_state    commit_state;
+    enum mirror_state commit_state;
 
-	/* commit_signal is sent immediately after attempting to connect
-	 * and checking the remote size, whether successful or not.
-	 */
-	struct mbox *        commit_signal;
+    /* commit_signal is sent immediately after attempting to connect
+     * and checking the remote size, whether successful or not.
+     */
+    struct mbox *commit_signal;
 
-	/* The time (from monotonic_time_ms()) the migration was started. Can be
-	 * used to calculate bps, etc. */
-	uint64_t migration_started;
+    /* The time (from monotonic_time_ms()) the migration was started. Can be
+     * used to calculate bps, etc. */
+    uint64_t migration_started;
 
-	/* Running count of all bytes we've transferred */
-	uint64_t all_dirty;
+    /* Running count of all bytes we've transferred */
+    uint64_t all_dirty;
 };
 
 
 struct mirror_super {
-	struct mirror * mirror;
-	pthread_t thread;
-	struct mbox * state_mbox;
+    struct mirror *mirror;
+    pthread_t thread;
+    struct mbox *state_mbox;
 };
 
 
@@ -127,15 +127,13 @@ struct mirror_super {
 struct server;
 struct flexnbd;
 
-struct mirror_super * mirror_super_create(
-		const char * filename,
-		union mysockaddr * connect_to,
-		union mysockaddr * connect_from,
-		uint64_t max_Bps,
-		enum mirror_finish_action action_at_finish,
-		struct mbox * state_mbox
-		);
-void * mirror_super_runner( void * serve_uncast );
+struct mirror_super *mirror_super_create(const char *filename,
+					 union mysockaddr *connect_to,
+					 union mysockaddr *connect_from,
+					 uint64_t max_Bps,
+					 enum mirror_finish_action
+					 action_at_finish,
+					 struct mbox *state_mbox);
+void *mirror_super_runner(void *serve_uncast);
 
 #endif
-

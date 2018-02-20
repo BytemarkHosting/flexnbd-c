@@ -75,30 +75,29 @@
 #include <unistd.h>
 
 struct status {
-	pid_t pid;
-	uint64_t size;
-	int has_control;
-	int clients_allowed;
-	int num_clients;
-	int is_mirroring;
+    pid_t pid;
+    uint64_t size;
+    int has_control;
+    int clients_allowed;
+    int num_clients;
+    int is_mirroring;
 
-	uint64_t migration_duration;
-	uint64_t migration_speed;
-	uint64_t migration_speed_limit;
-	uint64_t migration_seconds_left;
-	uint64_t migration_bytes_left;
+    uint64_t migration_duration;
+    uint64_t migration_speed;
+    uint64_t migration_speed_limit;
+    uint64_t migration_seconds_left;
+    uint64_t migration_bytes_left;
 };
 
 /** Create a status object for the given server. */
-struct status * status_create( struct server * );
+struct status *status_create(struct server *);
 
 /** Output the given status object to the given file descriptot */
-int status_write( struct status *, int fd );
+int status_write(struct status *, int fd);
 
 /** Free the status object */
-void status_destroy( struct status * );
+void status_destroy(struct status *);
 
 
 
 #endif
-

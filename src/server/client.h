@@ -3,6 +3,7 @@
 
 #include <signal.h>
 #include <time.h>
+#include <inttypes.h>
 
 /** CLIENT_HANDLER_TIMEOUT
  * This is the length of time (in seconds) any request can be outstanding for.
@@ -18,39 +19,40 @@
 
 
 struct client {
-	/* When we call pthread_join, if the thread is already dead
-	 * we can get an ESRCH.  Since we have no other way to tell
-	 * if that ESRCH is from a dead thread or a thread that never
-	 * existed, we use a `stopped` flag to indicate a thread which
-	 * did exist, but went away.  Only check this after a
-	 * pthread_join call.
-	 */
-	int     stopped;
-	int     socket;
+    /* When we call pthread_join, if the thread is already dead
+     * we can get an ESRCH.  Since we have no other way to tell
+     * if that ESRCH is from a dead thread or a thread that never
+     * existed, we use a `stopped` flag to indicate a thread which
+     * did exist, but went away.  Only check this after a
+     * pthread_join call.
+     */
+    int stopped;
+    int socket;
 
-	int     fileno;
-	char*   mapped;
+    int fileno;
+    char *mapped;
 
-	struct self_pipe * stop_signal;
+    uint64_t mapped_size;
 
-	struct server* serve; /* FIXME: remove above duplication */
+    struct self_pipe *stop_signal;
 
-	/* Have we seen a REQUEST_DISCONNECT message? */
-	int     disconnect;
+    struct server *serve;	/* FIXME: remove above duplication */
 
-	/* kill the whole server if a request has been outstanding too long,
-	 * assuming use_killswitch is set in serve
-	 */
-	timer_t killswitch;
+    /* Have we seen a REQUEST_DISCONNECT message? */
+    int disconnect;
+
+    /* kill the whole server if a request has been outstanding too long,
+     * assuming use_killswitch is set in serve
+     */
+    timer_t killswitch;
 
 };
 
-void client_killswitch_hit(int signal, siginfo_t *info, void *ptr);
+void client_killswitch_hit(int signal, siginfo_t * info, void *ptr);
 
-void* client_serve(void* client_uncast);
-struct client * client_create( struct server * serve, int socket );
-void client_destroy( struct client * client );
-void client_signal_stop( struct client * client );
+void *client_serve(void *client_uncast);
+struct client *client_create(struct server *serve, int socket);
+void client_destroy(struct client *client);
+void client_signal_stop(struct client *client);
 
 #endif
-

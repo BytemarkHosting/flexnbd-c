@@ -9,7 +9,7 @@ include FlexNBD
 Thread.abort_on_exception = true
 
 addr, port = *ARGV
-server = FakeDest.new( addr, port )
+server = FakeDest.new(addr, port)
 client = server.accept
 
 t = Thread.new do
@@ -18,21 +18,21 @@ t = Thread.new do
   # so it makes no sense to continue.  This means we have to invert the
   # sense of the exception.
   begin
-    client2 = server.accept( "Timed out waiting for a reconnection",
-                            FlexNBD::MS_RETRY_DELAY_SECS + 1 )
+    client2 = server.accept('Timed out waiting for a reconnection',
+                            FlexNBD::MS_RETRY_DELAY_SECS + 1)
     client2.close
-    fail "Unexpected reconnection."
+    raise 'Unexpected reconnection.'
   rescue Timeout::Error
   end
 end
 
-client.write_hello( :size => :wrong )
+client.write_hello(size: :wrong)
 
 t.join
 
 # Now check that the source closed the first socket (yes, this was an
 # actual bug)
 
-fail "Didn't close socket" unless client.disconnected?
+raise "Didn't close socket" unless client.disconnected?
 
 exit 0

@@ -10,10 +10,11 @@
 #include <unistd.h>
 #include <inttypes.h>
 
-void* xrealloc(void* ptr, size_t size);
-void* xmalloc(size_t size);
+void *xrealloc(void *ptr, size_t size);
+void *xmalloc(size_t size);
 
-typedef void (cleanup_handler)(void* /* context */, int /* is fatal? */);
+typedef void (cleanup_handler) (void * /* context */ ,
+				int /* is fatal? */ );
 
 /* set from 0 - 5 depending on what level of verbosity you want */
 extern int log_level;
@@ -21,16 +22,19 @@ extern int log_level;
 /* set up the error globals */
 void error_init(void);
 
+/* some context for the overall process that appears on each log line */
+extern char *log_context;
 
-void exit_err( const char * );
+
+void exit_err(const char *);
 
 /* error_set_handler must be a macro not a function due to setjmp stack rules */
 #include <setjmp.h>
 
 struct error_handler_context {
-	jmp_buf          jmp;
-	cleanup_handler* handler;
-	void*            data;
+    jmp_buf jmp;
+    cleanup_handler *handler;
+    void *data;
 };
 
 #define DECLARE_ERROR_CONTEXT(name) \
@@ -84,7 +88,7 @@ extern pthread_key_t cleanup_handler_key;
 void error_handler(int fatal);
 
 /* mylog a line at the given level (0 being most verbose) */
-void mylog(int line_level, const char* format, ...);
+void mylog(int line_level, const char *format, ...);
 
 /* Returns the current time, in milliseconds, from CLOCK_MONOTONIC */
 uint64_t monotonic_time_ms(void);
@@ -92,12 +96,12 @@ uint64_t monotonic_time_ms(void);
 
 #define levstr(i) (i==0?'D':(i==1?'I':(i==2?'W':(i==3?'E':'F'))))
 
-#define myloglev(level, msg, ...) mylog( level, "%"PRIu64":%c:%d %p %s:%d: "msg"\n", monotonic_time_ms(), levstr(level), getpid(),pthread_self(), __FILE__, __LINE__, ##__VA_ARGS__ )
+#define myloglev(level, msg, ...) mylog( level, "%"PRIu64":%c:%d %p %s %s:%d: "msg"\n", monotonic_time_ms(), levstr(level), getpid(),pthread_self(), log_context, __FILE__, __LINE__, ##__VA_ARGS__ )
 
 #ifdef DEBUG
-#  define debug(msg, ...) myloglev(0, msg, ##__VA_ARGS__)
+#define debug(msg, ...) myloglev(0, msg, ##__VA_ARGS__)
 #else
-#  define debug(msg, ...) /* no-op */
+#define debug(msg, ...)		/* no-op */
 #endif
 
 /* informational message, not expected to be compiled out */
@@ -159,4 +163,3 @@ uint64_t monotonic_time_ms(void);
 #define WARN_IF_NEGATIVE( value, msg, ... ) if ( value < 0 ) { warn( msg, ##__VA_ARGS__ ); }
 
 #endif
-

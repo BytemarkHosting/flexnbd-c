@@ -15,15 +15,15 @@
  */
 
 struct flexthread_mutex {
-	pthread_mutex_t mutex;
-	pthread_t holder;
+    pthread_mutex_t mutex;
+    pthread_t holder;
 };
 
-struct flexthread_mutex * flexthread_mutex_create(void);
-void flexthread_mutex_destroy( struct flexthread_mutex * );
+struct flexthread_mutex *flexthread_mutex_create(void);
+void flexthread_mutex_destroy(struct flexthread_mutex *);
 
-int flexthread_mutex_lock( struct flexthread_mutex * );
-int flexthread_mutex_unlock( struct flexthread_mutex * );
-int flexthread_mutex_held( struct flexthread_mutex * );
+int flexthread_mutex_lock(struct flexthread_mutex *);
+int flexthread_mutex_unlock(struct flexthread_mutex *);
+int flexthread_mutex_held(struct flexthread_mutex *);
 
 #endif

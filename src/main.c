@@ -5,18 +5,17 @@
 #include <stdlib.h>
 #include <time.h>
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
-	signal(SIGPIPE, SIG_IGN); /* calls to splice() unhelpfully throw this */
-	error_init();
+    signal(SIGPIPE, SIG_IGN);	/* calls to splice() unhelpfully throw this */
+    error_init();
 
-	srand(time(NULL));
+    srand(time(NULL));
 
-	if (argc < 2) {
-		exit_err( help_help_text );
-	}
-	mode(argv[1], argc-1, argv+1); /* never returns */
+    if (argc < 2) {
+	exit_err(help_help_text);
+    }
+    mode(argv[1], argc - 1, argv + 1);	/* never returns */
 
-	return 0;
+    return 0;
 }
-

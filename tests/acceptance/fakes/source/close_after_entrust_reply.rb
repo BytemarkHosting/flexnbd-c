@@ -10,10 +10,10 @@ include FlexNBD
 
 addr, port, srv_pid = *ARGV
 
-client = FakeSource.new( addr, port, "Timed out connecting" )
+client = FakeSource.new(addr, port, 'Timed out connecting')
 client.read_hello
-client.write_write_request( 0, 8 )
-client.write_data( "12345678" )
+client.write_write_request(0, 8)
+client.write_data('12345678')
 
 client.write_entrust_request
 client.read_response
@@ -21,13 +21,11 @@ client.close
 
 sleep(0.25)
 
-
 begin
-  client2 = FakeSource.new( addr, port, "Expected timeout" )
-  fail "Unexpected reconnection"
+  client2 = FakeSource.new(addr, port, 'Expected timeout')
+  raise 'Unexpected reconnection'
 rescue Timeout::Error
   # expected
 end
 
 exit(0)
-
