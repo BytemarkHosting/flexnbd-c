@@ -1,8 +1,8 @@
-flexnbd (0.2.1) UNRELEASED; urgency=medium
+flexnbd (0.3.0) stable; urgency=medium
 
-  * Force a msync after every write, ignoring FUA flag, or lack thereof.
+  * Force a msync after every write, ignoring FUA flag, or lack thereof (!51).
 
- -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 24 Apr 2018 10:27:12 +0100
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Tue, 24 Apr 2018 12:05:43 +0100
 
 flexnbd (0.2.0) stable; urgency=medium
 
