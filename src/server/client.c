@@ -470,8 +470,10 @@ void client_reply_to_write(struct client *client,
 			 request.len);
     }
 
-    // Only flush if FUA is set
-    if (request.flags & CMD_FLAG_FUA) {
+    // Only flush if FUA is set -- overridden for now to force flush after each
+    // write.
+    // if (request.flags & CMD_FLAG_FUA) {
+    if (1) {
 	/* multiple of page size */
 	uint64_t from_rounded =
 	    request.from & (~(sysconf(_SC_PAGE_SIZE) - 1));
