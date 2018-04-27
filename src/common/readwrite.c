@@ -76,7 +76,7 @@ int socket_nbd_read_hello(int fd, uint64_t * out_size,
 
 
     if (0 > readloop(fd, &init_raw, sizeof(init_raw))) {
-	warn("Couldn't read init");
+	warn(SHOW_ERRNO("Couldn't read init"));
 	return 0;
     }
 
@@ -130,7 +130,7 @@ void read_reply(int fd, uint64_t request_raw_handle,
 
     ERROR_IF_NEGATIVE(readloop
 		      (fd, &reply_raw, sizeof(struct nbd_reply_raw)),
-		      "Couldn't read reply");
+		      SHOW_ERRNO("Couldn't read reply"));
 
     nbd_r2h_reply(&reply_raw, reply);
 
@@ -171,14 +171,15 @@ void socket_nbd_read(int fd, uint64_t from, uint32_t len, int out_fd,
 
     fill_request(&request_raw, REQUEST_READ, 0, from, len);
     FATAL_IF_NEGATIVE(writeloop(fd, &request_raw, sizeof(request_raw)),
-		      "Couldn't write request");
+		      SHOW_ERRNO("Couldn't write request"));
 
 
     wait_for_data(fd, timeout_secs);
     read_reply(fd, request_raw.handle.w, &reply);
 
     if (out_buf) {
-	FATAL_IF_NEGATIVE(readloop(fd, out_buf, len), "Read failed");
+	FATAL_IF_NEGATIVE(readloop(fd, out_buf, len),
+			  SHOW_ERRNO("Read failed"));
     } else {
 	FATAL_IF_NEGATIVE(splice_via_pipe_loop(fd, out_fd, len),
 			  "Splice failed");
@@ -193,10 +194,11 @@ void socket_nbd_write(int fd, uint64_t from, uint32_t len, int in_fd,
 
     fill_request(&request_raw, REQUEST_WRITE, 0, from, len);
     ERROR_IF_NEGATIVE(writeloop(fd, &request_raw, sizeof(request_raw)),
-		      "Couldn't write request");
+		      SHOW_ERRNO("Couldn't write request"));
 
     if (in_buf) {
-	ERROR_IF_NEGATIVE(writeloop(fd, in_buf, len), "Write failed");
+	ERROR_IF_NEGATIVE(writeloop(fd, in_buf, len),
+			  SHOW_ERRNO("Write failed"));
     } else {
 	ERROR_IF_NEGATIVE(splice_via_pipe_loop(in_fd, fd, len),
 			  "Splice failed");
@@ -217,7 +219,8 @@ int socket_nbd_disconnect(int fd)
      * the mirror without affecting the main server.
      */
     FATAL_IF_NEGATIVE(writeloop(fd, &request_raw, sizeof(request_raw)),
-		      "Failed to write the disconnect request.");
+		      SHOW_ERRNO
+		      ("Failed to write the disconnect request."));
     return success;
 }
 

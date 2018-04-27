@@ -148,8 +148,6 @@ int readloop(int filedes, void *buffer, size_t size)
 	ssize_t result = read(filedes, buffer + readden, size - readden);
 
 	if (result == 0 /* EOF */ ) {
-	    warn("end-of-file detected while reading after %i bytes",
-		 readden);
 	    return -1;
 	}
 
@@ -224,9 +222,8 @@ int splice_via_pipe_loop(int fd_in, int fd_out, size_t len)
 
     while (spliced < len) {
 	ssize_t run = len - spliced;
-	ssize_t s2, s1 =
-	    spliceloop(fd_in, NULL, pipefd[1], NULL, run,
-		       SPLICE_F_NONBLOCK);
+	ssize_t s2, s1 = spliceloop(fd_in, NULL, pipefd[1], NULL, run,
+				    SPLICE_F_NONBLOCK);
 	/*if (run > 65535)
 	   run = 65535; */
 	if (s1 < 0) {

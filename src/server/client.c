@@ -152,7 +152,7 @@ void write_not_zeroes(struct client *client, uint64_t from, uint64_t len)
 				(dst), \
 				(len) \
 			), \
-			"read failed %ld+%d", from, (len) \
+			SHOW_ERRNO("read failed %ld+%d", from, (len)) \
 		)
 
 	if (bitset_is_set_at(map, from)) {
@@ -232,13 +232,13 @@ int client_read_request(struct client *client,
 	*disconnected = 1;
 	switch (errno) {
 	case 0:
-	    warn("EOF while reading request");
+	    warn(SHOW_ERRNO("EOF while reading request"));
 	    return 0;
 	case ECONNRESET:
-	    warn("Connection reset while" " reading request");
+	    warn(SHOW_ERRNO("Connection reset while reading request"));
 	    return 0;
 	case ETIMEDOUT:
-	    warn("Connection timed out while" " reading request");
+	    warn(SHOW_ERRNO("Connection timed out while reading request"));
 	    return 0;
 	default:
 	    /* FIXME: I've seen this happen, but I
@@ -248,7 +248,7 @@ int client_read_request(struct client *client,
 	     * again.  It should *probably* be an
 	     * error() call, but I want to be sure.
 	     * */
-	    fatal("Error reading request: %d, %s", errno, strerror(errno));
+	    fatal(SHOW_ERRNO("Error reading request"));
 	}
     }
 
@@ -271,16 +271,17 @@ int fd_write_reply(int fd, uint64_t handle, int error)
     if (-1 == writeloop(fd, &reply_raw, sizeof(reply_raw))) {
 	switch (errno) {
 	case ECONNRESET:
-	    error("Connection reset while writing reply");
+	    error(SHOW_ERRNO("Connection reset while writing reply"));
 	    break;
 	case EBADF:
-	    fatal("Tried to write to an invalid file descriptor");
+	    fatal(SHOW_ERRNO
+		  ("Tried to write to an invalid file descriptor"));
 	    break;
 	case EPIPE:
-	    error("Remote end closed");
+	    error(SHOW_ERRNO("Remote end closed"));
 	    break;
 	default:
-	    fatal("Unhandled error while writing: %d", errno);
+	    fatal(SHOW_ERRNO("Unhandled error while writing"));
 	}
     }
 
@@ -318,7 +319,7 @@ void client_write_init(struct client *client, uint64_t size)
 
     ERROR_IF_NEGATIVE(writeloop
 		      (client->socket, &init_raw, sizeof(init_raw)),
-		      "Couldn't send hello");
+		      SHOW_ERRNO("Couldn't send hello"));
 }
 
 
@@ -329,8 +330,7 @@ void client_write_init(struct client *client, uint64_t size)
 void client_flush(struct client *client, size_t len)
 {
     int devnull = open("/dev/null", O_WRONLY);
-    FATAL_IF_NEGATIVE(devnull,
-		      "Couldn't open /dev/null: %s", strerror(errno));
+    FATAL_IF_NEGATIVE(devnull, SHOW_ERRNO("Couldn't open /dev/null"));
     int pipes[2];
     pipe(pipes);
 
@@ -341,12 +341,12 @@ void client_flush(struct client *client, size_t len)
 	ssize_t received = splice(client->socket, NULL,
 				  pipes[1], NULL,
 				  len - spliced, flags);
-	FATAL_IF_NEGATIVE(received, "splice error: %s", strerror(errno));
+	FATAL_IF_NEGATIVE(received, SHOW_ERRNO("splice error"));
 	ssize_t junked = 0;
 	while (junked < received) {
 	    ssize_t junk;
 	    junk = splice(pipes[0], NULL, devnull, NULL, received, flags);
-	    FATAL_IF_NEGATIVE(junk, "splice error: %s", strerror(errno));
+	    FATAL_IF_NEGATIVE(junk, SHOW_ERRNO("splice error"));
 	    junked += junk;
 	}
 	spliced += received;
@@ -459,8 +459,8 @@ void client_reply_to_write(struct client *client,
 	ERROR_IF_NEGATIVE(readloop(client->socket,
 				   client->mapped + request.from,
 				   request.len),
-			  "reading write data failed from=%ld, len=%d",
-			  request.from, request.len);
+			  SHOW_ERRNO("reading write data failed from=%ld, len=%d",
+			  request.from, request.len));
 
 	/* the allocation_map is shared between client threads, and may be
 	 * being built. We need to reflect the write in it, as it may be in
@@ -693,8 +693,8 @@ void *client_serve(void *client_uncast)
 				    &client->fileno,
 				    &client->mapped_size,
 				    (void **) &client->mapped),
-		      "Couldn't open/mmap file %s: %s",
-		      client->serve->filename, strerror(errno)
+		      SHOW_ERRNO("Couldn't open/mmap file %s",
+				 client->serve->filename)
 	);
 
     FATAL_IF_NEGATIVE(madvise
