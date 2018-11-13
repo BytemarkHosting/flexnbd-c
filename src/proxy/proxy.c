@@ -507,6 +507,20 @@ int proxy_continue_connecting_to_upstream(struct proxier *proxy, int state)
     /* Data may have changed while we were disconnected */
     prefetch_set_is_empty(proxy->prefetch);
 
+    /* Reset our needles and sizes.
+     *
+     * Don't zero the req buffer size in case there's an outstanding request
+     * waiting to be re-sent following a disconnection.  The init and rsp
+     * buffers are used for reading from upstream.  If we're in this state then
+     * any upstream reads will be re-requested.
+     */
+    proxy->init.needle = 0;
+    proxy->init.size = 0;
+    proxy->rsp.needle = 0;
+    proxy->rsp.size = 0;
+    proxy->req.needle = 0;
+    /* Don't zero the req.size, as we may need to re-write it upstream */
+
     info("Connected to upstream on fd %i", proxy->upstream_fd);
     return READ_INIT_FROM_UPSTREAM;
 }
@@ -540,18 +554,19 @@ int proxy_read_init_from_upstream(struct proxier *proxy, int state)
 	proxy_finish_connect_to_upstream(proxy, upstream_size,
 					 upstream_flags);
 
-	/* Currently, we only get disconnected from upstream (so needing to come
-	 * here) when we have an outstanding request. If that becomes false,
-	 * we'll need to choose the right state to return to here */
+	/* Finished reading the init response now, reset the needle. */
 	proxy->init.needle = 0;
+
+	/* Currently, we only get disconnected from upstream (so needing to
+	 * come here) when we have an outstanding request. If that becomes
+	 * false, we'll need to choose the right state to return to here.
+	 */
 	return WRITE_TO_UPSTREAM;
     }
 
     return state;
 
   disconnect:
-    proxy->init.needle = 0;
-    proxy->init.size = 0;
     return CONNECT_TO_UPSTREAM;
 }
 
@@ -574,7 +589,6 @@ int proxy_write_to_upstream(struct proxier *proxy, int state)
 
     if (count == -1) {
 	warn(SHOW_ERRNO("Failed to send request to upstream"));
-	proxy->req.needle = 0;
 	// We're throwing the socket away so no need to uncork
 	return CONNECT_TO_UPSTREAM;
     }
@@ -637,8 +651,6 @@ int proxy_read_from_upstream(struct proxier *proxy, int state)
     return state;
 
   disconnect:
-    proxy->rsp.needle = 0;
-    proxy->rsp.size = 0;
     return CONNECT_TO_UPSTREAM;
 }
 
@@ -852,15 +864,6 @@ void proxy_session(struct proxier *proxy)
 		warn("Timed out in state %s while communicating with upstream", proxy_session_state_names[state]
 		    );
 		state = CONNECT_TO_UPSTREAM;
-
-		/* Since we've timed out, we won't have gone through the timeout logic
-		 * in the various state handlers that resets these appropriately... */
-		proxy->init.size = 0;
-		proxy->init.needle = 0;
-		proxy->rsp.size = 0;
-		proxy->rsp.needle = 0;
-		proxy->req.size = 0;
-		proxy->req.needle = 0;
 	    }
 	}
     }
