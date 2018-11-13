@@ -859,6 +859,8 @@ void proxy_session(struct proxier *proxy)
 		proxy->init.needle = 0;
 		proxy->rsp.size = 0;
 		proxy->rsp.needle = 0;
+		proxy->req.size = 0;
+		proxy->req.needle = 0;
 	    }
 	}
     }
