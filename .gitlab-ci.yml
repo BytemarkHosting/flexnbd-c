@@ -11,7 +11,7 @@ stages:
     paths:
       - pkg/
 
-package:stretch:
+package:jessie:
   <<: *package
   variables:
     DISTRO: jessie
