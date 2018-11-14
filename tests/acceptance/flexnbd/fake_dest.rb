@@ -1,5 +1,6 @@
 require 'socket'
 require 'timeout'
+require 'io/wait' # For IO#nread
 
 require 'flexnbd/constants'
 
