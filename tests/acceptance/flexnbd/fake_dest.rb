@@ -54,6 +54,10 @@ module FlexNBD
         write_reply(handle, 1)
       end
 
+      def nread
+        @sock.nread
+      end
+
       def disconnected?
         Timeout.timeout(2) do
           @sock.read(1).nil?
@@ -83,6 +87,10 @@ module FlexNBD
 
       def write_data(len)
         @sock.write(len)
+      end
+
+      def getsockopt(level, optname)
+        @sock.getsockopt(level, optname)
       end
 
       def self.parse_be64(str)

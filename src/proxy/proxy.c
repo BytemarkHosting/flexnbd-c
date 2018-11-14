@@ -58,6 +58,20 @@ struct proxier *proxy_create(char *s_downstream_address,
     out->downstream_fd = -1;
     out->upstream_fd = -1;
 
+    int upstream_timeout = UPSTREAM_TIMEOUT;
+
+    char *env_upstream_timeout = getenv("FLEXNBD_UPSTREAM_TIMEOUT");
+    if (NULL != env_upstream_timeout) {
+	int ut = atoi(env_upstream_timeout);
+        warn("Got %i from atoi\n", ut);
+	if (ut > 0) {
+	    upstream_timeout = ut;
+	}
+    }
+
+    out->upstream_timeout = upstream_timeout;
+    out->upstream_timeout_ms = (long unsigned int) upstream_timeout * 1000;
+
     out->prefetch = NULL;
     if (s_cache_bytes) {
 	int cache_bytes = atoi(s_cache_bytes);
@@ -781,6 +795,9 @@ void proxy_session(struct proxier *proxy)
 	};
 
 	if (select_timeout.tv_sec > 0) {
+	    if (select_timeout.tv_sec > proxy->upstream_timeout) {
+		select_timeout.tv_sec = proxy->upstream_timeout;
+	    }
 	    select_timeout_ptr = &select_timeout;
 	}
 
@@ -854,7 +871,7 @@ void proxy_session(struct proxier *proxy)
 	/* In these states, we're interested in restarting after a timeout.
 	 */
 	if (old_state == state && proxy_state_upstream(state)) {
-	    if ((monotonic_time_ms()) - state_started > UPSTREAM_TIMEOUT) {
+	    if ((monotonic_time_ms()) - state_started > proxy->upstream_timeout_ms) {
 		warn("Timed out in state %s while communicating with upstream", proxy_session_state_names[state]);
 		state = CONNECT_TO_UPSTREAM;
 	    }

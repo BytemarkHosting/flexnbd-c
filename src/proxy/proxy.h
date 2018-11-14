@@ -14,10 +14,10 @@
 #endif
 
 /** UPSTREAM_TIMEOUT
- * How long ( in ms ) to allow for upstream to respond. If it takes longer
+ * How long (in s) to allow for upstream to respond. If it takes longer
  * than this, we will cancel the current request-response to them and resubmit
  */
-#define UPSTREAM_TIMEOUT 30 * 1000
+#define UPSTREAM_TIMEOUT 30
 
 struct proxier {
 	/** address/port to bind to */
@@ -71,6 +71,16 @@ struct proxier {
      */
     uint64_t req_count;
     int hello_sent;
+
+    /*
+     * How long (in s) to allow for upstream to respond. If it takes longer
+     * than this, we will cancel the current request-response to them and
+     * resubmit
+     *
+     * Defaults to UPSTREAM_TIMEOUT but can be overridden in the environment.
+     */
+     int upstream_timeout;
+     unsigned long int upstream_timeout_ms;
 
 	/** These are only used if we pass --cache on the command line */
 
