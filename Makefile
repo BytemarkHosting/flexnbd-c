@@ -4,7 +4,8 @@ VPATH=src:tests/unit
 DESTDIR?=/
 PREFIX?=/usr/local/bin
 INSTALLDIR=$(DESTDIR)/$(PREFIX)
-	
+DEBUG=1
+
 ifdef DEBUG
 	CFLAGS_EXTRA=-g -DDEBUG
 	LDFLAGS_EXTRA=-g

@@ -537,7 +537,7 @@ int proxy_read_init_from_upstream(struct proxier *proxy, int state)
 
     if (count == -1) {
 	warn(SHOW_ERRNO("Failed to read init from upstream"));
-	goto disconnect;
+	return CONNECT_TO_UPSTREAM;
     }
 
     if (proxy->init.needle == proxy->init.size) {
@@ -547,7 +547,7 @@ int proxy_read_init_from_upstream(struct proxier *proxy, int state)
 	    ((struct nbd_init_raw *) proxy->init.buf, &upstream_size,
 	     &upstream_flags)) {
 	    warn("Upstream sent invalid init");
-	    goto disconnect;
+	    return CONNECT_TO_UPSTREAM;
 	}
 
 	/* record the flags, and log the reconnection, set TCP_NODELAY */
@@ -565,9 +565,6 @@ int proxy_read_init_from_upstream(struct proxier *proxy, int state)
     }
 
     return state;
-
-  disconnect:
-    return CONNECT_TO_UPSTREAM;
 }
 
 int proxy_write_to_upstream(struct proxier *proxy, int state)
@@ -625,7 +622,7 @@ int proxy_read_from_upstream(struct proxier *proxy, int state)
 
     if (count == -1) {
 	warn(SHOW_ERRNO("Failed to get reply from upstream"));
-	goto disconnect;
+	return CONNECT_TO_UPSTREAM;
     }
 
     if (proxy->rsp.needle == NBD_REPLY_SIZE) {
@@ -633,7 +630,7 @@ int proxy_read_from_upstream(struct proxier *proxy, int state)
 
 	if (reply->magic != REPLY_MAGIC) {
 	    warn("Reply magic is incorrect");
-	    goto disconnect;
+	    return CONNECT_TO_UPSTREAM;
 	}
 
 	if (proxy->req_hdr.type == REQUEST_READ) {
@@ -649,9 +646,6 @@ int proxy_read_from_upstream(struct proxier *proxy, int state)
     }
 
     return state;
-
-  disconnect:
-    return CONNECT_TO_UPSTREAM;
 }
 
 
@@ -861,8 +855,7 @@ void proxy_session(struct proxier *proxy)
 	 */
 	if (old_state == state && proxy_state_upstream(state)) {
 	    if ((monotonic_time_ms()) - state_started > UPSTREAM_TIMEOUT) {
-		warn("Timed out in state %s while communicating with upstream", proxy_session_state_names[state]
-		    );
+		warn("Timed out in state %s while communicating with upstream", proxy_session_state_names[state]);
 		state = CONNECT_TO_UPSTREAM;
 	    }
 	}
