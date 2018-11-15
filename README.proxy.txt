@@ -169,6 +169,11 @@ That is, the '=' is required. This is a limitation of getopt-long.
 If no cache size is given, a size of 4096 bytes is assumed. Caching can
 be explicitly disabled by setting a size of 0.
 
+ENVIRONMENT
+
+ FLEXNBD_UPSTREAM_TIMEOUT   The timeout in seconds for the proxy communicating
+                            with the upstream server defaults to 30 seconds.
+
 BUGS
 
 Should be reported via GitHub.

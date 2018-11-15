@@ -1,17 +1,20 @@
 stages:
   - package
   - publish
- 
-package:jessie: &package
+
+.package: &package
   stage: package
   image: $CI_REGISTRY/docker-images/layers:$DISTRO-deb
-  variables:
-    DISTRO: jessie
   script:
     - package
   artifacts:
     paths:
       - pkg/
+
+package:jessie:
+  <<: *package
+  variables:
+    DISTRO: jessie
 
 package:stretch:
   <<: *package
@@ -20,7 +23,7 @@ package:stretch:
 
 publish:
   stage: publish
-  tags: 
+  tags:
     - shell
   script:
     - publish

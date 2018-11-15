@@ -158,7 +158,7 @@ module ProxyTests
         # Send the read request to the proxy
         client.write(0, (b * 4096))
 
-        # ensure we're given the read request
+        # ensure we're given the write request
         req1 = sc1.read_request
         assert_equal ::FlexNBD::REQUEST_MAGIC, req1[:magic]
         assert_equal ::FlexNBD::REQUEST_WRITE, req1[:type]
@@ -202,6 +202,62 @@ module ProxyTests
                          ['setsockopt', 3,
                           Socket::SOL_TCP, Socket::TCP_NODELAY, 1, 0],
                          'TCP_NODELAY not set on upstream fd 3')
+      end
+    end
+  end
+
+  def test_write_request_retried_when_upstream_times_out_during_write_phase
+    ENV['FLEXNBD_UPSTREAM_TIMEOUT'] = '4'
+    maker = make_fake_server
+
+    with_ld_preload('setsockopt_logger') do
+      with_proxied_client(4096) do |client|
+        server, sc1 = maker.value
+
+        # Guess an approprate request size, based on the send buffer size.
+        sz = sc1.getsockopt(Socket::SOL_SOCKET, Socket::SO_SNDBUF).int * 4
+        data1 = (b * sz)
+
+        # Send the read request to the proxy
+        client.write(0, data1)
+
+        # ensure we're given the write request
+        req1 = sc1.read_request
+        assert_equal ::FlexNBD::REQUEST_MAGIC, req1[:magic]
+        assert_equal ::FlexNBD::REQUEST_WRITE, req1[:type]
+        assert_equal 0, req1[:from]
+        assert_equal data1.size, req1[:len]
+
+        # We do not read it at this point, as we want the proxy to be waiting
+        # in the WRITE_UPSTREAM state.
+
+        # Need to sleep longer than the timeout set above
+        sleep 5
+
+        # Check the number of bytes that can be read from the socket without
+        # blocking.  If this equal to the size of the original request, then
+        # the whole request has been buffered.  If this is the case, then the
+        # proxy will not time-out in the WRITE_UPSTREAM statem which is what
+        # we're trying to test.
+        assert sc1.nread < sz, 'Request from proxy completely buffered. Test is useless'
+
+        # Kill the server now that the timeout has happened.
+        sc1.close
+
+        # We expect the proxy to reconnect without our client doing anything.
+        sc2 = server.accept
+        sc2.write_hello
+
+        # And once reconnected, it should resend an identical request.
+        req2 = sc2.read_request
+        assert_equal req1, req2
+
+        # And now lets read the data to make sure we get it all.
+        data2 = sc2.read_data(req2[:len])
+        assert_equal data1, data2
+
+        sc2.close
+        server.close
       end
     end
   end
