@@ -1,3 +1,10 @@
+flexnbd (0.4.0) stable; urgency=medium
+
+  * Ensure proxy state is completely reset before upstream init is read,
+    ensuring any waiting requests are fully replayed (#39, !54)
+
+ -- Patrick J Cherry <patrick@bytemark.co.uk>  Thu, 15 Nov 2018 14:24:26 +0000
+
 flexnbd (0.3.0) stable; urgency=medium
 
   * Force a msync after every write, ignoring FUA flag, or lack thereof (!51).
