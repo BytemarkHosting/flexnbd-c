@@ -86,6 +86,14 @@ class TestWriteDuringMigration < Test::Unit::TestCase
     end
   end
 
+  def stop_mirror
+    UNIXSocket.open(@source_sock) do |sock|
+      sock.write("break\x0A\x0A")
+      sock.flush
+      sock.readline
+    end
+  end
+
   def wait_for_quit
     Timeout.timeout(10) do
       Process.waitpid2(@dst_proc)
@@ -192,6 +200,24 @@ class TestWriteDuringMigration < Test::Unit::TestCase
         wait_for_quit
         status_poker.join
         assert_both_sides_identical
+      end
+    end
+  end
+
+  def test_mirroring_can_be_restarted
+    Dir.mktmpdir do |tmpdir|
+      Dir.chdir(tmpdir) do
+        make_files
+
+        launch_servers
+
+        3.times do
+          start_mirror
+          stop_mirror
+        end
+        start_mirror
+
+        wait_for_quit
       end
     end
   end
