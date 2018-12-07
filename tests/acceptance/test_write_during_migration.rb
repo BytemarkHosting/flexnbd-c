@@ -82,15 +82,14 @@ class TestWriteDuringMigration < Test::Unit::TestCase
     UNIXSocket.open(@source_sock) do |sock|
       sock.write(['mirror', '127.0.0.1', @dest_port.to_s, 'exit'].join("\x0A") + "\x0A\x0A")
       sock.flush
-      rsp = sock.readline
+      sock.readline
     end
   end
 
   def wait_for_quit
     Timeout.timeout(10) do
-      start_time = Time.now
-      dst_result = Process.waitpid2(@dst_proc)
-      src_result = Process.waitpid2(@src_proc)
+      Process.waitpid2(@dst_proc)
+      Process.waitpid2(@src_proc)
     end
   end
 
@@ -100,8 +99,23 @@ class TestWriteDuringMigration < Test::Unit::TestCase
     loop do
       begin
         client.write(offsets[rand(offsets.size)] * 4096, @write_data)
-      rescue StandardError => err
+      rescue StandardError
         # We expect a broken write at some point, so ignore it
+        break
+      end
+    end
+  end
+
+  def bombard_with_status
+    loop do
+      begin
+        UNIXSocket.open(@source_sock) do |sock|
+          sock.write("status\x0A\x0A")
+          sock.flush
+          sock.readline
+        end
+      rescue StandardError
+        # If the socket disappears, that's OK.
         break
       end
     end
@@ -160,5 +174,25 @@ class TestWriteDuringMigration < Test::Unit::TestCase
         (src_writers_1 + src_writers_2).each(&:join)
         assert_both_sides_identical
       end
-    end end
+    end
+  end
+
+
+  def test_status_call_after_cleanup
+    Dir.mktmpdir do |tmpdir|
+      Dir.chdir(tmpdir) do
+        make_files
+
+        launch_servers
+
+        status_poker = Thread.new { bombard_with_status }
+
+        start_mirror
+
+        wait_for_quit
+        status_poker.join
+        assert_both_sides_identical
+      end
+    end
+  end
 end

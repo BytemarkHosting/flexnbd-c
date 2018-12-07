@@ -47,6 +47,7 @@ struct control_client {
 struct control *control_create(struct flexnbd *,
 			       const char *control_socket_name);
 void control_signal_close(struct control *);
+void control_wait_for_close(struct control *control);
 void control_destroy(struct control *);
 
 void *control_runner(void *);

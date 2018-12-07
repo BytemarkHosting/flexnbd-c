@@ -78,6 +78,14 @@ void control_destroy(struct control *control)
     free(control);
 }
 
+void control_wait_for_close(struct control *control)
+{
+    NULLCHECK(control);
+    while (!fd_is_closed(control->control_fd)) {
+       usleep(10000);
+    }
+}
+
 struct control_client *control_client_create(struct flexnbd *flexnbd,
 					     int client_fd,
 					     struct mbox *state_mbox)
