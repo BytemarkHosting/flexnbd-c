@@ -204,14 +204,16 @@ class TestWriteDuringMigration < Test::Unit::TestCase
   end
 
   def test_mirroring_can_be_restarted
+    @size = 100 * 1024 * 1024 # 100MB
     Dir.mktmpdir do |tmpdir|
       Dir.chdir(tmpdir) do
         make_files
 
-        ENV['DEBUG'] = '1'
         launch_servers
-        ENV.delete 'DEBUG'
 
+        # This is a bit racy.  It needs to be slow enough that the migration
+        # isn't finished before the stop runs, and slow enough so that we can
+        # stop/start a few times.
         3.times do
           start_mirror
           sleep 0.1
