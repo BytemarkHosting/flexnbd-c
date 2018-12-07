@@ -820,14 +820,21 @@ void serve_cleanup(struct server *params,
     void *status;
 
     info("cleaning up");
-
-    if (params->server_fd) {
-	close(params->server_fd);
-    }
-
-    /* close the control socket too */
+    
+    /* Close the control socket, and wait for it to close before proceeding.
+     * If we do not wait, we risk a race condition with the tail supervisor
+     * sending a status command, and deadlocking the mirroring.  */
     if (params->flexnbd && params->flexnbd->control) {
+	debug("closing control socket");
         control_signal_close(params->flexnbd->control);
+
+	debug("waiting for control socket to close");
+	control_wait_for_close(params->flexnbd->control);
+    }
+    
+    if (params->server_fd) {
+	debug("closing server_fd");
+	close(params->server_fd);
     }
 
     /* need to stop background build if we're killed very early on */
