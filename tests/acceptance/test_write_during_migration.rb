@@ -185,7 +185,6 @@ class TestWriteDuringMigration < Test::Unit::TestCase
     end
   end
 
-
   def test_status_call_after_cleanup
     Dir.mktmpdir do |tmpdir|
       Dir.chdir(tmpdir) do
@@ -209,11 +208,15 @@ class TestWriteDuringMigration < Test::Unit::TestCase
       Dir.chdir(tmpdir) do
         make_files
 
+        ENV['DEBUG'] = '1'
         launch_servers
+        ENV.delete 'DEBUG'
 
         3.times do
           start_mirror
+          sleep 0.1
           stop_mirror
+          sleep 0.1
         end
         start_mirror
 
