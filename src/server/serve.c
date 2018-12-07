@@ -827,6 +827,11 @@ void serve_cleanup(struct server *params,
 	close(params->server_fd);
     }
 
+    /* close the control socket too */
+    if (params->flexnbd && params->flexnbd->control) {
+        control_signal_close(params->flexnbd->control);
+    }
+
     /* need to stop background build if we're killed very early on */
     pthread_cancel(params->allocation_map_builder_thread);
     pthread_join(params->allocation_map_builder_thread, &status);
@@ -860,15 +865,6 @@ void serve_cleanup(struct server *params,
     if (server_acl_locked(params)) {
 	server_unlock_acl(params);
     }
-
-    /* if( params->flexnbd ) { */
-    /*      if ( params->flexnbd->control ) { */
-    /*              flexnbd_stop_control( params->flexnbd ); */
-    /*      } */
-    /*      flexnbd_destroy( params->flexnbd ); */
-    /* } */
-
-    /* server_destroy( params ); */
 
     debug("Cleanup done");
 }

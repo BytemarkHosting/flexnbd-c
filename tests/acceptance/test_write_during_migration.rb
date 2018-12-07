@@ -114,7 +114,7 @@ class TestWriteDuringMigration < Test::Unit::TestCase
           sock.flush
           sock.readline
         end
-      rescue Errno::ENOENT
+      rescue StandardError
         # If the socket disappears, that's OK.
         break
       end
