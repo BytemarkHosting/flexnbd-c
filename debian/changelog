@@ -2,6 +2,8 @@ flexnbd (0.4.0) UNRELEASED; urgency=medium
 
   * Explicitly close the server control socket, and wait for it to close, to
     prevent deadlocks during the server clean-up process (#40 !58)
+  * Ensure mirroring can be restarted after a break command is sent to the
+    source (#38, !59)
 
  -- Patrick J Cherry <patrick@bytemark.co.uk>  Fri, 07 Dec 2018 16:38:56 +0000
 
