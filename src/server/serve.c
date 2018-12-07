@@ -812,8 +812,6 @@ void server_control_arrived(struct server *serve)
 }
 
 
-void flexnbd_stop_control(struct flexnbd *flexnbd);
-
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server *params,
 		   int fatal __attribute__ ((unused)))
