@@ -86,6 +86,14 @@ class TestWriteDuringMigration < Test::Unit::TestCase
     end
   end
 
+  def stop_mirror
+    UNIXSocket.open(@source_sock) do |sock|
+      sock.write("break\x0A\x0A")
+      sock.flush
+      sock.readline
+    end
+  end
+
   def wait_for_quit
     Timeout.timeout(10) do
       Process.waitpid2(@dst_proc)
@@ -177,7 +185,6 @@ class TestWriteDuringMigration < Test::Unit::TestCase
     end
   end
 
-
   def test_status_call_after_cleanup
     Dir.mktmpdir do |tmpdir|
       Dir.chdir(tmpdir) do
@@ -192,6 +199,30 @@ class TestWriteDuringMigration < Test::Unit::TestCase
         wait_for_quit
         status_poker.join
         assert_both_sides_identical
+      end
+    end
+  end
+
+  def test_mirroring_can_be_restarted
+    @size = 100 * 1024 * 1024 # 100MB
+    Dir.mktmpdir do |tmpdir|
+      Dir.chdir(tmpdir) do
+        make_files
+
+        launch_servers
+
+        # This is a bit racy.  It needs to be slow enough that the migration
+        # isn't finished before the stop runs, and slow enough so that we can
+        # stop/start a few times.
+        3.times do
+          start_mirror
+          sleep 0.1
+          stop_mirror
+          sleep 0.1
+        end
+        start_mirror
+
+        wait_for_quit
       end
     end
   end

@@ -671,6 +671,7 @@ static void mirror_abandon_cb(struct ev_loop *loop, ev_io * w, int revents)
     debug("Abandon message received");
     mirror_set_state(ctrl->mirror, MS_ABANDONED);
     self_pipe_signal_clear(ctrl->mirror->abandon_signal);
+    ev_io_stop(loop, &ctrl->abandon_watcher);
     ev_break(loop, EVBREAK_ONE);
     return;
 }
