@@ -1,3 +1,13 @@
+flexnbd (0.5.0) stable; urgency=medium
+
+  [ Patrick J Cherry ]
+  * Explicitly close the server control socket, and wait for it to close, to
+    prevent deadlocks during the server clean-up process (#40 !58)
+  * Ensure mirroring can be restarted after a break command is sent to the
+    source (#37, !59)
+
+ -- James Carter <james.carter@bytemark.co.uk>  Fri, 11 Jan 2019 10:37:23 +0000
+
 flexnbd (0.4.0) stable; urgency=medium
 
   * Ensure proxy state is completely reset before upstream init is read,

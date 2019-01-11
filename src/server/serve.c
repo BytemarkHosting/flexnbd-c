@@ -812,8 +812,6 @@ void server_control_arrived(struct server *serve)
 }
 
 
-void flexnbd_stop_control(struct flexnbd *flexnbd);
-
 /** Closes sockets, frees memory and waits for all client threads to finish */
 void serve_cleanup(struct server *params,
 		   int fatal __attribute__ ((unused)))
@@ -822,8 +820,20 @@ void serve_cleanup(struct server *params,
     void *status;
 
     info("cleaning up");
+    
+    /* Close the control socket, and wait for it to close before proceeding.
+     * If we do not wait, we risk a race condition with the tail supervisor
+     * sending a status command, and deadlocking the mirroring.  */
+    if (params->flexnbd && params->flexnbd->control) {
+	debug("closing control socket");
+        control_signal_close(params->flexnbd->control);
 
+	debug("waiting for control socket to close");
+	control_wait_for_close(params->flexnbd->control);
+    }
+    
     if (params->server_fd) {
+	debug("closing server_fd");
 	close(params->server_fd);
     }
 
@@ -860,15 +870,6 @@ void serve_cleanup(struct server *params,
     if (server_acl_locked(params)) {
 	server_unlock_acl(params);
     }
-
-    /* if( params->flexnbd ) { */
-    /*      if ( params->flexnbd->control ) { */
-    /*              flexnbd_stop_control( params->flexnbd ); */
-    /*      } */
-    /*      flexnbd_destroy( params->flexnbd ); */
-    /* } */
-
-    /* server_destroy( params ); */
 
     debug("Cleanup done");
 }
