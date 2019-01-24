@@ -23,8 +23,6 @@ package:stretch:
 
 publish:
   stage: publish
-  tags:
-    - shell
+  image: $CI_REGISTRY/docker-images/layers:stretch-publish
   script:
     - publish
-
